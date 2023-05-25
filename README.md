@@ -1,3 +1,5 @@
+# jupy-frontend
+The Frontend Repository for the Jupyter-Canvas
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
