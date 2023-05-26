@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import interact from 'interactjs'
-import '../../styles/ui/Draggable.css'
+import '../../styles/ui/Output.css'
 import { Row, Button, Col, Container } from 'react-bootstrap';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlay, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { v4 as uuidv4 } from 'uuid';
 
-const Draggable = props => {
-
-    const [text, setText] = useState(props.text);
-    const id = props.id;
-    const execCountByCellId = props.execCountByCellId;
+const Output = props => {
     
-    // target elements with the "draggable" class
-    interact('.draggable')
+    const id = props.id;
+    const execOutputByCellId = props.execOutputByCellId;
+
+
+    interact('.draggableOutput')
     .draggable({
         // enable inertial throwing
         inertia: true,
@@ -87,41 +83,28 @@ const Draggable = props => {
         target.setAttribute('data-x', x)
         target.setAttribute('data-y', y)
     }
+    
 
-    // this function is used later in the resizing and gesture demos
-    // window.dragMoveListener = dragMoveListener
+    let content = <div></div>
+    // check if execOutputByCellId has an output for this cell
+    execOutputByCellId.map((item, index) => {
+        if (item.id === id) {
+            content = (
+                <div className="draggableOutput">
+                    <Container>
+                        <Row>
+                            <div className="col-md-12">
+                                <div key={index}>{item.output}</div>
+                            </div>
+                        </Row>
+                    </Container>
+                </div>
+            )
+        }
+    })
 
-    const runCode = () => {
-        var msg_id = uuidv4();
-        props.execute(text, msg_id, id);
-    }
-
-    return (
-        <div className="draggable">
-            <Container>
-                <Row>
-                    <div className="col-md-12">
-                        <textarea className="textarea col-md-12 mt-3" value={text} onChange={(e) => setText(e.target.value)} />
-                    </div>
-                    <div className="col-md-12">
-                        <Button variant="primary" size="sm" className="mb-2 mx-1" onClick={() => setText('')}>
-                            <FontAwesomeIcon icon={faTrash} />
-                        </Button>
-                        <Button variant="primary" size="sm" className="mb-2 mx-1" onClick={runCode}>
-                            <FontAwesomeIcon icon={faPlay} />
-                        </Button>
-                    </div>
-                </Row>
-            </Container>
-            {execCountByCellId.map((item, index) => {
-                if (item.id === id) {
-                    return <div key={index}>{item.executionCount}</div>
-                }
-            })}
-        </div>
-    )
+    return (content)
 
 }
 
-export default Draggable;
-
+export default Output;

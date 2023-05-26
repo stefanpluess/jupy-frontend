@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import interact from 'interactjs'
 import '../../styles/views/Home.css'
-import Draggable from '../ui/Draggable';
-import Draggable1 from '../ui/Draggable1';
-import axios from 'axios'
+import Cell from '../ui/Cell';
+import Output from '../ui/Output';
 import { Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -15,10 +13,17 @@ const Home = () => {
 
 	const [session_id, setSession_id] = useState('')
 	const [kernel_id, setKernel_id] = useState('')
+
 	const [cells, setCells] = useState([]);
+	const [outputs, setOutputs] = useState([]);
+
 	const [websocket, setWebsocket] = useState(null);
+
 	const [latestExecutionCount, setLatestExecutionCount] = useState({});
+	const [latestExecutionOutput, setLatestExecutionOutput] = useState({});
+
 	const [execCountByCellId, setExecCountByCellId] = useState([]);
+	const [execOutputByCellId, setExecOutputByCellId] = useState([]);
 
 	const [cellIdToMsgId, setCellIdToMsgId] = useState({});
 
@@ -27,11 +32,10 @@ const Home = () => {
 	const url = 'http://localhost:8888/';
 
 
-	// add useEffect on latestExecutionCount
+
 	useEffect(() => {
 		// do not trigger on first render
 		if (Object.keys(latestExecutionCount).length === 0) return;
-		console.log("latestExecutionCount changed");
 		const msg_id = latestExecutionCount.msg_id;
 		const executionCount = latestExecutionCount.execution_count;
 		const cell_id = cellIdToMsgId[msg_id];
@@ -51,22 +55,34 @@ const Home = () => {
 
 	}, [latestExecutionCount]);
 
-	// useEffect for the cells
+
 	useEffect(() => {
-		console.log("cells changed");
-		console.log(cells);
-	}
-	, [cells]);
+		// do not trigger on first render
+		if (Object.keys(latestExecutionOutput).length === 0) return;
+		const msg_id = latestExecutionOutput.msg_id;
+		const output = latestExecutionOutput.output;
+		// TODO: in case of error, change font color
 
+		const cell_id = cellIdToMsgId[msg_id];
+		const newOutput = {
+			id: cell_id,
+			output: output
+		};
 
+		// if the id already exists, replace it, else add it
+		if (execOutputByCellId.find(item => item.id === newOutput.id)) {
+			setExecOutputByCellId(execOutputByCellId.map(item => item.id === newOutput.id ? newOutput : item));
+		} else {
+			setExecOutputByCellId([...execOutputByCellId, newOutput]);
+		}
+
+	}, [latestExecutionOutput]);
+
+	// add cell and a new output (using the same id)
 	function addCell() {
 		const key = uuidv4();
-		const newCell = {
-			key: key,
-			id: key,
-			text: "New Box",
-		}
-		setCells([...cells, newCell])
+		setCells([...cells, { key: key, id: key, text: "New Box" }])
+		setOutputs([...outputs, { key: key, id: key, text: null }]);
 	}
 
 	function removeCell(element) {
@@ -93,29 +109,41 @@ const Home = () => {
 			console.log('WebSocket connection established');
 		};
 
+		// Handle incoming messages from the kernel
 		ws.onmessage = (event) => {
-			// Handle incoming messages from the kernel
 			const message = JSON.parse(event.data);
+			const msg_type = message.header.msg_type;
 			// console.log('Received message from kernel:', message);
 
 			// Handle different message types as needed
-			if (message.header.msg_type === 'execute_reply') {
-				// Code execution reply
-				const executionResult = message.content;
-				const executionCount = executionResult.execution_count;
-				const msg_id = message.parent_header.msg_id;
-
+			if (msg_type === 'execute_reply') {
+				if (message.content.status === 'error') return;
 				const newObj = {
-					msg_id: msg_id,
-					execution_count: executionCount,
+					msg_id: message.parent_header.msg_id,
+					execution_count: message.content.execution_count,
 				}
 				setLatestExecutionCount(newObj);
 
-				console.log('Execution result:', executionResult);
-			} else if (message.header.msg_type === 'stream') {
-				// Output stream message
-				const outputData = message.content.text;
-				console.log('Output:', outputData);
+			} else if (msg_type === 'execute_result') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.data['text/plain']
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'stream') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.text
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'error') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.traceback.join('\n')
+				}
+				setLatestExecutionOutput(outputObj);
 			}
 		};
 
@@ -175,8 +203,23 @@ const Home = () => {
 			</Button>
 			{/* {cells} */}
 			{cells.map((item) => (
-				<Draggable key={item.key} id={item.key} text={item.text} execute={executeCode} execCountByCellId={execCountByCellId}/>
+				<Cell 
+					key={item.key} 
+					id={item.key} 
+					text={item.text} 
+					execute={executeCode} 
+					execCountByCellId={execCountByCellId}
+				/>
 			))}
+			{outputs.map((item) => {
+				// if (execOutputByCellId[item.id] != null) {
+					return <Output
+					key={item.key}
+					id={item.id}
+					text={item.text}
+					execOutputByCellId={execOutputByCellId}/>
+				// }
+			})}
     </div>
   )
 }
