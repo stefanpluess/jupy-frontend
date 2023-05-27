@@ -117,7 +117,7 @@ const Home = () => {
 
 			// Handle different message types as needed
 			if (msg_type === 'execute_reply') {
-				if (message.content.status === 'error') return;
+				if (message.content.status === 'error' || message.content.status === 'abort') return;
 				const newObj = {
 					msg_id: message.parent_header.msg_id,
 					execution_count: message.content.execution_count,
@@ -135,6 +135,18 @@ const Home = () => {
 				const outputObj = {
 					msg_id: message.parent_header.msg_id,
 					output: message.content.text
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'display_data') {
+				const outputText = message.content.data['text/plain'];
+				const outputImage = message.content.data['image/png'];
+				// base64 encoded image: decode
+				// const outputImageDecoded = atob(outputImage);
+				console.log(outputImage)
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: outputImage
 				}
 				setLatestExecutionOutput(outputObj);
 
