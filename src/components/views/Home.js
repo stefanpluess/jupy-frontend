@@ -5,7 +5,7 @@ import Output from '../ui/Output';
 import { Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
-import { getNotebook, startSession } from '../../helpers/utils';
+import { startSession } from '../../helpers/utils';
 import { v4 as uuidv4 } from 'uuid';
 
 
