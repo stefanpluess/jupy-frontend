@@ -93,6 +93,28 @@ export async function startSession(url: string, token: string, notebookName: str
         session_id: session_id
     }
 }
+
+
+export function createOutputNode(node: Node) {
+  const newOutputNode: Node = {
+    id: node.id+"_output",
+    type: 'outputNode',
+    // position it on the right of the given position
+    position: {
+      x: node.position.x + 140,
+      y: node.position.y + 30,
+    },
+    data: { output: "Demo Output" },
+  };
+
+  // in case the node has a parent, we want to make sure that the output node has the same parent
+  if (node.parentNode) {
+    newOutputNode.parentNode = node.parentNode;
+    newOutputNode.extent = 'parent';
+  }
+  return newOutputNode;
+}
+
 // ------------------------- END -------------------------
 
 

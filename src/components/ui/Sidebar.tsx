@@ -9,10 +9,10 @@ const Sidebar = () => {
   return (
     <aside>
       <div className="react-flow__node-node" onDragStart={(event: DragEvent) => onDragStart(event, 'node')} draggable>
-        <div className="label">Node</div>
+        <div className="label">Cell</div>
       </div>
       <div className="react-flow__node-group" onDragStart={(event: DragEvent) => onDragStart(event, 'group')} draggable>
-        <div className="label">Group</div>
+        <div className="label">Bubble</div>
       </div>
     </aside>
   );

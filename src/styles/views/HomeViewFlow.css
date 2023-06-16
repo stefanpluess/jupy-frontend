@@ -38,8 +38,8 @@
   background: rgba(83, 41, 75, 0.502);
   box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.1);
   border: 1px solid #eee;
-  width: 100px;
-  height: 100px;
+  width: auto;
+  height: auto;
   text-align: center;
   border-radius: 2px;
 }
@@ -64,41 +64,88 @@
 }
 
 .wrapper .textareaNode {
-  background-color: rgba(180, 75, 159, 0.502);
+  background-color: rgba(0, 0, 0, 0.502);
+  font-size: 7px;
+  min-height: 50px;
+  min-width: 110px;
+  max-width: 300px;
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+.wrapper .outputNode {
+  background-color: rgba(255, 255, 255, 0.477);
+  color: black;
   resize: none;
-  border: none;
   outline: none;
-  top: 15%;
-  height: 70%;
   font-size: 8px;
+  border: 1px solid #eee;
+  padding: 4px;
 }
 
 .wrapper .buttonArea {
   background-color: rgba(99, 32, 86, 0.502);
-  /* color: transparent; */
   bottom: 0;
-  height: 15%;
+  height: 15px;
 }
 
-.wrapper .playButton {
+.wrapper .cellButton {
   background-color: transparent;
   border-color: transparent;
   color: white;
-  width: 100%;
   height: 100%;
+  border-top: 0.2px solid #fff;
 }
 
-.wrapper .playIcon {
-  transform: translate(0%, -50%) scale(0.7);
+.wrapper .cellButton:disabled {
+  background-color: transparent;
+  border-color: transparent;
+  color: white;
+  height: 100%;
+  border-top: 0.2px solid #fff;
+  border-left: 0.2px solid #fff;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.wrapper .playButton:hover {
-  transform: scale(1.2);
+.wrapper .bLeft {
+  width: 50%;
+  right: 50%;
+  border-right: 0.2px solid #fff;
+}
+
+.wrapper .bRight {
+  width: 50%;
+  left: 50%;
+  border-left: 0.2px solid #fff;
+}
+
+.wrapper .bRight:hover, .bLeft:hover{
+  background-color: rgba(62, 20, 53, 0.502);
+}
+
+.wrapper .icon {
+  margin-top: 2px;
+  transform: scale(0.6);
+}
+
+.wrapper .executionCount {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  height: 15%;
+  width: 20%;
+  right: 0;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-size: 8px;
+  color: #cdcdcd;
 }
 
 .wrapper .react-flow__node-node.selected,
 .wrapper .react-flow__node-node:hover {
   box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.2);
+  /* background-color: rgba(129, 57, 113, 0.502); */
 }
 
 .wrapper .react-flow__node-node.selected {
@@ -111,6 +158,7 @@
   box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
   resize: both;
   width: auto;
+  /* border-radius: 5%; */
 }
 
 .wrapper .react-flow__node-group.active {

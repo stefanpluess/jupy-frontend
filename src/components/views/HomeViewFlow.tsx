@@ -1,4 +1,4 @@
-import { MouseEvent, DragEvent, useCallback, useRef } from 'react';
+import { MouseEvent, DragEvent, useCallback, useRef, useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   ReactFlowProvider,
@@ -19,14 +19,17 @@ import ReactFlow, {
 import Sidebar from '../ui/Sidebar';
 import SimpleNode from '../ui/SimpleNode';
 import GroupNode from '../ui/GroupNode';
+import SimpleOutputNode from '../ui/SimpleOutputNode';
 import { nodes as initialNodes, edges as initialEdges } from '../../helpers/initial-elements';
-import { sortNodes, getId, getNodePositionInsideParent } from '../../helpers/utils';
+import { sortNodes, getId, getNodePositionInsideParent, createOutputNode } from '../../helpers/utils';
 import SelectedNodesToolbar from '../ui/SelectedNodesToolbar';
+import { startSession } from '../../helpers/utils';
 
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 
 import '../../styles/views/HomeViewFlow.css';
+import { ExecutionCount, ExecutionOutput, CellIdToMsgId, Cell } from '../../helpers/types';
 
 
 const proOptions = {
@@ -40,6 +43,7 @@ const onDragOver = (event: DragEvent) => {
 
 const nodeTypes = {
   node: SimpleNode,
+  outputNode: SimpleOutputNode,
   group: GroupNode,
 };
 
@@ -52,6 +56,7 @@ const defaultEdgeOptions = {
   },
 };
 
+
 function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -60,7 +65,179 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
 
-  const onDrop = (event: DragEvent) => {
+  // --------------- ADDED BY DIEGO ---------------
+  const [latestExecutionCount, setLatestExecutionCount] = useState({} as ExecutionCount);
+  const [latestExecutionOutput, setLatestExecutionOutput] = useState({} as ExecutionOutput);
+  const [cellIdToMsgId, setCellIdToMsgId] = useState({} as CellIdToMsgId);
+  const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({});
+
+
+  function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
+		setCellIdToMsgId({[msg_id]: cell_id});
+    // fetch the connection to execute the code on
+    const ws = webSocketMap[parent_id];
+
+		// Send code to the kernel for execution
+		const message = {
+			header: {
+				msg_type: 'execute_request',
+				msg_id: msg_id,
+				username: 'username',
+			},
+			metadata: {},
+			content: {
+				code: code,
+				silent: false,
+				store_history: true,
+				user_expressions: {},
+				allow_stdin: false, 
+				stop_on_error: false
+			},
+			buffers: [],
+			parent_header: {},
+			channel: 'shell'
+		};
+		if (ws.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify(message));
+		} else {
+			console.log("websocket is not connected");
+		}
+	}
+
+  async function createSession() {
+    const url = 'http://localhost:8888/';
+    const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
+    const token = '4f66ea1dce7e32357cc2e4fd63cd10df7aef5454ff8201db';
+    const session = await startSession(url, token, session_name);
+    const ws = startWebsocket(session.session_id, session.kernel_id, token);
+    return ws;
+	}
+
+  function startWebsocket(session_id: string, kernel_id: string, token: string) {
+		const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?session_id=${session_id}&token=${token}`;
+		const ws = new WebSocket(websocketUrl);
+
+    // WebSocket event handlers
+		ws.onopen = () => {
+			console.log('WebSocket connection established');
+		};
+
+		// Handle incoming messages from the kernel
+		ws.onmessage = (event) => {
+			const message = JSON.parse(event.data);
+			const msg_type = message.header.msg_type;
+			// console.log('Received message from kernel:', message);
+
+			// Handle different message types as needed
+			if (msg_type === 'execute_reply') {
+				// if (message.content.status === 'error' || message.content.status === 'abort') return;
+				const newObj = {
+					msg_id: message.parent_header.msg_id,
+					execution_count: message.content.execution_count,
+				}
+				setLatestExecutionCount(newObj);
+
+			} else if (msg_type === 'execute_result') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.data['text/plain']
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'stream') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.text
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'display_data') {
+				const outputText = message.content.data['text/plain'];
+				const outputImage = message.content.data['image/png'];
+				// base64 encoded image: decode
+				// const outputImageDecoded = atob(outputImage);
+				console.log(outputImage)
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: outputImage
+				}
+				setLatestExecutionOutput(outputObj);
+
+			} else if (msg_type === 'error') {
+				const outputObj = {
+					msg_id: message.parent_header.msg_id,
+					output: message.content.traceback.join('\n')
+				}
+				setLatestExecutionOutput(outputObj);
+			}
+		};
+
+		ws.onerror = (error) => {
+			console.error('WebSocket error:', error);
+		};
+
+		ws.onclose = () => {
+			console.log('WebSocket connection closed');
+		};
+    return ws;
+	}
+
+	useEffect(() => {
+		// do not trigger on first render
+		if (Object.keys(latestExecutionOutput).length === 0) return;
+		const output = latestExecutionOutput.output;
+    const msg_id_execCount = latestExecutionCount.msg_id;
+    const msg_id_output= latestExecutionOutput.msg_id;
+    const executionCount = latestExecutionCount.execution_count;
+		// TODO: in case of error, change font color
+		const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
+    const cell_id_output = cellIdToMsgId[msg_id_output];
+
+    const updatedNodes = nodes.map((node) => {
+      // if it matches, update the execution count
+      if (node.id === cell_id_execCount) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            executionCount: executionCount
+          },
+        };
+      // for the update cell, update the output
+      // TODO: if the output is not changed, set it to empty
+      } else if (node.id === cell_id_output+"_output") {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            output: output
+          },
+        };
+      // if nothing matches, return the node without modification
+      } else return node;
+    });
+    const newNodes = [...updatedNodes];
+    setNodes(newNodes);
+
+	}, [latestExecutionOutput, latestExecutionCount]);
+
+  // needed so that nodes know all websockets (update the execute function)
+  useEffect(() => {
+    const newNodes = nodes.map((node) => {
+      if (node.type === 'node') {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            execute: executeCode
+          },
+        };
+      } else return node;
+    });
+    setNodes(newNodes);
+  }, [webSocketMap]);
+
+  const onDrop = async (event: DragEvent) => {
     event.preventDefault();
 
     if (wrapperRef.current) {
@@ -85,6 +262,19 @@ function DynamicGrouping() {
         style: nodeStyle,
       };
 
+      // in case we drop a group, create a new websocket connection
+      if (type === 'group') {
+        const newWebSocket = await createSession();
+        // add the websocket to the id -> websocket map
+        setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
+      } else {
+        newNode.data = {
+          ...newNode.data,
+          execute: executeCode,
+          executionCount: null
+        };
+      }
+
       if (groupNode) {
         // if we drop a node on a group node, we want to position the node inside the group
         newNode.position = getNodePositionInsideParent(
@@ -99,16 +289,28 @@ function DynamicGrouping() {
         newNode.extent = groupNode ? 'parent' : undefined;
       }
 
-      // we need to make sure that the parents are sorted before the children
-      // to make sure that the children are rendered on top of the parents
-      const sortedNodes = store.getState().getNodes().concat(newNode).sort(sortNodes);
-      setNodes(sortedNodes);
+      if (type !== 'group') {
+        const newOutputNode: Node = createOutputNode(newNode);
+        const sortedNodes = store.getState().getNodes().concat(newNode).concat(newOutputNode).sort(sortNodes);
+        setNodes(sortedNodes);
+        const newEdge: Edge = {
+          id: getId(),
+          source: newNode.id,
+          target: newOutputNode.id,
+        };
+        setEdges([...edges, newEdge]);
+      } else {
+        // we need to make sure that the parents are sorted before the children
+        // to make sure that the children are rendered on top of the parents
+        const sortedNodes = store.getState().getNodes().concat(newNode).sort(sortNodes);
+        setNodes(sortedNodes);
+      }
     }
   };
 
   const onNodeDragStop = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (node.type !== 'node' && !node.parentNode) {
+      if ((node.type !== 'node' && node.type !== 'outputNode') && !node.parentNode) {
         return;
       }
 
@@ -149,7 +351,7 @@ function DynamicGrouping() {
 
   const onNodeDrag = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (node.type !== 'node' && !node.parentNode) {
+      if ((node.type !== 'node' && node.type !== 'outputNode')  && !node.parentNode) {
         return;
       }
 
