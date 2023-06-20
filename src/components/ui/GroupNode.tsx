@@ -6,6 +6,7 @@ import useDetachNodes from '../../helpers/useDetachNodes';
 
 
 const lineStyle = { borderColor: 'white' };
+const handleStyle = { height: 8, width: 8 };
 const padding = 25;
 
 function GroupNode({ id }: NodeProps) {
@@ -37,7 +38,7 @@ function GroupNode({ id }: NodeProps) {
 
   return (
     <div style={{ minWidth, minHeight }}>
-      <NodeResizer lineStyle={lineStyle} minWidth={minWidth} minHeight={minHeight} />
+      <NodeResizer lineStyle={lineStyle} handleStyle={handleStyle} minWidth={minWidth} minHeight={minHeight} />
       <NodeToolbar className="nodrag">
         <button onClick={onDelete}>Delete</button>
         {hasChildNodes && <button onClick={onDetach}>Ungroup</button>}

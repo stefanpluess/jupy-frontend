@@ -23,7 +23,7 @@ import SimpleOutputNode from '../ui/SimpleOutputNode';
 import { nodes as initialNodes, edges as initialEdges } from '../../helpers/initial-elements';
 import { sortNodes, getId, getNodePositionInsideParent, createOutputNode } from '../../helpers/utils';
 import SelectedNodesToolbar from '../ui/SelectedNodesToolbar';
-import { startSession } from '../../helpers/utils';
+import { startSession, removeEscapeCodes } from '../../helpers/utils';
 
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
@@ -107,7 +107,7 @@ function DynamicGrouping() {
   async function createSession() {
     const url = 'http://localhost:8888/';
     const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
-    const token = '4f66ea1dce7e32357cc2e4fd63cd10df7aef5454ff8201db';
+    const token = '3d91a3e0e09f2708ba1f161d0797b57ff70c528f5cac9ee0';
     const session = await startSession(url, token, session_name);
     const ws = startWebsocket(session.session_id, session.kernel_id, token);
     return ws;
@@ -140,33 +140,36 @@ function DynamicGrouping() {
 			} else if (msg_type === 'execute_result') {
 				const outputObj = {
 					msg_id: message.parent_header.msg_id,
-					output: message.content.data['text/plain']
+					output: message.content.data['text/plain'],
+          isImage: false,
 				}
 				setLatestExecutionOutput(outputObj);
 
 			} else if (msg_type === 'stream') {
 				const outputObj = {
 					msg_id: message.parent_header.msg_id,
-					output: message.content.text
+					output: message.content.text,
+          isImage: false,
 				}
 				setLatestExecutionOutput(outputObj);
 
 			} else if (msg_type === 'display_data') {
 				const outputText = message.content.data['text/plain'];
 				const outputImage = message.content.data['image/png'];
-				// base64 encoded image: decode
-				// const outputImageDecoded = atob(outputImage);
 				console.log(outputImage)
 				const outputObj = {
 					msg_id: message.parent_header.msg_id,
-					output: outputImage
+					output: outputImage,
+          isImage: true,
 				}
 				setLatestExecutionOutput(outputObj);
 
 			} else if (msg_type === 'error') {
+        const traceback = message.content.traceback.map(removeEscapeCodes);
 				const outputObj = {
 					msg_id: message.parent_header.msg_id,
-					output: message.content.traceback.join('\n')
+					output: traceback.join('\n'),
+          isImage: false,
 				}
 				setLatestExecutionOutput(outputObj);
 			}
@@ -186,6 +189,7 @@ function DynamicGrouping() {
 		// do not trigger on first render
 		if (Object.keys(latestExecutionOutput).length === 0) return;
 		const output = latestExecutionOutput.output;
+    const isImage = latestExecutionOutput.isImage;
     const msg_id_execCount = latestExecutionCount.msg_id;
     const msg_id_output= latestExecutionOutput.msg_id;
     const executionCount = latestExecutionCount.execution_count;
@@ -210,7 +214,8 @@ function DynamicGrouping() {
           ...node,
           data: {
             ...node.data,
-            output: output
+            output: output,
+            isImage: isImage,
           },
         };
       // if nothing matches, return the node without modification
@@ -244,7 +249,7 @@ function DynamicGrouping() {
       const wrapperBounds = wrapperRef.current.getBoundingClientRect();
       const type = event.dataTransfer.getData('application/reactflow');
       let position = project({ x: event.clientX - wrapperBounds.x - 20, y: event.clientY - wrapperBounds.top - 20 });
-      const nodeStyle = type === 'group' ? { width: 400, height: 200 } : undefined;
+      const nodeStyle = type === 'group' ? { width: 800, height: 500 } : undefined;
 
       const intersections = getIntersectingNodes({
         x: position.x,
@@ -398,6 +403,7 @@ function DynamicGrouping() {
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
+          minZoom={0.2}
         >
           <Background color="#bbb" gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />

@@ -54,7 +54,6 @@ import type { Node } from 'reactflow';
 //     return res.data
 // }
 
-// ----- KEEP UNCOMMENTED -----
 // export async function getSessions(url, token) {
 //     const res = await axios.get(url + 'api/sessions')
 //     console.log("Sessions:")
@@ -68,7 +67,6 @@ import type { Node } from 'reactflow';
 //     console.log(session_id)
 //     return kernel_id, session_id
 // }
-// ----- KEEP UNCOMMENTED -----
 
 export async function startSession(url: string, token: string, notebookName: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -81,8 +79,7 @@ export async function startSession(url: string, token: string, notebookName: str
         "type": "notebook"
     }
     const res = await axios.post(url + 'api/sessions', requestBody)
-    console.log("Start session:")
-    console.log(res.data)
+    console.log("Start new session")
 
     const kernel_id = res.data['kernel']['id']
     const session_id = res.data['id']
@@ -101,10 +98,10 @@ export function createOutputNode(node: Node) {
     type: 'outputNode',
     // position it on the right of the given position
     position: {
-      x: node.position.x + 140,
-      y: node.position.y + 30,
+      x: node.position.x + 180,
+      y: node.position.y + 36,
     },
-    data: { output: "Demo Output" },
+    data: { output: "", isImage: false },
   };
 
   // in case the node has a parent, we want to make sure that the output node has the same parent
@@ -113,6 +110,10 @@ export function createOutputNode(node: Node) {
     newOutputNode.extent = 'parent';
   }
   return newOutputNode;
+}
+
+export function removeEscapeCodes(str: string) {
+  return str.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
 // ------------------------- END -------------------------

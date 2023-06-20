@@ -9,23 +9,30 @@ function SimpleOutputNode({ id, data }: NodeProps) {
   const { deleteElements } = useReactFlow();
   const detachNodes = useDetachNodes();
 
-  const [output, setOutput] = useState(data?.output || "");
+  const [output, setOutput] = useState({ __html: '' });
 
   useEffect(() => {
     // console.log(id+ " ----- Output Changed ----- now: " + data?.output)
-    setOutput(data?.output);
+    var formattedOutput = '';
+    if (data?.isImage) {
+        formattedOutput = '<img src="data:image/png;base64,' + data?.output + '">';
+    } else {
+        formattedOutput = data?.output.replace(/\n/g, '<br>');
+    }
+    const outputHtml = { __html: formattedOutput };
+    setOutput(outputHtml);
   }, [data?.output]);
 
-  const onDelete = () => deleteElements({ nodes: [{ id }] });
+//   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
   return (
     <><>
       <NodeToolbar className="nodrag">
-        <button onClick={onDelete}>Delete</button>
+        {/* <button onClick={onDelete}>Delete</button> */}
         {hasParent && <button onClick={onDetach}>Detach</button>}
       </NodeToolbar>
-      <div className="outputNode">{output}</div>
+      <div className="outputNode" dangerouslySetInnerHTML={output}></div>
       <Handle type="target" position={Position.Left} />
     </>
   </>);

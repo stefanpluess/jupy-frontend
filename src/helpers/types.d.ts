@@ -6,6 +6,7 @@ export type ExecutionCount = {
 export type ExecutionOutput = {
     msg_id: string;
     output: string;
+    isImage: boolean;
 };
 export type CellIdToMsgId = {
     [msgId: string]: string;

@@ -13,10 +13,9 @@ function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements } = useReactFlow();
   const detachNodes = useDetachNodes();
 
-  const [textareaValue, setTextareaValue] = useState(data?.label || '');
+  const [textareaValue, setTextareaValue] = useState('');
   var execute = data?.execute;
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
-
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
@@ -28,7 +27,8 @@ function SimpleNode({ id, data }: NodeProps) {
     execute = data?.execute;
   }, [data?.execute]);
 
-  const onDelete = () => deleteElements({ nodes: [{ id }] });
+  // when deleting the node, automatically delete the output node as well
+  const onDelete = () => deleteElements({ nodes: [{ id }, {id: id+"_output"}] });
   const onDetach = () => detachNodes([id]);
 
   const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -44,7 +44,9 @@ function SimpleNode({ id, data }: NodeProps) {
   }
 
   const deleteCode = () => {
-    setTextareaValue('');
+    if (textareaValue === '') return;
+    const confirmed = window.confirm("Are you sure you want clear the cell content?");
+    if (confirmed) setTextareaValue('');
   }
 
   return (
