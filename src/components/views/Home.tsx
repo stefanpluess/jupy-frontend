@@ -28,7 +28,7 @@ import { startSession, removeEscapeCodes } from '../../helpers/utils';
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 
-import '../../styles/views/HomeViewFlow.css';
+import '../../styles/views/Home.css';
 import { ExecutionCount, ExecutionOutput, CellIdToMsgId, Cell } from '../../helpers/types';
 
 
