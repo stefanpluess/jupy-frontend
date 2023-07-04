@@ -1,14 +1,12 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import React, { Fragment } from 'react'
-import Home from '../../views/Home'
-import About from '../../views/About'
+import Flow from '../../views/Home'
 
 const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route exact path="/" element={<Home/>} />
-        <Route path="/about" element={<About/>} />
+        <Route exact path="/" element={<Flow/>} />
       </Routes>
     </BrowserRouter>
   )
