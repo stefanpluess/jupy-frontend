@@ -1,6 +1,6 @@
 //COMMENT :: External modules/libraries
 import { MouseEvent, DragEvent, useCallback, useRef, 
-  useState, useEffect 
+  useState 
 } from 'react';
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
@@ -14,10 +14,12 @@ import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar
 //COMMENT :: Internal modules HELPERS
 import { nodes as initialNodes, edges as initialEdges, 
   sortNodes, getId, getNodePositionInsideParent, createOutputNode,
-  useWebSocketStore, WebSocketState, createSession, 
-  generateMessage, useUpdateNodes, updateClassNameOrPosition, 
-  updateClassNameOrPositionInsideParent,canRunOnNodeDrag
+  generateMessage, useUpdateNodesExecute, useUpdateNodesExeCountAndOuput, 
+  updateClassNameOrPosition, updateClassNameOrPositionInsideParent,
+  canRunOnNodeDrag
 } from '../../helpers';
+import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
+import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
@@ -33,37 +35,17 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   // other 
-  // TODO - externalize webSocketMap?
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
-  // needed so that modules can share values and functions from useWebSocketStore
-  // other version: const cellIdToMsgId = useWebSocketStore((state) => state.cellIdToMsgId);
   const { cellIdToMsgId, setCellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount, 
     } = useWebSocketStore(selector, shallow);
-  // TODO - extrnalize parts of onDrop function
-  // TODO - look at TODOs in the code
-  // TODO - use 'group' as constant
 
-  //INFO :: useEffect, depends on passed object
-  useUpdateNodes({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
 
-  //INFO :: useEffect, needed so that nodes know all websockets (update the execute function)
-  // TODO - const { setNodes } = useReactFlow();
-  useEffect(() => {
-    const newNodes = nodes.map((node) => {
-      if (node.type === 'node') {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            execute: executeCode
-          },
-        };
-      } else return node;
-    });
-    setNodes(newNodes);
-  }, [webSocketMap]);
+  //INFO :: useEffect -> update execution count and output of nodes
+  useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
+  //INFO :: useEffect -> update the execute function
+  useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
 
   //INFO :: functions
   function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
@@ -79,22 +61,24 @@ function DynamicGrouping() {
     }
   }
 
-  // TODO - extrnalize parts of this function
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
-
     if (wrapperRef.current) {
       const wrapperBounds = wrapperRef.current.getBoundingClientRect();
+      console.log("wrapperBounds: ", wrapperBounds);
       const type = event.dataTransfer.getData('application/reactflow');
       let position = project({ x: event.clientX - wrapperBounds.x - 20, y: event.clientY - wrapperBounds.top - 20 });
-      const nodeStyle = type === 'group' ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value
+      console.log("wrapperBounds.x: ", wrapperBounds.x);
+      console.log("wrapperBounds.top: ", wrapperBounds.top);
+      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value
+
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40,
+        width: 40, // TODO - change to not fixed value
         height: 40,
-      }).filter((n) => n.type === 'group');
+      }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
       const newNode: Node = {
@@ -106,7 +90,7 @@ function DynamicGrouping() {
       };
 
       // in case we drop a group, create a new websocket connection
-      if (type === 'group') {
+      if (type === GROUP_NODE) {
         const newWebSocket = await createSession(setLatestExecutionOutput, setLatestExecutionCount);
         // BUG - why it is executed twice if we do console.log?
         // console.log("latestExecutionCount: ", latestExecutionCount)
@@ -132,10 +116,10 @@ function DynamicGrouping() {
           groupNode
         ) ?? { x: 0, y: 0 };
         newNode.parentNode = groupNode?.id;
-        newNode.extent = groupNode ? 'parent' : undefined;
+        newNode.extent = groupNode ? EXTENT_PARENT : undefined;
       }
 
-      if (type !== 'group') {
+      if (type !== GROUP_NODE) {
         const newOutputNode: Node = createOutputNode(newNode);
         const sortedNodes = store.getState().getNodes().concat(newNode).concat(newOutputNode).sort(sortNodes);
         setNodes(sortedNodes);
@@ -159,7 +143,7 @@ function DynamicGrouping() {
       if (!canRunOnNodeDrag(node)) {
         return;
       }
-      const intersections = getIntersectingNodes(node).filter((n) => n.type === 'group');
+      const intersections = getIntersectingNodes(node).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
       // when there is an intersection on drag stop, we want to attach the node to its new parent
       if (intersections.length && node.parentNode !== groupNode?.id) {
@@ -180,7 +164,7 @@ function DynamicGrouping() {
       if (!canRunOnNodeDrag(node)) {
         return;
       }
-      const intersections = getIntersectingNodes(node).filter((n) => n.type === 'group');
+      const intersections = getIntersectingNodes(node).filter((n) => n.type === GROUP_NODE);
       setNodes((nds) => {
         return nds.map((n) => {
           return updateClassNameOrPosition(n, node, intersections);

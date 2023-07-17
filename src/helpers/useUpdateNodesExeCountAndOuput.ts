@@ -13,7 +13,7 @@ interface UpdateNodesProps {
  * Additional helper function:
  * @param cellIdToMsgId A mapping of cell IDs to message IDs.
  */
-const useUpdateNodes = ({latestExecutionCount, latestExecutionOutput} : UpdateNodesProps, cellIdToMsgId: CellIdToMsgId): void => {
+const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOutput} : UpdateNodesProps, cellIdToMsgId: CellIdToMsgId): void => {
     const { setNodes } = useReactFlow();
     const store = useStoreApi();
     /* 
@@ -66,9 +66,9 @@ const useUpdateNodes = ({latestExecutionCount, latestExecutionOutput} : UpdateNo
         const newNodes = [...updatedNodes];
         setNodes(newNodes);
         // BUG - why it is executed twice if we do console.log?
-        console.log("useUpdateNodes - latestExecutionCount: ", latestExecutionCount)
-        console.log("useUpdateNodes - latestExecutionOutput: ", latestExecutionOutput)
+        console.log("useUpdateNodesExeCountAndOuput - latestExecutionCount: ", latestExecutionCount)
+        console.log("useUpdateNodesExeCountAndOuput - latestExecutionOutput: ", latestExecutionOutput)
         }, [latestExecutionOutput, latestExecutionCount]);
 }
 
-export default useUpdateNodes;
+export default useUpdateNodesExeCountAndOuput;
