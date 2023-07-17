@@ -1,5 +1,4 @@
-import React, { ChangeEvent, useState, useEffect, useCallback } from 'react'
-import { memo } from 'react';
+import { ChangeEvent, useState, useEffect, memo} from 'react'
 import { Handle, Position, NodeToolbar, NodeProps, useStore, useReactFlow } from 'reactflow';
 import useDetachNodes from '../../helpers/useDetachNodes';
 import { faTrash, faPlay } from '@fortawesome/free-solid-svg-icons';
