@@ -1,6 +1,50 @@
 import axios from 'axios'
 import type { Node } from 'reactflow';
 
+/* ================== helpers for onNodeDrag... ================== */
+export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
+  const groupClassName = intersections.length && node.parentNode !== intersections[0]?.id ? 'active' : '';
+  if (n.type === 'group') { // TODO - export and use a type as a constant
+    return {
+      ...n,
+      className: groupClassName,
+    };
+  } else if (n.id === node.id) {
+    return {
+      ...n,
+      position: node.position,
+    };
+  }
+  return { ...n };
+}
+
+export function updateClassNameOrPositionInsideParent(n: Node, node: Node, groupNode: Node<any>): Node {
+  if (n.id === groupNode.id) {
+    return {
+      ...n,
+      className: '',
+    };
+  } else if (n.id === node.id) {
+    const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
+    return {
+      ...n,
+      position,
+      parentNode: groupNode.id,
+      extent: 'parent' as 'parent',
+    };
+  }
+  return n;
+}
+
+export function canRunOnNodeDrag(node: Node): boolean {
+  if ((node.type !== 'node' && node.type !== 'outputNode') && !node.parentNode) {
+    return false;
+  }
+  else{
+    return true;
+  }
+}
+
 // ------------------------- START -------------------------
 // collection of helper methods
 // export async function getContent(url: String, token: String) {
@@ -67,29 +111,49 @@ import type { Node } from 'reactflow';
 //     console.log(session_id)
 //     return kernel_id, session_id
 // }
+// messageGenerator.js
 
-export async function startSession(url: string, token: string, notebookName: string) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    var requestBody = {
-        "kernel": {
-            "name": "python3"
-        },
-        "name": notebookName,
-        "path": notebookName,
-        "type": "notebook"
-    }
-    const res = await axios.post(url + 'api/sessions', requestBody)
-    console.log("Start new session")
 
-    const kernel_id = res.data['kernel']['id']
-    const session_id = res.data['id']
-    console.log("Kernel id: "+kernel_id)
-    console.log("Session id: "+session_id)
+
+/**
+ * Generates a message object to be sent to a Jupyter kernel.
+ * USAGE EXAMPLE - passing all mandatory and one optional parameter:
+ * ---> generateMessage(msg_id, code, {username: 'test'});
+ */
+export function generateMessage( msg_id: string, code: string, {
+    msg_type = 'execute_request',
+    username = 'username',
+    metadata = {},
+    silent = false,
+    store_history = true,
+    user_expressions = {},
+    allow_stdin = false,
+    stop_on_error = false,
+    buffers = [],
+    parent_header = {},
+    channel = 'shell'
+  } = {}) {
     return {
-        kernel_id: kernel_id,
-        session_id: session_id
-    }
+        header: {
+            msg_type: msg_type,
+            msg_id: msg_id,
+            username: username,
+        },
+        metadata: metadata,
+        content: {
+            code: code,
+            silent: silent,
+            store_history: store_history,
+            user_expressions: user_expressions,
+            allow_stdin: allow_stdin,
+            stop_on_error: stop_on_error,
+        },
+        buffers: buffers,
+        parent_header: parent_header,
+        channel: channel
+    };
 }
+
 
 
 export function createOutputNode(node: Node) {
@@ -117,10 +181,7 @@ export function removeEscapeCodes(str: string) {
 }
 
 // ------------------------- END -------------------------
-
-
 // some helper methods for reactflow
-
 // we have to make sure that parent nodes are rendered before their children
 export const sortNodes = (a: Node, b: Node): number => {
     if (a.type === b.type) {
