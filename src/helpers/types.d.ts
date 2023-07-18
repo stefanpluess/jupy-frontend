@@ -15,3 +15,7 @@ export type Cell = {
     execution_count: number;
     output: string;
 }
+export type Content = {
+    name: string;
+    path: string;
+}
