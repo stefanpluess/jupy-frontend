@@ -1,12 +1,16 @@
 import axios from "axios"
 import { useEffect, useState } from "react"
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Content } from "../../helpers/types";
+import '../../styles/views/FileExplorer.css';
 
 export default function FileExplorer() {
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const [contents, setContents] = useState<Content[]>([]);
   const [activePath, setActivePath] = useState<string>('');
-  const token = '922f773d6b2365e2950b5e67d9d92f4c1f45f3537599f236'
+  const token = '3c5ca3c44799d4d4b7619f0d9b0001fc5a6cef3e1f8fe566'
 
   const getContents = (path: string) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -16,6 +20,7 @@ export default function FileExplorer() {
         return { name: file.name, path: file.path }
       })
       setActivePath(res.data.path);
+      navigate(res.data.path);
       setContents(files);
     })
   }
@@ -26,16 +31,18 @@ export default function FileExplorer() {
 
   /* useEffect to initially fetch the contents */
   useEffect(() => {
-    getContents('');
+    // use the location hook to get the path from the url, removing /tree or /tree/ from the start (but ONLY from the start)
+    const path = location.pathname.replace(/^\/tree\/?/, '');
+    getContents(path);
   }, [])
 
   return (
     <div className="mt-5">
-      {activePath !== '' && <a href="#" onClick={() => goBack()}>..</a>}
+      {activePath !== '' && <button className="link-button" onClick={() => goBack()}>..</button>}
       {/* For each file in files, display the name and make it clickable */}
       {contents.map((file) => (
         <div>
-          <a href="#" onClick={() => getContents(file.path)}>{file.name}</a>
+          <button className="link-button" onClick={() => getContents(file.path)}>{file.name}</button>
         </div>
       ))}
     </div>
