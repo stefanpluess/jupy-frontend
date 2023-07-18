@@ -9,9 +9,10 @@ const lineStyle = { borderColor: 'white' };
 const handleStyle = { height: 8, width: 8 };
 const padding = 25;
 
-function GroupNode({ id }: NodeProps) {
+function GroupNode({ id, data }: NodeProps) {
   const store = useStoreApi();
   const { deleteElements } = useReactFlow();
+  const ws = data?.ws;
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter((n) => n.parentNode === id);
@@ -26,6 +27,7 @@ function GroupNode({ id }: NodeProps) {
 
   const onDelete = () => {
     deleteElements({ nodes: [{ id }] });
+    ws.close();
   };
 
   const onDetach = () => {

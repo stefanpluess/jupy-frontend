@@ -9,7 +9,7 @@ export async function createSession(setLatestExecutionOutput: setLEOType,
                                     setLatestExecutionCount: setLECType) {
     const url = 'http://localhost:8888/';
     const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
-    const token = 'e4ab874a5f2ef08533d4987f12a63def90ef2ea3e4a940c6';
+    const token = '0e16b22fa43623ef57b6ad7c4e67580085ae3eec08671571';
     const session = await startSession(url, token, session_name);
     const ws = startWebsocket(session.session_id, 
                                 session.kernel_id, 
@@ -22,12 +22,12 @@ export async function createSession(setLatestExecutionOutput: setLEOType,
 export async function startSession(url: string, token: string, notebookName: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     let requestBody = {
+        "name": notebookName,
+        "path": notebookName, //TODO: change this to the path of the notebook
+        "type": "notebook",
         "kernel": {
             "name": "python3"
         },
-        "name": notebookName,
-        "path": notebookName,
-        "type": "notebook"
     }
     const res = await axios.post(url + 'api/sessions', requestBody)
     console.log("Start new session")
@@ -125,7 +125,9 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
         console.error('WebSocket error:', error);
     };
 
-    ws.onclose = () => {
+    ws.onclose = async () => {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        await axios.delete('http://localhost:8888/api/sessions/'+session_id)
         console.log('WebSocket connection closed');
     };
 

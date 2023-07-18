@@ -39,7 +39,7 @@ function DynamicGrouping() {
   const { cellIdToMsgId, setCellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount, 
-    } = useWebSocketStore(selector, shallow);
+  } = useWebSocketStore(selector, shallow);
 
 
   //INFO :: useEffect -> update execution count and output of nodes
@@ -97,6 +97,10 @@ function DynamicGrouping() {
         // console.log("latestExecutionOutput: ", latestExecutionOutput)
         // add the websocket to the id -> websocket map
         setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
+        newNode.data = {
+          ...newNode.data,
+          ws: newWebSocket
+        };
       } else {
         newNode.data = {
           ...newNode.data,
