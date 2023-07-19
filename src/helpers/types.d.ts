@@ -18,4 +18,9 @@ export type Cell = {
 export type Content = {
     name: string;
     path: string;
+    last_modified: string;
+    created: string;
+    writable: boolean;
+    size: number;
+    type: string;
 }

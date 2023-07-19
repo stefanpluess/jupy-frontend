@@ -7,6 +7,7 @@ import ReactFlow, {
   useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
   Connection, MiniMap, Controls,
 } from 'reactflow';
+import { useLocation } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 //COMMENT :: Internal modules UI
 import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar 
@@ -34,6 +35,7 @@ function DynamicGrouping() {
   const onConnect = useCallback((edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)), [setEdges]);
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
+  const { state } = useLocation();
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,

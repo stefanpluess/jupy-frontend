@@ -11,7 +11,7 @@ const AppRouter = () => {
         <Route exact path="/notfound" element={<Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />} />
         <Route path="/" element={<Navigate to="/tree" />} />
         <Route path="/tree/*" element={<FileExplorer/>} />
-        <Route exact path="/flow" element={<Flow/>} />
+        <Route exact path="/notebook" element={<Flow/>} />
       </Routes>
     </BrowserRouter>
   )
