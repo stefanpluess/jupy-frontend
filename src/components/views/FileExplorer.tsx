@@ -21,7 +21,9 @@ export default function FileExplorer() {
       })
       setActivePath(res.data.path);
       navigate(res.data.path);
-      setContents(files);
+      setContents(files);})
+    .catch((err) => {
+      navigate('/notfound');
     })
   }
 
