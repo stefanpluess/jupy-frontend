@@ -1,7 +1,14 @@
-import React from 'react'
-import { useNodes, Node, getRectOfNodes, NodeToolbar, useStoreApi, useReactFlow } from 'reactflow';
+import React from "react";
+import {
+  useNodes,
+  Node,
+  getRectOfNodes,
+  NodeToolbar,
+  useStoreApi,
+  useReactFlow,
+} from "reactflow";
 
-import { getId } from '../../helpers/utils';
+import { getId } from "../../helpers/utils";
 
 const padding = 25;
 
@@ -9,22 +16,27 @@ export default function SelectedNodesToolbar() {
   const nodes = useNodes();
   const { setNodes } = useReactFlow();
   const store = useStoreApi();
-  const selectedNodes = nodes.filter((node) => node.selected && !node.parentNode);
+  const selectedNodes = nodes.filter(
+    (node) => node.selected && !node.parentNode
+  );
   const selectedNodeIds = selectedNodes.map((node) => node.id);
   const isVisible = selectedNodeIds.length > 1;
 
   const onGroup = () => {
     const rectOfNodes = getRectOfNodes(selectedNodes);
-    const groupId = getId('group');
+    const groupId = getId("group");
     const parentPosition = {
       x: rectOfNodes.x,
       y: rectOfNodes.y,
     };
     const groupNode = {
       id: groupId,
-      type: 'group',
+      type: "group",
       position: parentPosition,
-      style: { width: rectOfNodes.width + padding * 2, height: rectOfNodes.height + padding * 2 },
+      style: {
+        width: rectOfNodes.width + padding * 2,
+        height: rectOfNodes.height + padding * 2,
+      },
       data: {},
     };
 
@@ -36,7 +48,7 @@ export default function SelectedNodesToolbar() {
             x: node.position.x - parentPosition.x + padding,
             y: node.position.y - parentPosition.y + padding,
           },
-          extent: 'parent',
+          extent: "parent",
           parentNode: groupId,
         };
       }
