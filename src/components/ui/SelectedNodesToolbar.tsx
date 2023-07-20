@@ -9,7 +9,9 @@ export default function SelectedNodesToolbar() {
   const nodes = useNodes();
   const { setNodes } = useReactFlow();
   const store = useStoreApi();
-  const selectedNodes = nodes.filter((node) => node.selected && !node.parentNode);
+  const selectedNodes = nodes.filter(
+    (node) => node.selected && !node.parentNode
+  );
   const selectedNodeIds = selectedNodes.map((node) => node.id);
   const isVisible = selectedNodeIds.length > 1;
 
@@ -24,7 +26,10 @@ export default function SelectedNodesToolbar() {
       id: groupId,
       type: GROUP_NODE,
       position: parentPosition,
-      style: { width: rectOfNodes.width + padding * 2, height: rectOfNodes.height + padding * 2 },
+      style: {
+        width: rectOfNodes.width + padding * 2,
+        height: rectOfNodes.height + padding * 2,
+      },
       data: {},
     };
 

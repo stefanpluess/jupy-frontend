@@ -1,6 +1,15 @@
+// might be used:
+//import { startSession, removeEscapeCodes } from "../../helpers/utils";
+//import {
+//  ExecutionCount,
+//  ExecutionOutput,
+//  CellIdToMsgId,
+//  Cell,
+//} from "../../helpers/types";
+
 //COMMENT :: External modules/libraries
 import { MouseEvent, DragEvent, useCallback, useRef, 
-  useState 
+  useState, useEffect
 } from 'react';
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
@@ -31,7 +40,10 @@ function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const onConnect = useCallback((edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)), [setEdges]);
+  const onConnect = useCallback(
+    (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
+    [setEdges]
+  );
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   // other 
@@ -41,7 +53,7 @@ function DynamicGrouping() {
     latestExecutionOutput, setLatestExecutionCount, 
   } = useWebSocketStore(selector, shallow);
 
-
+    
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
   //INFO :: useEffect -> update the execute function
@@ -71,7 +83,6 @@ function DynamicGrouping() {
       console.log("wrapperBounds.x: ", wrapperBounds.x);
       console.log("wrapperBounds.top: ", wrapperBounds.top);
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value
-
 
       const intersections = getIntersectingNodes({
         x: position.x,
@@ -105,7 +116,7 @@ function DynamicGrouping() {
         newNode.data = {
           ...newNode.data,
           execute: executeCode,
-          executionCount: null
+          executionCount: null,
         };
       }
 
@@ -114,7 +125,7 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 40,
+            width: 400,
             height: 40,
           },
           groupNode
@@ -125,7 +136,12 @@ function DynamicGrouping() {
 
       if (type !== GROUP_NODE) {
         const newOutputNode: Node = createOutputNode(newNode);
-        const sortedNodes = store.getState().getNodes().concat(newNode).concat(newOutputNode).sort(sortNodes);
+        const sortedNodes = store
+          .getState()
+          .getNodes()
+          .concat(newNode)
+          .concat(newOutputNode)
+          .sort(sortNodes);
         setNodes(sortedNodes);
         const newEdge: Edge = {
           id: getId(),
@@ -136,7 +152,11 @@ function DynamicGrouping() {
       } else {
         // we need to make sure that the parents are sorted before the children
         // to make sure that the children are rendered on top of the parents
-        const sortedNodes = store.getState().getNodes().concat(newNode).sort(sortNodes);
+        const sortedNodes = store
+          .getState()
+          .getNodes()
+          .concat(newNode)
+          .sort(sortNodes);
         setNodes(sortedNodes);
       }
     }
@@ -178,9 +198,9 @@ function DynamicGrouping() {
   );
 
   return (
-    <div className={'wrapper'}>
+    <div className={"wrapper"}>
       <Sidebar />
-      <div className={'rfWrapper'} ref={wrapperRef}>
+      <div className={"rfWrapper"} ref={wrapperRef}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -200,8 +220,20 @@ function DynamicGrouping() {
         >
           <Background color="#bbb" gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
-          <MiniMap nodeColor='#b44b9f80' maskStrokeColor='#222' nodeStrokeWidth={3} position={'top-right'} zoomable pannable />
-          <Controls />
+          <MiniMap
+            nodeColor="#b44b9f80"
+            maskStrokeColor="#222"
+            nodeStrokeWidth={3}
+            position={"top-right"}
+            zoomable
+            pannable
+          />
+          <Controls
+            showFitView={true}
+            showZoom={true}
+            showInteractive={true}
+            position="bottom-right"
+          />
         </ReactFlow>
       </div>
     </div>
