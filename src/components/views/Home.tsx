@@ -1,13 +1,14 @@
 //COMMENT :: External modules/libraries
 import { MouseEvent, DragEvent, useCallback, useRef, 
-  useState 
+  useState, 
+  useEffect
 } from 'react';
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
   useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
   Connection, MiniMap, Controls,
 } from 'reactflow';
-import { useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 //COMMENT :: Internal modules UI
 import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar 
@@ -25,6 +26,7 @@ import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/w
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 import '../../styles/views/Home.css';
+import axios from 'axios';
 
 
 //INFO :: main code
@@ -35,7 +37,8 @@ function DynamicGrouping() {
   const onConnect = useCallback((edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)), [setEdges]);
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
-  const { state } = useLocation();
+  const path = useParams()["*"];
+  const token = '58b08166dad176e4959d8d070b8a75c794ca366914276bb9';
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
@@ -48,6 +51,15 @@ function DynamicGrouping() {
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
   //INFO :: useEffect -> update the execute function
   useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
+
+  // on initial render, load the notebook
+  useEffect(() => {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
+      const notebook = res.data
+      console.log(notebook)
+    })
+  }, []);
 
   //INFO :: functions
   function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {

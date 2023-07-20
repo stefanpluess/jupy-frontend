@@ -1,20 +1,22 @@
 import axios from "axios"
 import { useEffect, useState } from "react"
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Content } from "../../helpers/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolder, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import Table from 'react-bootstrap/Table';
+import Error from '../views/Error'
 
 export default function FileExplorer() {
 
   const navigate = useNavigate();
-  const location = useLocation();
   const [contents, setContents] = useState<Content[]>([]);
-  const [activePath, setActivePath] = useState<string>('');
-  const token = 'ae230a2558d4234f8c574f8492936bc32d97505ea2f3109a'
+  const path = useParams()["*"];
+  const [showError, setShowError] = useState(false);
+  const token = '58b08166dad176e4959d8d070b8a75c794ca366914276bb9'
 
-  const getContents = async (path: string) => {
+  const getContentsFromPath = async () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
       // create a list of file objects (containing name and path) from the response and set to contents
@@ -29,24 +31,21 @@ export default function FileExplorer() {
           type: file.type
         }
       })
-      setActivePath(res.data.path);
-      navigate(res.data.path);
+      setShowError(false);
       setContents(files);})
     .catch((err) => {
-      navigate('/notfound');
+      setShowError(true);
     })
   }
 
   const goBack = () => {
-    getContents(activePath.split('/').slice(0, -1).join('/'));
+    navigate(path.split('/').slice(0, -1).join('/'));
   }
 
   /* useEffect to initially fetch the contents */
   useEffect(() => {
-    // use the location hook to get the path from the url, removing /tree or /tree/ from the start (but ONLY from the start)
-    const path = location.pathname.replace(/^\/tree\/?/, '');
-    getContents(path);
-  }, [])
+    getContentsFromPath();
+  }, [path])
 
   const displayAsBytes = (size: number) => {
     if (size < 1000) return size + ' B';
@@ -55,28 +54,22 @@ export default function FileExplorer() {
     else return (size / 1000000000).toFixed(2) + ' GB';
   }
 
-  const openNotebook = async (path: string) => {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
-      const notebook = res.data;
-      console.log(notebook);
-      navigate('/notebook', { state: notebook })
-    })
-  }
 
-  return (
-    <div className="mt-5">
+  if (showError) {
+    return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
+  } else return (
+    <div className="FileExplorer">
       {/* For each file in files, display then in a table containing name, last_modified and size */}
-      <table className="table table-hover">
+      <Table bordered hover>
         <thead>
           <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Last Modified</th>
-            <th scope="col">File Size</th>
+            <th className="col-md-4" scope="col">Name</th>
+            <th className="col-md-2" scope="col">Last Modified</th>
+            <th className="col-md-1" scope="col">File Size</th>
           </tr>
         </thead>
         <tbody>
-          {activePath !== '' && 
+          {path !== '' && 
             <tr>
               <td>
                 <button className="link-button" onClick={() => goBack()}>
@@ -92,12 +85,12 @@ export default function FileExplorer() {
             return (
               <tr key={file.name}>
                 <td>
-                  {file.type !== 'notebook' && <button className="link-button" onClick={() => getContents(file.path)}>
+                  {file.type !== 'notebook' && <button className="link-button" onClick={() => navigate(file.path)}>
                     {file.type === 'directory' && <FontAwesomeIcon icon={faFolder} />}
                     {file.type === 'directory' && ' '}
                     {file.name}
                   </button>}
-                  {file.type === 'notebook' && <button className="link-button" onClick={async () => openNotebook(file.path)}>
+                  {file.type === 'notebook' && <button className="link-button" onClick={async () => navigate(`/notebooks/${file.path}`)}>
                     {file.name}
                   </button>}
                 </td>
@@ -109,7 +102,7 @@ export default function FileExplorer() {
           }
           )}
         </tbody>
-      </table>
+      </Table>
     </div>
   )
 }
