@@ -1,5 +1,6 @@
 import axios from 'axios'
-import type { Node } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
+import { NotebookCell } from './types';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
@@ -43,6 +44,52 @@ export function canRunOnNodeDrag(node: Node): boolean {
   else{
     return true;
   }
+}
+
+
+export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
+
+  var initialNodes: Node[] = [];
+  const outputNodes: Node[] = [];
+  const initialEdges: Edge[] = [];
+
+  // given the cells, create the initial nodes and edges
+  cells.forEach((cell: NotebookCell) => {
+    const node: Node = {
+      id: cell.id,
+      type: cell.cell_type === 'code' ? 'node' : 'mdnode',
+      data: {
+        code: cell.source,
+        executionCount: cell.execution_count
+      },
+      // shift y position by 140px for each node that is NOT an output node
+      position: { x: 0, y: 140 * initialNodes.length },
+    };
+    // if output is not empty, create an output node
+    if (cell.outputs.length > 0) {
+      const outputNode: Node = createOutputNode(node)
+      // if the output_type is 'execute_result', add data to the node
+      if (cell.outputs[0].output_type === 'execute_result') {
+        outputNode.data.output = cell.outputs[0].data['text/plain'];
+      } else if (cell.outputs[0].output_type === 'stream') {
+        outputNode.data.output = cell.outputs[0].text;
+      }
+      //TODO: add support for other output types (display_data, error)
+      outputNodes.push(outputNode);
+      // create an edge from the node to the output node
+      initialEdges.push({
+        id: `${node.id}-${outputNode.id}`,
+        source: node.id,
+        target: outputNode.id
+      });
+    }
+    initialNodes.push(node);
+  });
+  // add the output nodes to the initial nodes
+  initialNodes = [...initialNodes, ...outputNodes];
+
+  return { initialNodes, initialEdges };
+    
 }
 
 // ------------------------- START -------------------------

@@ -24,3 +24,21 @@ export type Content = {
     size: number;
     type: string;
 }
+
+export type NotebookCell = {
+    cell_type: string;
+    execution_count: number;
+    id: string;
+    metadata?: {};
+    outputs: NotebookOutput[];
+    source: string[];
+}
+
+export type NotebookOutput = {
+    output_type: string;
+    data?: any;
+    metadata?: {};
+    execution_count?: number;
+    name?: string;
+    text?: string[];
+}

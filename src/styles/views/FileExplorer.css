@@ -10,6 +10,13 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
+}
+
+.link-button-back {
+  color: rgb(152, 152, 255);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
 }

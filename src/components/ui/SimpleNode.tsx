@@ -12,7 +12,8 @@ function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements } = useReactFlow();
   const detachNodes = useDetachNodes();
 
-  const [textareaValue, setTextareaValue] = useState('');
+  // textareaValue is data.code if it exists, otherwise it's an empty string
+  const [textareaValue, setTextareaValue] = useState(data?.code || '');
   var execute = data?.execute;
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
 

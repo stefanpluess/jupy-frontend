@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Content } from "../../helpers/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFolder, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faFolder, faArrowLeft, faBook, faFileCirclePlus } from "@fortawesome/free-solid-svg-icons";
 import Table from 'react-bootstrap/Table';
 import Error from '../views/Error'
 
@@ -14,7 +14,7 @@ export default function FileExplorer() {
   const [contents, setContents] = useState<Content[]>([]);
   const path = useParams()["*"];
   const [showError, setShowError] = useState(false);
-  const token = '58b08166dad176e4959d8d070b8a75c794ca366914276bb9'
+  const token = '693b3e372204afd317e30b1bc731efa04fe8facc325de083'
 
   const getContentsFromPath = async () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -54,11 +54,29 @@ export default function FileExplorer() {
     else return (size / 1000000000).toFixed(2) + ' GB';
   }
 
+  const createNotebook = async () => {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    await axios.post(`http://localhost:8888/api/contents/${path}`, { type: 'notebook' }).then((res) => {
+      const newPath = res.data.path;
+      navigate(`/notebooks/${newPath}`);
+    })
+    .catch((err) => {
+      console.log(err);
+    })
+  }
 
   if (showError) {
     return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
   } else return (
     <div className="FileExplorer">
+      <div className="row mb-3">
+        {/* If path is empty, display root directory */}
+        {path === '' && <h3 className="col-sm-11 mb-0">Root Directory</h3>}
+        {/* If path is not empty, display path */}
+        {path !== '' && <h3 className="col-sm-11">{path}</h3>}
+        {/* Add a button to create a new notebook in the current directory */}
+        <button className="btn btn-sm btn-primary col-sm-1" onClick={() => createNotebook()}><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</button>
+      </div>
       {/* For each file in files, display then in a table containing name, last_modified and size */}
       <Table bordered hover>
         <thead>
@@ -72,9 +90,9 @@ export default function FileExplorer() {
           {path !== '' && 
             <tr>
               <td>
-                <button className="link-button" onClick={() => goBack()}>
+                <button className="link-button-back" onClick={() => goBack()}>
                   <FontAwesomeIcon icon={faArrowLeft} />
-                  ..
+                  <i> ... Go Back</i>
                 </button>
               </td>
               <td></td>
@@ -85,11 +103,13 @@ export default function FileExplorer() {
             return (
               <tr key={file.name}>
                 <td>
+                  {file.type === 'directory' && <FontAwesomeIcon icon={faFolder} />}
+                  {file.type === 'directory' && ' '}
                   {file.type !== 'notebook' && <button className="link-button" onClick={() => navigate(file.path)}>
-                    {file.type === 'directory' && <FontAwesomeIcon icon={faFolder} />}
-                    {file.type === 'directory' && ' '}
                     {file.name}
                   </button>}
+                  {file.type === 'notebook' && <FontAwesomeIcon icon={faBook} />}
+                  {file.type === 'notebook' && ' '}
                   {file.type === 'notebook' && <button className="link-button" onClick={async () => navigate(`/notebooks/${file.path}`)}>
                     {file.name}
                   </button>}

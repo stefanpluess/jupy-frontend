@@ -22,6 +22,7 @@ import { nodes as initialNodes, edges as initialEdges,
 } from '../../helpers';
 import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
 import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
+import { createInitialElements } from '../../helpers/utils';
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
@@ -38,7 +39,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"];
-  const token = '58b08166dad176e4959d8d070b8a75c794ca366914276bb9';
+  const token = '693b3e372204afd317e30b1bc731efa04fe8facc325de083';
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
@@ -56,8 +57,12 @@ function DynamicGrouping() {
   useEffect(() => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
-      const notebook = res.data
-      console.log(notebook)
+      const notebookData = res.data
+      const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
+      // add the execute function to each node's data
+      initialNodes.forEach((node) => { node.data.execute = executeCode; });
+      setNodes(initialNodes);
+      setEdges(initialEdges);
     })
   }, []);
 
