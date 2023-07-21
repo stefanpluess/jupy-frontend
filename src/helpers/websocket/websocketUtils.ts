@@ -5,25 +5,25 @@ import { WebSocketState } from './useWebSocketStore';
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
 
-export async function createSession(setLatestExecutionOutput: setLEOType,
+export async function createSession(path: string,
+                                    token: string,
+                                    setLatestExecutionOutput: setLEOType,
                                     setLatestExecutionCount: setLECType) {
     const url = 'http://localhost:8888/';
-    const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
-    const token = '0e16b22fa43623ef57b6ad7c4e67580085ae3eec08671571';
-    const session = await startSession(url, token, session_name);
-    const ws = startWebsocket(session.session_id, 
-                                session.kernel_id, 
-                                token, 
-                                setLatestExecutionOutput, 
+    const session = await startSession(url, token, path);
+    const ws = startWebsocket(session.session_id,
+                                session.kernel_id,
+                                token,
+                                setLatestExecutionOutput,
                                 setLatestExecutionCount);
     return ws;
 }
 
-export async function startSession(url: string, token: string, notebookName: string) {
+export async function startSession(url: string, token: string, path: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     let requestBody = {
-        "name": notebookName,
-        "path": notebookName, //TODO: change this to the path of the notebook
+        "name": "",
+        "path": path,
         "type": "notebook",
         "kernel": {
             "name": "python3"

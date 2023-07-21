@@ -32,6 +32,11 @@ export type NotebookCell = {
     metadata?: {};
     outputs: NotebookOutput[];
     source: string[];
+    position: { x: number, y: number };
+    parentNode?: string;
+    height?: number;
+    width?: number;
+    parent?: string;
 }
 
 export type NotebookOutput = {
@@ -42,4 +47,5 @@ export type NotebookOutput = {
     name?: string;
     text?: string[];
     traceback?: string[];
+    position: { x: number, y: number };
 }

@@ -39,7 +39,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"];
-  const token = '693b3e372204afd317e30b1bc731efa04fe8facc325de083';
+  const token = '028b73b641a8f87abcbfe17b2fe98b3c32a82987fb6c841d';
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
@@ -55,12 +55,23 @@ function DynamicGrouping() {
 
   // on initial render, load the notebook
   useEffect(() => {
+    console.log("Hey useEffect")
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
-      // add the execute function to each node's data
-      initialNodes.forEach((node) => { node.data.execute = executeCode; });
+      // add the execute function to each node's data if node is not a group node. For each group node, start a websocket connection
+      initialNodes.forEach( async (node) => { 
+        if (node.type !== GROUP_NODE) node.data.execute = executeCode;
+        else {
+          const newWebSocket = await createSession(path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          setWebSocketMap((prevMap) => ({ ...prevMap, [node?.id]: newWebSocket }));
+          node.data = {
+            ...node.data,
+            ws: newWebSocket
+          }
+        }
+      });
       setNodes(initialNodes);
       setEdges(initialEdges);
     })
@@ -104,13 +115,13 @@ function DynamicGrouping() {
         id: getId(),
         type,
         position,
-        data: { label: `${type}` },
+        data: {},
         style: nodeStyle,
       };
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const newWebSocket = await createSession(setLatestExecutionOutput, setLatestExecutionCount);
+        const newWebSocket = await createSession(path, token, setLatestExecutionOutput, setLatestExecutionCount);
         // BUG - why it is executed twice if we do console.log?
         // console.log("latestExecutionCount: ", latestExecutionCount)
         // console.log("latestExecutionOutput: ", latestExecutionOutput)

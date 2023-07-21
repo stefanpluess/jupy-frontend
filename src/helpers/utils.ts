@@ -55,16 +55,26 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
 
   // given the cells, create the initial nodes and edges
   cells.forEach((cell: NotebookCell) => {
+    // if position is given, use it, otherwise create a new position (shift y position by 140px for each node)
+    const position = cell.position ? { x: cell.position.x, y: cell.position.y } : { x: 0, y: 140 * initialNodes.length };
     const node: Node = {
       id: cell.id,
-      type: cell.cell_type === 'code' ? 'node' : 'mdnode',
+      type: cell.cell_type === 'code' ? 'node' : cell.cell_type === 'group' ? 'group' : 'mdnode',
       data: {
         code: cell.source,
         executionCount: cell.execution_count
       },
-      // shift y position by 140px for each (not output) node
-      position: { x: 0, y: 140 * initialNodes.length },
+      position: position,
     };
+    if (cell.parent) {
+      node.parentNode = cell.parent;
+      node.extent = 'parent';
+    };
+    if (cell.cell_type === 'group') {
+      node.height = cell.height;
+      node.width = cell.width;
+      node.style = { height: cell.height, width: cell.width };
+    }
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
@@ -79,6 +89,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       } else if (cell.outputs[0].output_type === 'error') {
         outputNode.data.output = cell.outputs[0].traceback?.map(removeEscapeCodes).join('\n');
       }
+      // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
+      outputNode.position = cell.outputs[0].position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
@@ -212,6 +224,7 @@ export function createOutputNode(node: Node) {
     id: node.id+"_output",
     type: 'outputNode',
     // position it on the right of the given position
+    // TODO: use the position provided in the JSON
     position: {
       x: node.position.x + 180,
       y: node.position.y + 36,
