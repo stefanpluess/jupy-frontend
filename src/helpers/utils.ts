@@ -62,19 +62,23 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         code: cell.source,
         executionCount: cell.execution_count
       },
-      // shift y position by 140px for each node that is NOT an output node
+      // shift y position by 140px for each (not output) node
       position: { x: 0, y: 140 * initialNodes.length },
     };
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
-      // if the output_type is 'execute_result', add data to the node
+      // depending on the output type, set the output data
       if (cell.outputs[0].output_type === 'execute_result') {
         outputNode.data.output = cell.outputs[0].data['text/plain'];
       } else if (cell.outputs[0].output_type === 'stream') {
         outputNode.data.output = cell.outputs[0].text;
+      } else if (cell.outputs[0].output_type === 'display_data') {
+        outputNode.data.output = cell.outputs[0].data['image/png'];
+        outputNode.data.isImage = true;
+      } else if (cell.outputs[0].output_type === 'error') {
+        outputNode.data.output = cell.outputs[0].traceback?.map(removeEscapeCodes).join('\n');
       }
-      //TODO: add support for other output types (display_data, error)
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({

@@ -41,4 +41,5 @@ export type NotebookOutput = {
     execution_count?: number;
     name?: string;
     text?: string[];
+    traceback?: string[];
 }
