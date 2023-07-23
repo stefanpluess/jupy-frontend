@@ -22,12 +22,13 @@ import { nodes as initialNodes, edges as initialEdges,
 } from '../../helpers';
 import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
 import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
-import { createInitialElements } from '../../helpers/utils';
+import { createInitialElements, createJSON, updateNotebook } from '../../helpers/utils';
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 import '../../styles/views/Home.css';
 import axios from 'axios';
+import { NotebookPUT } from '../../helpers/types';
 
 
 //INFO :: main code
@@ -39,7 +40,8 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"];
-  const token = '028b73b641a8f87abcbfe17b2fe98b3c32a82987fb6c841d';
+  const token = 'd6ca9bd5bc6b9c3b719db91d2f44a49af1e004c73f23afb9';
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
@@ -47,6 +49,10 @@ function DynamicGrouping() {
     latestExecutionOutput, setLatestExecutionCount, 
   } = useWebSocketStore(selector, shallow);
 
+  const saveNotebook = () => {
+    const notebookData: NotebookPUT = createJSON(nodes, edges);
+    updateNotebook(token, notebookData, path);
+  }
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
@@ -54,8 +60,8 @@ function DynamicGrouping() {
   useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
 
   // on initial render, load the notebook
+  //TODO: outsource
   useEffect(() => {
-    console.log("Hey useEffect")
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
       const notebookData = res.data
@@ -74,8 +80,20 @@ function DynamicGrouping() {
       });
       setNodes(initialNodes);
       setEdges(initialEdges);
-    })
+    });
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 's' && (isMac ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+        saveNotebook();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges]);
+
 
   //INFO :: functions
   function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
-import { NotebookCell } from './types';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from './types';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
@@ -66,8 +66,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       },
       position: position,
     };
-    if (cell.parent) {
-      node.parentNode = cell.parent;
+    if (cell.parentNode) {
+      node.parentNode = cell.parentNode;
       node.extent = 'parent';
     };
     if (cell.cell_type === 'group') {
@@ -79,6 +79,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
       // depending on the output type, set the output data
+      outputNode.data.outputType = cell.outputs[0].output_type;
       if (cell.outputs[0].output_type === 'execute_result') {
         outputNode.data.output = cell.outputs[0].data['text/plain'];
       } else if (cell.outputs[0].output_type === 'stream') {
@@ -106,6 +107,94 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
 
   return { initialNodes, initialEdges };
     
+}
+
+export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
+
+  console.log('Nodes in createJSON: ', nodes)
+
+  const cells: NotebookCell[] = [];
+  nodes.forEach((node: Node) => {
+    console.log(node.data.code)
+    // create a cell object for each node (NO output node)
+    if (node.type !== 'outputNode') {
+      const cell: NotebookCell = {
+        id: node.id,
+        cell_type: node.type === 'node' ? 'code' : node.type === 'group' ? 'group' : 'markdown',
+        source: node.data.code,
+        execution_count: node.data.executionCount,
+        outputs: [],
+        position: node.position,
+        parentNode: node?.parentNode,
+        metadata: {},
+      };
+      if (node.type === 'group') {
+        cell.height = node.height;
+        cell.width = node.width;
+      }
+      cells.push(cell);
+    } else {
+      const output: NotebookOutput = {
+        output_type: node.data.outputType,
+        execution_count: node.data.executionCount,
+        data: {},
+        position: node.position,
+      };
+      // depending on the output type, set the output data
+      if (node.data.outputType === 'execute_result') {
+        output.data['text/plain'] = node.data.output;
+      } else if (node.data.outputType === 'stream') {
+        output.text = node.data.output;
+        output.name = node.data.name;
+      } else if (node.data.outputType === 'display_data') {
+        output.data['image/png'] = node.data.output;
+      } else if (node.data.outputType === 'error') {
+        output.traceback = node.data.output.split('\n');
+      }
+      // find the corresponding cell and add the output to it (id is the same, without the _output)
+      const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
+      cell?.outputs.push(output);
+    }
+  });
+
+  const notebook: Notebook = {
+    cells: cells,
+    metadata: {
+      kernelspec: {
+        display_name: "Python 3 (ipykernel)",
+        language: "python",
+        name: "python3"
+      },
+      language_info: {
+        codemirror_mode: {
+          name: "ipython",
+          version: 3
+        },
+        file_extension: ".py",
+        mimetype: "text/x-python",
+        name: "python",
+        nbconvert_exporter: "python",
+        pygments_lexer: "ipython3",
+        version: "3.11.3"
+      }
+    },
+    nbformat: 4,
+    nbformat_minor: 5
+  }
+
+  const notebookPut: NotebookPUT = {
+    content: notebook,
+    type: 'notebook'
+  }
+
+  return notebookPut;
+}
+
+export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
+    .then((res) => console.log(res))
+    .catch((err) => console.log(err));
 }
 
 // ------------------------- START -------------------------
@@ -139,17 +228,6 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
 //         "path": newName+".ipynb"
 //     }
 //     const res = await axios.patch(url + 'api/contents/'+oldName, requestBody)
-//     return res.data
-// }
-
-// export async function updateNotebook(url, token, name, notebook, cell) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     notebook['cells'].push(cell)
-//     var requestBody = {
-//         "content": notebook,
-//         "type": "notebook"
-//     }
-//     const res = await axios.put(url + 'api/contents/'+name, requestBody)
 //     return res.data
 // }
 

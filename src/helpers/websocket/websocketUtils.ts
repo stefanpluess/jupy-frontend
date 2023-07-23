@@ -85,6 +85,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: message.content.data['text/plain'],
                 isImage: false,
+                outputType: 'execute_result',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -94,6 +95,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: message.content.text,
                 isImage: false,
+                outputType: 'stream',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -106,6 +108,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: outputImage,
                 isImage: true,
+                outputType: 'display_data',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -116,6 +119,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: traceback.join('\n'),
                 isImage: false,
+                outputType: 'error',
             }
             setLatestExecutionOutput(outputObj);
         }

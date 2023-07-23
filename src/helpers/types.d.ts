@@ -1,3 +1,5 @@
+import { XYPosition } from "reactflow";
+
 export type ExecutionCount = {
     msg_id: string;
     execution_count: number;
@@ -5,6 +7,7 @@ export type ExecutionCount = {
 export type ExecutionOutput = {
     msg_id: string;
     output: string;
+    outputType: string;
     isImage: boolean;
 };
 export type CellIdToMsgId = {
@@ -25,6 +28,39 @@ export type Content = {
     type: string;
 }
 
+export type Notebook = {
+    cells: NotebookCell[];
+    metadata: {
+        kernelspec: {
+            display_name: string;
+            language: string;
+            name: string;
+        };
+        language_info: {
+            codemirror_mode: {
+                name: string;
+                version: number;
+            };
+            file_extension: string;
+            mimetype: string;
+            name: string;
+            nbconvert_exporter: string;
+            pygments_lexer: string;
+            version: string;
+        };
+    };
+    nbformat: number;
+    nbformat_minor: number;
+}
+
+export type NotebookPUT = {
+    type: string;
+    content: Notebook;
+    name?: string;
+    path?: string;
+    format?: string;
+}
+
 export type NotebookCell = {
     cell_type: string;
     execution_count: number;
@@ -32,11 +68,10 @@ export type NotebookCell = {
     metadata?: {};
     outputs: NotebookOutput[];
     source: string[];
-    position: { x: number, y: number };
+    position: XYPosition;
+    height?: number | null;
+    width?: number | null;
     parentNode?: string;
-    height?: number;
-    width?: number;
-    parent?: string;
 }
 
 export type NotebookOutput = {
@@ -47,5 +82,5 @@ export type NotebookOutput = {
     name?: string;
     text?: string[];
     traceback?: string[];
-    position: { x: number, y: number };
+    position: XYPosition;
 }

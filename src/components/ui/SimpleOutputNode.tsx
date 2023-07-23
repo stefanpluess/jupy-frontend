@@ -10,6 +10,7 @@ function SimpleOutputNode({ id, data }: NodeProps) {
   const detachNodes = useDetachNodes();
 
   const [output, setOutput] = useState({ __html: '' });
+  const [outputType, setOutputType] = useState(data?.outputType);
 
   useEffect(() => {
     // console.log(id+ " ----- Output Changed ----- now: " + data?.output)
