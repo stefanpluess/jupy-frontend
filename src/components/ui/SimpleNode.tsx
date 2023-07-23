@@ -34,6 +34,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // including auto indent
     setTextareaValue(event.target.value.replace(/\t/g, '    '));
+    data.code = event.target.value.replace(/\t/g, '    ');
   };
 
   const runCode = () => {
