@@ -111,11 +111,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
 
 export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 
-  console.log('Nodes in createJSON: ', nodes)
-
   const cells: NotebookCell[] = [];
   nodes.forEach((node: Node) => {
-    console.log(node.data.code)
     // create a cell object for each node (NO output node)
     if (node.type !== 'outputNode') {
       const cell: NotebookCell = {
@@ -191,9 +188,10 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 }
 
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
+  console.log('notebookData: ', notebookData)
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
-    .then((res) => console.log(res))
+    .then((res) => console.log('notebook updated'))
     .catch((err) => console.log(err));
 }
 
@@ -307,7 +305,7 @@ export function createOutputNode(node: Node) {
       x: node.position.x + 180,
       y: node.position.y + 36,
     },
-    data: { output: "", isImage: false },
+    data: { output: "", isImage: false, outputType: 'stream' },
   };
 
   // in case the node has a parent, we want to make sure that the output node has the same parent
