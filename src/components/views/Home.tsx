@@ -40,7 +40,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"];
-  const token = 'd6ca9bd5bc6b9c3b719db91d2f44a49af1e004c73f23afb9';
+  const token = 'e903b5bcd0c78e7867a664d49bd16ed3e083ac5a7b3adff9';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
@@ -67,10 +67,12 @@ function DynamicGrouping() {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // add the execute function to each node's data if node is not a group node. For each group node, start a websocket connection
+      var websocketNumber = 0;
       initialNodes.forEach( async (node) => { 
         if (node.type !== GROUP_NODE) node.data.execute = executeCode;
         else {
-          const newWebSocket = await createSession(path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          websocketNumber++;
+          const newWebSocket = await createSession(websocketNumber, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           setWebSocketMap((prevMap) => ({ ...prevMap, [node?.id]: newWebSocket }));
           node.data = {
             ...node.data,
@@ -139,7 +141,8 @@ function DynamicGrouping() {
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const newWebSocket = await createSession(path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const websockerNumber = Object.keys(webSocketMap).length + 1;
+        const newWebSocket = await createSession(websockerNumber, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         // BUG - why it is executed twice if we do console.log?
         // console.log("latestExecutionCount: ", latestExecutionCount)
         // console.log("latestExecutionOutput: ", latestExecutionOutput)

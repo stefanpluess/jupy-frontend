@@ -5,21 +5,22 @@ import { WebSocketState } from './useWebSocketStore';
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
 
-export async function createSession(path: string,
+export async function createSession(websocketNumber: number,
+                                    path: string,
                                     token: string,
                                     setLatestExecutionOutput: setLEOType,
                                     setLatestExecutionCount: setLECType) {
-    const url = 'http://localhost:8888/';
-    const session = await startSession(url, token, path);
+    const adjustedPath = path + '_' + websocketNumber.toString();
+    const session = await startSession(token, adjustedPath);
     const ws = startWebsocket(session.session_id,
-                                session.kernel_id,
-                                token,
-                                setLatestExecutionOutput,
-                                setLatestExecutionCount);
+                              session.kernel_id,
+                              token,
+                              setLatestExecutionOutput,
+                              setLatestExecutionCount);
     return ws;
 }
 
-export async function startSession(url: string, token: string, path: string) {
+export async function startSession(token: string, path: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     let requestBody = {
         "name": "",
@@ -29,7 +30,7 @@ export async function startSession(url: string, token: string, path: string) {
             "name": "python3"
         },
     }
-    const res = await axios.post(url + 'api/sessions', requestBody)
+    const res = await axios.post('http://localhost:8888/api/sessions', requestBody)
     console.log("Start new session")
 
     const kernel_id = res.data['kernel']['id']
