@@ -12,9 +12,9 @@ export default function FileExplorer() {
 
   const navigate = useNavigate();
   const [contents, setContents] = useState<Content[]>([]);
-  const path = useParams()["*"];
+  const path = useParams()["*"] ?? '';
   const [showError, setShowError] = useState(false);
-  const token = '693b3e372204afd317e30b1bc731efa04fe8facc325de083'
+  const token = '85eb7054f52f19e040500bfc99f20d8039f6cc55fc3707f2'
 
   const getContentsFromPath = async () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -65,6 +65,11 @@ export default function FileExplorer() {
     })
   }
 
+  const openFile = (path: string) => {
+    const completePath = 'http://localhost:3000/notebooks/' + path;
+    window.open(completePath, '_blank');
+  }
+
   if (showError) {
     return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
   } else return (
@@ -110,7 +115,7 @@ export default function FileExplorer() {
                   </button>}
                   {file.type === 'notebook' && <FontAwesomeIcon icon={faBook} />}
                   {file.type === 'notebook' && ' '}
-                  {file.type === 'notebook' && <button className="link-button" onClick={async () => navigate(`/notebooks/${file.path}`)}>
+                  {file.type === 'notebook' && <button className="link-button" onClick={async () => openFile(file.path)}>
                     {file.name}
                   </button>}
                 </td>

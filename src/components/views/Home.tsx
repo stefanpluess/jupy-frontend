@@ -39,8 +39,8 @@ function DynamicGrouping() {
   const onConnect = useCallback((edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)), [setEdges]);
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
-  const path = useParams()["*"];
-  const token = 'e903b5bcd0c78e7867a664d49bd16ed3e083ac5a7b3adff9';
+  const path = useParams()["*"] ?? '';
+  const token = '85eb7054f52f19e040500bfc99f20d8039f6cc55fc3707f2';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
@@ -48,11 +48,6 @@ function DynamicGrouping() {
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount, 
   } = useWebSocketStore(selector, shallow);
-
-  const saveNotebook = () => {
-    const notebookData: NotebookPUT = createJSON(nodes, edges);
-    updateNotebook(token, notebookData, path);
-  }
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
@@ -86,7 +81,7 @@ function DynamicGrouping() {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 's' && (isMac ? e.metaKey : e.ctrlKey)) {
         e.preventDefault();
         saveNotebook();
@@ -98,6 +93,11 @@ function DynamicGrouping() {
 
 
   //INFO :: functions
+  const saveNotebook = () => {
+    const notebookData: NotebookPUT = createJSON(nodes, edges);
+    updateNotebook(token, notebookData, path);
+  }
+
   function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
     setCellIdToMsgId({[msg_id]: cell_id});
     // fetch the connection to execute the code on
