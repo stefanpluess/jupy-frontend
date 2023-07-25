@@ -40,7 +40,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"] ?? '';
-  const token = '85eb7054f52f19e040500bfc99f20d8039f6cc55fc3707f2';
+  const token = '2d4db1233734a79f9c275e8119779e0fb3f639894c96575d';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
@@ -122,7 +122,6 @@ function DynamicGrouping() {
       console.log("wrapperBounds.top: ", wrapperBounds.top);
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value
 
-
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
@@ -132,7 +131,7 @@ function DynamicGrouping() {
       const groupNode = intersections[0];
 
       const newNode: Node = {
-        id: getId(),
+        id: getId(type),
         type,
         position,
         data: {},
@@ -179,7 +178,7 @@ function DynamicGrouping() {
         const sortedNodes = store.getState().getNodes().concat(newNode).concat(newOutputNode).sort(sortNodes);
         setNodes(sortedNodes);
         const newEdge: Edge = {
-          id: getId(),
+          id: getId('edge'),
           source: newNode.id,
           target: newOutputNode.id,
         };

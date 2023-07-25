@@ -188,7 +188,6 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 }
 
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
-  console.log('notebookData: ', notebookData)
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
     .then((res) => console.log('notebook updated'))
@@ -242,22 +241,6 @@ export async function getSessions(token: string) {
 //     console.log(res.data)
 //     return res.data
 // }
-
-// export async function getSessions(url, token) {
-//     const res = await axios.get(url + 'api/sessions')
-//     console.log("Sessions:")
-//     console.log(res.data)
-
-//     const kernel_id = res.data[0]['kernel']['id']
-//     const session_id = res.data[0]['id']
-//     console.log("Kernel id:")
-//     console.log(kernel_id)
-//     console.log("Session id:")
-//     console.log(session_id)
-//     return kernel_id, session_id
-// }
-// messageGenerator.js
-
 
 
 /**
@@ -336,7 +319,17 @@ export const sortNodes = (a: Node, b: Node): number => {
     return a.type === 'group' && b.type !== 'group' ? -1 : 1;
 };
   
-export const getId = (prefix = 'node') => `${prefix}_${Math.random() * 10000}`;
+export const getId = (prefix = 'node') => {
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const idLength = 8;
+  let id = '';
+  for (let i = 0; i < idLength; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    id += characters[randomIndex];
+  }
+  return `${prefix}_${id}`;
+;}
+
   
 export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
     const position = node.position ?? { x: 0, y: 0 };
