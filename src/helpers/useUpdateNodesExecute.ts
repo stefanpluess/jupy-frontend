@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useReactFlow, Node } from 'reactflow';
-import {NORMAL_NODE} from './constants';
+import {GROUP_NODE, NORMAL_NODE} from './constants';
 
 interface useUpdateNodesExecuteProps{
     webSocketMap: {
@@ -29,7 +29,16 @@ const useUpdateNodesExecute= (
                   execute: executeCode
                 },
               };
-            } else return node;
+            } else if (node.type === GROUP_NODE) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  ws: webSocketMap[node.id]
+                },
+              };
+            }
+            else return node;
           });
           setNodes(newNodes);
         }, [webSocketMap]);

@@ -60,10 +60,10 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     const node: Node = {
       id: cell.id,
       type: cell.cell_type === 'code' ? 'node' : cell.cell_type === 'group' ? 'group' : 'mdnode',
-      data: {
+      data: cell.cell_type  === 'code' ? {
         code: cell.source,
         executionCount: cell.execution_count
-      },
+      } : {},
       position: position,
     };
     if (cell.parentNode) {

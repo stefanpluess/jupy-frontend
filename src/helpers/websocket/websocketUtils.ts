@@ -13,11 +13,11 @@ export async function createSession(websocketNumber: number,
                                     setLatestExecutionCount: setLECType) {
     const adjustedPath = path + '_' + websocketNumber.toString();
     const session = await startSession(token, adjustedPath);
-    const ws = startWebsocket(session.session_id,
-                              session.kernel_id,
-                              token,
-                              setLatestExecutionOutput,
-                              setLatestExecutionCount);
+    const ws = await startWebsocket(session.session_id,
+                                    session.kernel_id,
+                                    token,
+                                    setLatestExecutionOutput,
+                                    setLatestExecutionCount);
     return ws;
 }
 
@@ -32,21 +32,17 @@ export async function startSession(token: string, path: string) {
         },
     }
     const res = await axios.post('http://localhost:8888/api/sessions', requestBody)
-    console.log("Start new session")
-
     const kernel_id = res.data['kernel']['id']
     const session_id = res.data['id']
-    console.log("Kernel id: "+kernel_id)
-    console.log("Session id: "+session_id)
     return {
         kernel_id: kernel_id,
         session_id: session_id
     }
 }
 
-export function startWebsocket(session_id: string, kernel_id: string, token: string, 
-                                    setLatestExecutionOutput: setLEOType,
-                                    setLatestExecutionCount: setLECType) {
+export async function startWebsocket(session_id: string, kernel_id: string, token: string, 
+                                     setLatestExecutionOutput: setLEOType,
+                                     setLatestExecutionCount: setLECType) {
     const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);
