@@ -1,12 +1,14 @@
 import axios from "axios"
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from 'react-router-dom';
-import { Content } from "../../helpers/types";
+import { Content, Session } from "../../helpers/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolder, faArrowLeft, faBook, faFileCirclePlus } from "@fortawesome/free-solid-svg-icons";
 import Table from 'react-bootstrap/Table';
 import Error from '../views/Error'
+import { getSessions } from "../../helpers/utils";
+import { Button } from "react-bootstrap";
 
 export default function FileExplorer() {
 
@@ -14,38 +16,74 @@ export default function FileExplorer() {
   const [contents, setContents] = useState<Content[]>([]);
   const path = useParams()["*"] ?? '';
   const [showError, setShowError] = useState(false);
-  const token = '85eb7054f52f19e040500bfc99f20d8039f6cc55fc3707f2'
+  const token = '2d4db1233734a79f9c275e8119779e0fb3f639894c96575d'
+
 
   const getContentsFromPath = async () => {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
-      // create a list of file objects (containing name and path) from the response and set to contents
-      const files = res.data.content.map((file: any) => {
-        return { 
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    await axios.get(`http://localhost:8888/api/contents/${path}`)
+      .then(async (res) => {
+        const files: Content[] = res.data.content.map((file: Content) => ({
           name: file.name,
           path: file.path,
           last_modified: file.last_modified,
           created: file.created,
           writable: file.writable,
           size: file.size,
-          type: file.type
-        }
-      })
-      setShowError(false);
-      setContents(files);})
-    .catch((err) => {
-      setShowError(true);
-    })
-  }
+          type: file.type,
+        }));
+        setShowError(false);
+        const sessions = await getSessions(token);
+        // if file.path is a substring of session.path (only the ending of _anyNumber is not there), add the session_id to the file (list of sessions)
+        files.forEach((file: Content) => {
+          sessions.forEach((session: Session) => {
+            if (hasRunningSession(file.path, session.path)) {
+              if (!file.sessions) file.sessions = [];
+              file.sessions.push(session.id ?? '');
+            }
+          })
+        })
+        setContents(files);
+      }).catch((err) => { 
+        setShowError(true);
+      });
+  };
 
   const goBack = () => {
     navigate(path.split('/').slice(0, -1).join('/'));
   }
 
-  /* useEffect to initially fetch the contents */
+  /* useEffect to initially fetch the contents and setup polling to /api/contents/{path} and api/sessions */
   useEffect(() => {
     getContentsFromPath();
+    const interval = setInterval(() => { getContentsFromPath() }, 10000);
+    return () => clearInterval(interval);
   }, [path])
+
+  const hasRunningSession = (file_path: string, string_path: string): boolean => {
+    // Regular expression to match "_X" at the end of the string, where X is any positive integer
+    const suffixPattern = /_\d+$/;
+    // Remove the suffix "_X" from the strings using regex and then compare
+    const str1WithoutSuffix = file_path.replace(suffixPattern, '');
+    const str2WithoutSuffix = string_path.replace(suffixPattern, '');
+    return str1WithoutSuffix === str2WithoutSuffix;
+  };
+
+  /* Show time as "seconds ago", "1 minute ago", "3 minutes ago" "1 hour ago" etc. */
+  const timeSince = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) return interval + " year" + (interval > 1 ? "s" : "") + " ago";
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) return interval + " month" + (interval > 1 ? "s" : "") + " ago";
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return interval + " day" + (interval > 1 ? "s" : "") + " ago";
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return interval + " hour" + (interval > 1 ? "s" : "") + " ago";
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
+    return "seconds ago";
+  }
 
   const displayAsBytes = (size: number) => {
     if (size < 1000) return size + ' B';
@@ -68,11 +106,22 @@ export default function FileExplorer() {
   const openFile = (path: string) => {
     const completePath = 'http://localhost:3000/notebooks/' + path;
     window.open(completePath, '_blank');
+    // wait for the session to be created before refreshing the page
+    setTimeout(() => { getContentsFromPath() }, 1000);
   }
 
-  if (showError) {
-    return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
-  } else return (
+  const shutdownSessions = async (file: Content) => {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    file.sessions?.forEach(async (session_id: string) => {
+      await axios.delete(`http://localhost:8888/api/sessions/${session_id}`);
+    })
+    // wait for the sessions to be shut down before refreshing the page
+    setTimeout(() => { getContentsFromPath() }, 1000);
+    console.log('Sessions shut down');
+  }
+
+  if (showError) return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
+  else return (
     <div className="FileExplorer">
       <div className="row mb-3">
         {/* If path is empty, display root directory */}
@@ -86,7 +135,8 @@ export default function FileExplorer() {
       <Table bordered hover>
         <thead>
           <tr>
-            <th className="col-md-4" scope="col">Name</th>
+            <th className="col-md-7" scope="col">Name</th>
+            <th className="col-md-2" scope="col">Status</th>
             <th className="col-md-2" scope="col">Last Modified</th>
             <th className="col-md-1" scope="col">File Size</th>
           </tr>
@@ -100,6 +150,7 @@ export default function FileExplorer() {
                   <i> ... Go Back</i>
                 </button>
               </td>
+              <td></td>
               <td></td>
               <td></td>
             </tr>
@@ -119,8 +170,14 @@ export default function FileExplorer() {
                     {file.name}
                   </button>}
                 </td>
-                {/* Display last_modified in a readable manner */}
-                <td>{file.last_modified && new Date(file.last_modified).toLocaleString()}</td>
+                {/* If file contains sessions, display an X */}
+                <td>
+                  <div className="running">
+                    {file.sessions && 'Running - '}
+                    {file.sessions && <Button className="no-y-padding" variant="outline-danger" size="sm" onClick={async () => shutdownSessions(file)}>Shutdown</Button>}
+                  </div>
+                </td>
+                <td>{file.last_modified && timeSince(new Date(file.last_modified))}</td>
                 <td>{file.size && displayAsBytes(file.size)}</td>
               </tr>
             )

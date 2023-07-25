@@ -20,3 +20,11 @@
   margin: 0;
   font: inherit;
 }
+
+.no-y-padding {
+  padding: 0px 4px !important
+}
+
+.running {
+  color: green;
+}

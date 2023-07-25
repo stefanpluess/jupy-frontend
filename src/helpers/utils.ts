@@ -195,6 +195,12 @@ export async function updateNotebook(token: string, notebookData: NotebookPUT, p
     .catch((err) => console.log(err));
 }
 
+export async function getSessions(token: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  const res = await axios.get('http://localhost:8888/api/sessions')
+  return res.data
+}
+
 // ------------------------- START -------------------------
 // collection of helper methods
 // export async function getContent(url: String, token: String) {

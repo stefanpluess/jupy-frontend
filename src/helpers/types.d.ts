@@ -4,20 +4,24 @@ export type ExecutionCount = {
     msg_id: string;
     execution_count: number;
 };
+
 export type ExecutionOutput = {
     msg_id: string;
     output: string;
     outputType: string;
     isImage: boolean;
 };
+
 export type CellIdToMsgId = {
     [msgId: string]: string;
 };
+
 export type Cell = {
     id: string;
     execution_count: number;
     output: string;
-}
+};
+
 export type Content = {
     name: string;
     path: string;
@@ -26,7 +30,8 @@ export type Content = {
     writable: boolean;
     size: number;
     type: string;
-}
+    sessions?: string[];
+};
 
 export type Notebook = {
     cells: NotebookCell[];
@@ -51,7 +56,7 @@ export type Notebook = {
     };
     nbformat: number;
     nbformat_minor: number;
-}
+};
 
 export type NotebookPUT = {
     type: string;
@@ -59,7 +64,7 @@ export type NotebookPUT = {
     name?: string;
     path?: string;
     format?: string;
-}
+};
 
 export type NotebookCell = {
     cell_type: string;
@@ -72,7 +77,7 @@ export type NotebookCell = {
     height?: number | null;
     width?: number | null;
     parentNode?: string;
-}
+};
 
 export type NotebookOutput = {
     output_type: string;
@@ -83,4 +88,24 @@ export type NotebookOutput = {
     text?: string[];
     traceback?: string[];
     position: XYPosition;
-}
+};
+
+export type Kernel = {
+    name: string;
+    id?: string;
+    last_activity?: string;
+    execution_state?: string;
+    connections?: number;
+};
+
+export type Session = {
+    id?: string;
+    path: string;
+    name: string;
+    type: string;
+    kernel: Kernel;
+    notebook?: {
+        path: string;
+        name: string;
+    };
+};

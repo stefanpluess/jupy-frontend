@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { removeEscapeCodes } from '../utils';
 import { WebSocketState } from './useWebSocketStore';
+import { Session } from '../types';
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
@@ -22,7 +23,7 @@ export async function createSession(websocketNumber: number,
 
 export async function startSession(token: string, path: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    let requestBody = {
+    let requestBody: Session = {
         "name": "",
         "path": path,
         "type": "notebook",
