@@ -96,9 +96,8 @@ export default function FileExplorer() {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.post(`http://localhost:8888/api/contents/${path}`, { type: 'notebook' }).then((res) => {
       const newPath = res.data.path;
-      navigate(`/notebooks/${newPath}`);
-    })
-    .catch((err) => {
+      openFile(newPath);
+    }).catch((err) => {
       console.log(err);
     })
   }
@@ -123,13 +122,13 @@ export default function FileExplorer() {
   if (showError) return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
   else return (
     <div className="FileExplorer">
-      <div className="row mb-3">
+      <div className="row mb-3 mx-0">
         {/* If path is empty, display root directory */}
-        {path === '' && <h3 className="col-sm-11 mb-0">Root Directory</h3>}
+        {path === '' && <h3 className="col-sm-11 mb-0 px-0">Root Directory</h3>}
         {/* If path is not empty, display path */}
-        {path !== '' && <h3 className="col-sm-11">{path}</h3>}
+        {path !== '' && <h3 className="col-sm-11 mb-0 px-0">{path}</h3>}
         {/* Add a button to create a new notebook in the current directory */}
-        <button className="btn btn-sm btn-primary col-sm-1" onClick={() => createNotebook()}><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</button>
+        <button className="btn btn-sm btn-outline-primary col-sm-1" onClick={() => createNotebook()}><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</button>
       </div>
       {/* For each file in files, display then in a table containing name, last_modified and size */}
       <Table bordered hover>
@@ -174,6 +173,7 @@ export default function FileExplorer() {
                 <td>
                   <div className="running">
                     {file.sessions && 'Running - '}
+                    {/* TODO: While shutting down, disable the button */}
                     {file.sessions && <Button className="no-y-padding" variant="outline-danger" size="sm" onClick={async () => shutdownSessions(file)}>Shutdown</Button>}
                   </div>
                 </td>
