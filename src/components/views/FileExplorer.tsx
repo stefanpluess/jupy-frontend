@@ -16,7 +16,7 @@ export default function FileExplorer() {
   const [contents, setContents] = useState<Content[]>([]);
   const path = useParams()["*"] ?? '';
   const [showError, setShowError] = useState(false);
-  const token = '2d4db1233734a79f9c275e8119779e0fb3f639894c96575d'
+  const token = 'd4cc13de8afab66a8dd813b8ca57df913d7f59d092991ca1'
 
 
   const getContentsFromPath = async () => {
@@ -34,7 +34,6 @@ export default function FileExplorer() {
         }));
         setShowError(false);
         const sessions = await getSessions(token);
-        // if file.path is a substring of session.path (only the ending of _anyNumber is not there), add the session_id to the file (list of sessions)
         files.forEach((file: Content) => {
           sessions.forEach((session: Session) => {
             if (hasRunningSession(file.path, session.path)) {
@@ -53,23 +52,23 @@ export default function FileExplorer() {
     navigate(path.split('/').slice(0, -1).join('/'));
   }
 
-  /* useEffect to initially fetch the contents and setup polling to /api/contents/{path} and api/sessions */
+  /* useEffect to initially fetch the contents / sessions and setup polling */
   useEffect(() => {
     getContentsFromPath();
     const interval = setInterval(() => { getContentsFromPath() }, 10000);
     return () => clearInterval(interval);
   }, [path])
 
-  const hasRunningSession = (file_path: string, string_path: string): boolean => {
+  const hasRunningSession = (file_path: string, session_path: string): boolean => {
     // Regular expression to match "_X" at the end of the string, where X is any positive integer
     const suffixPattern = /_\d+$/;
     // Remove the suffix "_X" from the strings using regex and then compare
-    const str1WithoutSuffix = file_path.replace(suffixPattern, '');
-    const str2WithoutSuffix = string_path.replace(suffixPattern, '');
-    return str1WithoutSuffix === str2WithoutSuffix;
+    const filePathWithoutSuffix = file_path.replace(suffixPattern, '');
+    const sessionPathWithoutSuffix = session_path.replace(suffixPattern, '');
+    return filePathWithoutSuffix === sessionPathWithoutSuffix;
   };
 
-  /* Show time as "seconds ago", "1 minute ago", "3 minutes ago" "1 hour ago" etc. */
+  /* Show time as "seconds ago", "1 minute ago", "3 minutes ago", "1 hour ago" etc. */
   const timeSince = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = Math.floor(seconds / 31536000);
@@ -87,9 +86,9 @@ export default function FileExplorer() {
 
   const displayAsBytes = (size: number) => {
     if (size < 1000) return size + ' B';
-    else if (size < 1000000) return (size / 1000).toFixed(2) + ' KB';
-    else if (size < 1000000000) return (size / 1000000).toFixed(2) + ' MB';
-    else return (size / 1000000000).toFixed(2) + ' GB';
+    if (size < 1000000) return (size / 1000).toFixed(2) + ' KB';
+    if (size < 1000000000) return (size / 1000000).toFixed(2) + ' MB';
+    return (size / 1000000000).toFixed(2) + ' GB';
   }
 
   const createNotebook = async () => {

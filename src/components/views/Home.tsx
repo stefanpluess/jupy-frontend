@@ -40,7 +40,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"] ?? '';
-  const token = '2d4db1233734a79f9c275e8119779e0fb3f639894c96575d';
+  const token = 'd4cc13de8afab66a8dd813b8ca57df913d7f59d092991ca1';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
@@ -54,7 +54,7 @@ function DynamicGrouping() {
   //INFO :: useEffect -> update the execute function
   useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
 
-  // on initial render, load the notebook
+  /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   //TODO: outsource
   useEffect(() => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -69,10 +69,6 @@ function DynamicGrouping() {
           websocketNumber++;
           const newWebSocket = await createSession(websocketNumber, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           setWebSocketMap((prevMap) => ({ ...prevMap, [node?.id]: newWebSocket }));
-          node.data = {
-            ...node.data,
-            ws: newWebSocket
-          }
         }
       });
       setNodes(initialNodes);
@@ -80,6 +76,7 @@ function DynamicGrouping() {
     });
   }, []);
 
+  /* add and update eventListener for Ctrl/Cmd + S */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 's' && (isMac ? e.metaKey : e.ctrlKey)) {
@@ -147,10 +144,6 @@ function DynamicGrouping() {
         // console.log("latestExecutionOutput: ", latestExecutionOutput)
         // add the websocket to the id -> websocket map
         setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
-        newNode.data = {
-          ...newNode.data,
-          ws: newWebSocket
-        };
       } else {
         newNode.data = {
           ...newNode.data,
