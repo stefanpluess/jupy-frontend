@@ -105,6 +105,19 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
   // add the output nodes to the initial nodes
   initialNodes = [...initialNodes, ...outputNodes];
 
+  // create edges between the group nodes
+  cells.forEach((cell: NotebookCell) => {
+    if (cell.successors) {
+      cell.successors.forEach((successor: string) => {
+        initialEdges.push({
+          id: `${cell.id}-${successor}`,
+          source: cell.id,
+          target: successor
+        });
+      });
+    }
+  });
+  
   return { initialNodes, initialEdges };
     
 }
@@ -151,6 +164,19 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
       // find the corresponding cell and add the output to it (id is the same, without the _output)
       const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
       cell?.outputs.push(output);
+    }
+  });
+
+  // loop through all edges. For all edges from group node to group node, add them as predecessor/successor to the related cell
+  edges.forEach((edge: Edge) => {
+    const sourceNode = nodes.find((node: Node) => node.id === edge.source);
+    const targetNode = nodes.find((node: Node) => node.id === edge.target);
+    if (sourceNode?.type === 'group' && targetNode?.type === 'group') {
+      const sourceCell = cells.find((cell: NotebookCell) => cell.id === sourceNode.id);
+      if (sourceCell?.successors) sourceCell.successors.push(targetNode.id);
+      else if (sourceCell) sourceCell.successors = [targetNode.id];
+      const targetCell = cells.find((cell: NotebookCell) => cell.id === targetNode.id);
+      if (targetCell) targetCell.predecessor = sourceNode.id;
     }
   });
 

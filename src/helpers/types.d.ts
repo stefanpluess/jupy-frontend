@@ -77,6 +77,8 @@ export type NotebookCell = {
     height?: number | null;
     width?: number | null;
     parentNode?: string;
+    predecessor?: string;
+    successors?: string[];
 };
 
 export type NotebookOutput = {
