@@ -31,6 +31,7 @@ export type Content = {
     size: number;
     type: string;
     sessions?: string[];
+    [key: string]: any;
 };
 
 export type Notebook = {

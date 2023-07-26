@@ -124,15 +124,16 @@ export default function FileExplorer() {
   const sortFunction = (a: Content, b: Content) => {
     const columnA = a[sortColumn];
     const columnB = b[sortColumn];
-
     if (sortDirection === 'desc') {
-      if (columnA === null) return -1;
-      if (columnB === null) return 1;
-      return columnA.localeCompare(columnB);
-    } else {
       if (columnA === null) return 1;
       if (columnB === null) return -1;
-      return columnB.localeCompare(columnA);
+      if (typeof columnA === 'string' && typeof columnB === 'string') return columnA.localeCompare(columnB);
+      else return columnB < columnA ? -1 : 1;
+    } else {
+      if (columnA === null) return -1;
+      if (columnB === null) return 1;
+      if (typeof columnA === 'string' && typeof columnB === 'string') return columnB.localeCompare(columnA);
+      else return columnA < columnB ? -1 : 1;
     }
   };
 
@@ -142,20 +143,13 @@ export default function FileExplorer() {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
-      if (column === 'name' || column === 'last_modified') setSortDirection('desc');
-      else setSortDirection('asc');
+      setSortDirection('desc');
     }
   };
 
   // Icon to indicate sorting direction
   const sortIcon = (column: string) => {
-    if (column === sortColumn) {
-      return sortDirection === "asc" ? (
-        column !== 'size' ? <FontAwesomeIcon icon={faSortUp} />: <FontAwesomeIcon icon={faSortDown} />
-      ) : (
-        column !== 'size' ? <FontAwesomeIcon icon={faSortDown} />: <FontAwesomeIcon icon={faSortUp} />
-      );
-    }
+    if (column === sortColumn) return sortDirection === "asc" ? (<FontAwesomeIcon icon={faSortUp} />) : (<FontAwesomeIcon icon={faSortDown} />);
     return <FontAwesomeIcon icon={faSort} />;
   };
 
@@ -174,7 +168,7 @@ export default function FileExplorer() {
         <button className="btn btn-sm btn-outline-primary col-sm-1" onClick={() => createNotebook()}><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</button>
       </div>
       {/* For each file in files, display then in a table containing name, last_modified and size */}
-      <Table bordered hover>
+      <Table bordered hover striped>
         <thead>
           <tr>
             <th className="col-md-7" scope="col">
@@ -191,7 +185,7 @@ export default function FileExplorer() {
             </th>
             <th className="col-md-1" scope="col">
               <button className="table-header clickable" onClick={() => handleSort("size")}>
-                File Size
+                Size
                 <span className="sort-icon">{sortIcon("size")}</span>
               </button>
             </th>
