@@ -6,7 +6,7 @@ import { MouseEvent, DragEvent, useCallback, useRef,
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
   useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
-  Connection, MiniMap, Controls,
+  Connection, MiniMap, Controls, Panel,
 } from 'reactflow';
 import { useParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
@@ -41,7 +41,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = useParams()["*"] ?? '';
-  const token = 'd4cc13de8afab66a8dd813b8ca57df913d7f59d092991ca1';
+  const token = '91cac2dcfc8ba18d6e5b7723e84d9891707feaf95233d2fa';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
@@ -230,10 +230,10 @@ function DynamicGrouping() {
   );
 
   const SuccessAlert = () => {
-    return (<Alert className="alert" variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>Notebook saved successfully!</Alert>);
+    return (<Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>Notebook saved successfully!</Alert>);
   };
   const ErrorAlert = () => {
-    return (<Alert className="alert" variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>Error saving notebook.</Alert>);
+    return (<Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>Error saving notebook.</Alert>);
   };
 
   return (
@@ -261,8 +261,10 @@ function DynamicGrouping() {
           <SelectedNodesToolbar />
           <MiniMap nodeColor='#b44b9f80' maskStrokeColor='#222' nodeStrokeWidth={3} position={'top-right'} zoomable pannable />
           <Controls />
-          <SuccessAlert />
-          <ErrorAlert />
+          <Panel position="top-center">
+            <SuccessAlert />
+            <ErrorAlert />
+          </Panel>
         </ReactFlow>
       </div>
     </div>
