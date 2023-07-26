@@ -16,9 +16,8 @@ import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar
 //COMMENT :: Internal modules HELPERS
 import { nodes as initialNodes, edges as initialEdges, 
   sortNodes, getId, getNodePositionInsideParent, createOutputNode,
-  generateMessage, useUpdateNodesExecute, useUpdateNodesExeCountAndOuput, 
-  updateClassNameOrPosition, updateClassNameOrPositionInsideParent,
-  canRunOnNodeDrag
+  useUpdateNodesExeCountAndOuput,updateClassNameOrPosition,
+  updateClassNameOrPositionInsideParent, canRunOnNodeDrag
 } from '../../helpers';
 import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
 import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
@@ -44,18 +43,16 @@ function DynamicGrouping() {
   const token = '91cac2dcfc8ba18d6e5b7723e84d9891707feaf95233d2fa';
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
-  const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
-    latestExecutionOutput, setLatestExecutionCount, 
+    latestExecutionOutput, setLatestExecutionCount,
+    websocketNumber, setWebsocketNumber
   } = useWebSocketStore(selector, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
-  //INFO :: useEffect -> update the execute function
-  useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   //TODO: outsource
@@ -64,16 +61,16 @@ function DynamicGrouping() {
     axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
-      // add the execute function to each node's data if node is not a group node. For each group node, start a websocket connection
-      var websocketNumber = 0;
+      // For each group node, start a websocket connection
+      var websocketCount = 0;
       initialNodes.forEach( async (node) => { 
-        if (node.type !== GROUP_NODE) node.data.execute = executeCode;
-        else {
-          websocketNumber++;
-          const newWebSocket = await createSession(websocketNumber, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-          setWebSocketMap((prevMap) => ({ ...prevMap, [node?.id]: newWebSocket }));
+        if (node.type === GROUP_NODE) {
+          websocketCount++;
+          const newWebSocket = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          node.data.ws = newWebSocket;
         }
       });
+      setWebsocketNumber(websocketCount);
       setNodes(initialNodes);
       setEdges(initialEdges);
     });
@@ -104,18 +101,6 @@ function DynamicGrouping() {
     }
   };
 
-  function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
-    setCellIdToMsgId({[msg_id]: cell_id});
-    // fetch the connection to execute the code on
-    const ws = webSocketMap[parent_id];
-    // Send code to the kernel for execution
-    const message = generateMessage(msg_id, code); // imported at the top
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    } else {
-      console.log("websocket is not connected");
-    }
-  }
 
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
@@ -146,19 +131,15 @@ function DynamicGrouping() {
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const websockerNumber = Object.keys(webSocketMap).length + 1;
-        const newWebSocket = await createSession(websockerNumber, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const wn = websocketNumber + 1;
+        setWebsocketNumber(wn);
+        const newWebSocket = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         // BUG - why it is executed twice if we do console.log?
         // console.log("latestExecutionCount: ", latestExecutionCount)
         // console.log("latestExecutionOutput: ", latestExecutionOutput)
-        // add the websocket to the id -> websocket map
-        setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
+        newNode.data.ws = newWebSocket
       } else {
-        newNode.data = {
-          ...newNode.data,
-          execute: executeCode,
-          executionCount: null
-        };
+        newNode.data.executionCount = null;
       }
 
       if (groupNode) {
@@ -311,4 +292,6 @@ const selector = (state: WebSocketState) => ({
   setLatestExecutionOutput: state.setLatestExecutionOutput,
   cellIdToMsgId: state.cellIdToMsgId,
   setCellIdToMsgId: state.setCellIdToMsgId,
+  websocketNumber: state.websocketNumber,
+  setWebsocketNumber: state.setWebsocketNumber,
 });

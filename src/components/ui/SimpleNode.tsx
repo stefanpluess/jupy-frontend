@@ -1,31 +1,28 @@
-import { ChangeEvent, useState, useEffect, memo} from 'react'
+import { ChangeEvent, useState, useEffect, memo, useCallback} from 'react'
 import { Handle, Position, NodeToolbar, NodeProps, useStore, useReactFlow } from 'reactflow';
 import useDetachNodes from '../../helpers/useDetachNodes';
 import { faTrash, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { v4 as uuidv4 } from 'uuid';
 import CodeEditor from '@uiw/react-textarea-code-editor';
+import { generateMessage } from '../../helpers';
+import { useWebSocketStore } from '../../helpers/websocket';
 
 function SimpleNode({ id, data }: NodeProps) {
   const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
   const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
-  const { deleteElements } = useReactFlow();
+  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
+  const { deleteElements, getNode } = useReactFlow();
   const detachNodes = useDetachNodes();
 
   // textareaValue is data.code if it exists, otherwise it's an empty string
   const [textareaValue, setTextareaValue] = useState(data?.code || '');
-  var execute = data?.execute;
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
   }, [data?.executionCount]);
-
-  useEffect(() => {
-    // console.log(id + " ----- Execute Changed -----")
-    execute = data?.execute;
-  }, [data?.execute]);
 
   // when deleting the node, automatically delete the output node as well
   const onDelete = () => deleteElements({ nodes: [{ id }, {id: id+"_output"}] });
@@ -37,12 +34,23 @@ function SimpleNode({ id, data }: NodeProps) {
     data.code = event.target.value.replace(/\t/g, '    ');
   };
 
-  const runCode = () => {
-    console.log('run code ('+textareaValue+')!');
-    var msg_id = uuidv4();
-    setExecutionCount("*");
-    execute(parentNode, textareaValue, msg_id, id);
-  }
+  const runCode = useCallback(() => {
+    console.log('run code (' + textareaValue + ')!');
+    if (parentNode) {
+      const parent = getNode(parentNode);
+      var msg_id = uuidv4();
+      setCellIdToMsgId({ [msg_id]: id });
+      setExecutionCount("*");
+      const ws = parent?.data.ws;
+      const message = generateMessage(msg_id, textareaValue);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+      } else {
+        console.log("websocket is not connected");
+      }
+    }
+  }, [parentNode, getNode, setCellIdToMsgId, setExecutionCount, textareaValue]);
+
 
   const deleteCode = () => {
     if (textareaValue === '') return;

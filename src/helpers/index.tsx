@@ -7,4 +7,3 @@ export { createOutputNode, removeEscapeCodes, sortNodes, getId,
     updateClassNameOrPosition, updateClassNameOrPositionInsideParent,
     } from './utils';
 export { default as useUpdateNodesExeCountAndOuput} from './useUpdateNodesExeCountAndOuput';
-export { default as useUpdateNodesExecute} from './useUpdateNodesExecute';
