@@ -13,12 +13,17 @@ export type WebSocketState = {
     cellIdToMsgId: CellIdToMsgId;
     setCellIdToMsgId: (newObj: CellIdToMsgId) => void;
     getCellIdToMsgId: () => CellIdToMsgId;
+
+    websocketNumber: number;
+    setWebsocketNumber: (newNumber: number) => void;
+    getWebsocketNumber: () => number;
 };
 
 const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionCount: {} as ExecutionCount,
     latestExecutionOutput: {} as ExecutionOutput,
     cellIdToMsgId: {} as CellIdToMsgId,
+    websocketNumber: 0,
     // setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {
         set({
@@ -35,6 +40,11 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
             cellIdToMsgId: newObj,
         });
     },
+    setWebsocketNumber: (newNumber: number) => {
+        set({
+            websocketNumber: newNumber,
+        });
+    },
     // getters 
     getLatestExecutionCount: () => {
         return get().latestExecutionCount;
@@ -45,6 +55,9 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     getCellIdToMsgId: () => {
         return get().cellIdToMsgId;
     },
+    getWebsocketNumber: () => {
+        return get().websocketNumber;
+    }
 }));
 
 export default useWebSocketStore;

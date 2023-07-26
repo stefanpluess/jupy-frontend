@@ -21,17 +21,17 @@ function SimpleOutputNode({ id, data }: NodeProps) {
   );
   const { deleteElements } = useReactFlow();
   const detachNodes = useDetachNodes();
-
-  const [output, setOutput] = useState({ __html: "" });
+  
+  const [output, setOutput] = useState({ __html: '' });
+  const [outputType, setOutputType] = useState(data?.outputType);
 
   useEffect(() => {
     // console.log(id+ " ----- Output Changed ----- now: " + data?.output)
     var formattedOutput = "";
     if (data?.isImage) {
-      formattedOutput =
-        '<img src="data:image/png;base64,' + data?.output + '">';
+      formattedOutput = '<img src="data:image/png;base64,' + data?.output + '">';
     } else {
-      formattedOutput = data?.output.replace(/\n/g, "<br>");
+      formattedOutput = data?.output.replace(/\n/g, '<br>');
     }
     const outputHtml = { __html: formattedOutput };
     setOutput(outputHtml);

@@ -1,50 +1,48 @@
 import axios from 'axios';
 import { removeEscapeCodes } from '../utils';
 import { WebSocketState } from './useWebSocketStore';
+import { Session } from '../types';
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
 
-export async function createSession(setLatestExecutionOutput: setLEOType,
+export async function createSession(websocketNumber: number,
+                                    path: string,
+                                    token: string,
+                                    setLatestExecutionOutput: setLEOType,
                                     setLatestExecutionCount: setLECType) {
-    const url = 'http://localhost:8888/';
-    const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
-    const token = '0e16b22fa43623ef57b6ad7c4e67580085ae3eec08671571';
-    const session = await startSession(url, token, session_name);
-    const ws = startWebsocket(session.session_id, 
-                                session.kernel_id, 
-                                token, 
-                                setLatestExecutionOutput, 
-                                setLatestExecutionCount);
+    const adjustedPath = path + '_' + websocketNumber.toString();
+    const session = await startSession(token, adjustedPath);
+    const ws = await startWebsocket(session.session_id,
+                                    session.kernel_id,
+                                    token,
+                                    setLatestExecutionOutput,
+                                    setLatestExecutionCount);
     return ws;
 }
 
-export async function startSession(url: string, token: string, notebookName: string) {
+export async function startSession(token: string, path: string) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    let requestBody = {
-        "name": notebookName,
-        "path": notebookName, //TODO: change this to the path of the notebook
+    let requestBody: Session = {
+        "name": "",
+        "path": path,
         "type": "notebook",
         "kernel": {
             "name": "python3"
         },
     }
-    const res = await axios.post(url + 'api/sessions', requestBody)
-    console.log("Start new session")
-
+    const res = await axios.post('http://localhost:8888/api/sessions', requestBody)
     const kernel_id = res.data['kernel']['id']
     const session_id = res.data['id']
-    console.log("Kernel id: "+kernel_id)
-    console.log("Session id: "+session_id)
     return {
         kernel_id: kernel_id,
         session_id: session_id
     }
 }
 
-export function startWebsocket(session_id: string, kernel_id: string, token: string, 
-                                    setLatestExecutionOutput: setLEOType,
-                                    setLatestExecutionCount: setLECType) {
+export async function startWebsocket(session_id: string, kernel_id: string, token: string, 
+                                     setLatestExecutionOutput: setLEOType,
+                                     setLatestExecutionCount: setLECType) {
     const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);
@@ -85,6 +83,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: message.content.data['text/plain'],
                 isImage: false,
+                outputType: 'execute_result',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -94,6 +93,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: message.content.text,
                 isImage: false,
+                outputType: 'stream',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -106,6 +106,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: outputImage,
                 isImage: true,
+                outputType: 'display_data',
             }
             setLatestExecutionOutput(outputObj);
 
@@ -116,6 +117,7 @@ export function startWebsocket(session_id: string, kernel_id: string, token: str
                 msg_id: message.parent_header.msg_id,
                 output: traceback.join('\n'),
                 isImage: false,
+                outputType: 'error',
             }
             setLatestExecutionOutput(outputObj);
         }

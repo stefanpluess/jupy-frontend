@@ -1,5 +1,6 @@
 import axios from 'axios'
-import type { Node } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from './types';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
@@ -45,6 +46,186 @@ export function canRunOnNodeDrag(node: Node): boolean {
   }
 }
 
+
+export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
+
+  var initialNodes: Node[] = [];
+  const outputNodes: Node[] = [];
+  const initialEdges: Edge[] = [];
+
+  // given the cells, create the initial nodes and edges
+  cells.forEach((cell: NotebookCell) => {
+    // if position is given, use it, otherwise create a new position (shift y position by 140px for each node)
+    const position = cell.position ? { x: cell.position.x, y: cell.position.y } : { x: 0, y: 140 * initialNodes.length };
+    const node: Node = {
+      id: cell.id,
+      type: cell.cell_type === 'code' ? 'node' : cell.cell_type === 'group' ? 'group' : 'mdnode',
+      data: cell.cell_type  === 'code' ? {
+        code: cell.source,
+        executionCount: cell.execution_count
+      } : {},
+      position: position,
+    };
+    if (cell.parentNode) {
+      node.parentNode = cell.parentNode;
+      node.extent = 'parent';
+    };
+    if (cell.cell_type === 'group') {
+      node.height = cell.height;
+      node.width = cell.width;
+      node.style = { height: cell.height, width: cell.width };
+    }
+    // if output is not empty, create an output node
+    if (cell.outputs.length > 0) {
+      const outputNode: Node = createOutputNode(node)
+      // depending on the output type, set the output data
+      outputNode.data.outputType = cell.outputs[0].output_type;
+      if (cell.outputs[0].output_type === 'execute_result') {
+        outputNode.data.output = cell.outputs[0].data['text/plain'];
+      } else if (cell.outputs[0].output_type === 'stream') {
+        outputNode.data.output = cell.outputs[0].text;
+      } else if (cell.outputs[0].output_type === 'display_data') {
+        outputNode.data.output = cell.outputs[0].data['image/png'];
+        outputNode.data.isImage = true;
+      } else if (cell.outputs[0].output_type === 'error') {
+        outputNode.data.output = cell.outputs[0].traceback?.map(removeEscapeCodes).join('\n');
+      }
+      // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
+      outputNode.position = cell.outputs[0].position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
+      outputNodes.push(outputNode);
+      // create an edge from the node to the output node
+      initialEdges.push({
+        id: `${node.id}-${outputNode.id}`,
+        source: node.id,
+        target: outputNode.id
+      });
+    }
+    initialNodes.push(node);
+  });
+  // add the output nodes to the initial nodes
+  initialNodes = [...initialNodes, ...outputNodes];
+
+  // create edges between the group nodes
+  cells.forEach((cell: NotebookCell) => {
+    if (cell.successors) {
+      cell.successors.forEach((successor: string) => {
+        initialEdges.push({
+          id: `${cell.id}-${successor}`,
+          source: cell.id,
+          target: successor
+        });
+      });
+    }
+  });
+  
+  return { initialNodes, initialEdges };
+    
+}
+
+export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
+
+  const cells: NotebookCell[] = [];
+  nodes.forEach((node: Node) => {
+    // create a cell object for each node (NO output node)
+    if (node.type !== 'outputNode') {
+      const cell: NotebookCell = {
+        id: node.id,
+        cell_type: node.type === 'node' ? 'code' : node.type === 'group' ? 'group' : 'markdown',
+        source: node.data.code,
+        execution_count: node.data.executionCount,
+        outputs: [],
+        position: node.position,
+        parentNode: node?.parentNode,
+        metadata: {},
+      };
+      if (node.type === 'group') {
+        cell.height = node.height;
+        cell.width = node.width;
+      }
+      cells.push(cell);
+    } else {
+      const output: NotebookOutput = {
+        output_type: node.data.outputType,
+        execution_count: node.data.executionCount,
+        data: {},
+        position: node.position,
+      };
+      // depending on the output type, set the output data
+      if (node.data.outputType === 'execute_result') {
+        output.data['text/plain'] = node.data.output;
+      } else if (node.data.outputType === 'stream') {
+        output.text = node.data.output;
+        output.name = node.data.name;
+      } else if (node.data.outputType === 'display_data') {
+        output.data['image/png'] = node.data.output;
+      } else if (node.data.outputType === 'error') {
+        output.traceback = node.data.output.split('\n');
+      }
+      // find the corresponding cell and add the output to it (id is the same, without the _output)
+      const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
+      cell?.outputs.push(output);
+    }
+  });
+
+  // loop through all edges. For all edges from group node to group node, add them as predecessor/successor to the related cell
+  edges.forEach((edge: Edge) => {
+    const sourceNode = nodes.find((node: Node) => node.id === edge.source);
+    const targetNode = nodes.find((node: Node) => node.id === edge.target);
+    if (sourceNode?.type === 'group' && targetNode?.type === 'group') {
+      const sourceCell = cells.find((cell: NotebookCell) => cell.id === sourceNode.id);
+      if (sourceCell?.successors) sourceCell.successors.push(targetNode.id);
+      else if (sourceCell) sourceCell.successors = [targetNode.id];
+      const targetCell = cells.find((cell: NotebookCell) => cell.id === targetNode.id);
+      if (targetCell) targetCell.predecessor = sourceNode.id;
+    }
+  });
+
+  const notebook: Notebook = {
+    cells: cells,
+    metadata: {
+      kernelspec: {
+        display_name: "Python 3 (ipykernel)",
+        language: "python",
+        name: "python3"
+      },
+      language_info: {
+        codemirror_mode: {
+          name: "ipython",
+          version: 3
+        },
+        file_extension: ".py",
+        mimetype: "text/x-python",
+        name: "python",
+        nbconvert_exporter: "python",
+        pygments_lexer: "ipython3",
+        version: "3.11.3"
+      }
+    },
+    nbformat: 4,
+    nbformat_minor: 5
+  }
+
+  const notebookPut: NotebookPUT = {
+    content: notebook,
+    type: 'notebook'
+  }
+
+  return notebookPut;
+}
+
+export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
+    .then((res) => console.log('notebook updated'))
+    .catch((err) => console.log(err));
+}
+
+export async function getSessions(token: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  const res = await axios.get('http://localhost:8888/api/sessions')
+  return res.data
+}
+
 // ------------------------- START -------------------------
 // collection of helper methods
 // export async function getContent(url: String, token: String) {
@@ -79,17 +260,6 @@ export function canRunOnNodeDrag(node: Node): boolean {
 //     return res.data
 // }
 
-// export async function updateNotebook(url, token, name, notebook, cell) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     notebook['cells'].push(cell)
-//     var requestBody = {
-//         "content": notebook,
-//         "type": "notebook"
-//     }
-//     const res = await axios.put(url + 'api/contents/'+name, requestBody)
-//     return res.data
-// }
-
 // export async function getKernelspecs(url, token) {
 //     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 //     const res = await axios.get(url + 'api/kernelspecs')
@@ -97,22 +267,6 @@ export function canRunOnNodeDrag(node: Node): boolean {
 //     console.log(res.data)
 //     return res.data
 // }
-
-// export async function getSessions(url, token) {
-//     const res = await axios.get(url + 'api/sessions')
-//     console.log("Sessions:")
-//     console.log(res.data)
-
-//     const kernel_id = res.data[0]['kernel']['id']
-//     const session_id = res.data[0]['id']
-//     console.log("Kernel id:")
-//     console.log(kernel_id)
-//     console.log("Session id:")
-//     console.log(session_id)
-//     return kernel_id, session_id
-// }
-// messageGenerator.js
-
 
 
 /**
@@ -161,11 +315,12 @@ export function createOutputNode(node: Node) {
     id: node.id+"_output",
     type: 'outputNode',
     // position it on the right of the given position
+    // TODO: use the position provided in the JSON
     position: {
       x: node.position.x + 180,
       y: node.position.y + 36,
     },
-    data: { output: "", isImage: false },
+    data: { output: "", isImage: false, outputType: 'stream' },
   };
 
   // in case the node has a parent, we want to make sure that the output node has the same parent
@@ -190,7 +345,17 @@ export const sortNodes = (a: Node, b: Node): number => {
     return a.type === 'group' && b.type !== 'group' ? -1 : 1;
 };
   
-export const getId = (prefix = 'node') => `${prefix}_${Math.random() * 10000}`;
+export const getId = (prefix = 'node') => {
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const idLength = 8;
+  let id = '';
+  for (let i = 0; i < idLength; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    id += characters[randomIndex];
+  }
+  return `${prefix}_${id}`;
+;}
+
   
 export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
     const position = node.position ?? { x: 0, y: 0 };

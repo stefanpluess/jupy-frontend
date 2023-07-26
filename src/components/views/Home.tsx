@@ -14,8 +14,9 @@ import { MouseEvent, DragEvent, useCallback, useRef,
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
   useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
-  Connection, MiniMap, Controls,
+  Connection, MiniMap, Controls, Panel,
 } from 'reactflow';
+import { useParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 //COMMENT :: Internal modules UI
 import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar 
@@ -23,16 +24,19 @@ import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar
 //COMMENT :: Internal modules HELPERS
 import { nodes as initialNodes, edges as initialEdges, 
   sortNodes, getId, getNodePositionInsideParent, createOutputNode,
-  generateMessage, useUpdateNodesExecute, useUpdateNodesExeCountAndOuput, 
-  updateClassNameOrPosition, updateClassNameOrPositionInsideParent,
-  canRunOnNodeDrag
+  useUpdateNodesExeCountAndOuput,updateClassNameOrPosition,
+  updateClassNameOrPositionInsideParent, canRunOnNodeDrag
 } from '../../helpers';
 import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
 import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
+import { createInitialElements, createJSON, updateNotebook } from '../../helpers/utils';
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 import '../../styles/views/Home.css';
+import axios from 'axios';
+import { NotebookPUT } from '../../helpers/types';
+import { Alert } from 'react-bootstrap';
 
 
 //INFO :: main code
@@ -46,32 +50,69 @@ function DynamicGrouping() {
   );
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
+  const path = useParams()["*"] ?? '';
+  const token = '91cac2dcfc8ba18d6e5b7723e84d9891707feaf95233d2fa';
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
-  const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({}); // variable -> executeCode, secondUseEffect, function -> onDrop
   const { cellIdToMsgId, setCellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
-    latestExecutionOutput, setLatestExecutionCount, 
+    latestExecutionOutput, setLatestExecutionCount,
+    websocketNumber, setWebsocketNumber
   } = useWebSocketStore(selector, shallow);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  
 
-    
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
-  //INFO :: useEffect -> update the execute function
-  useUpdateNodesExecute({webSocketMap}, nodes, executeCode);
+
+  /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
+  //TODO: outsource
+  useEffect(() => {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
+      const notebookData = res.data
+      const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
+      // For each group node, start a websocket connection
+      var websocketCount = 0;
+      initialNodes.forEach( async (node) => { 
+        if (node.type === GROUP_NODE) {
+          websocketCount++;
+          const newWebSocket = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          node.data.ws = newWebSocket;
+        }
+      });
+      setWebsocketNumber(websocketCount);
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+    });
+  }, []);
+
+  /* add and update eventListener for Ctrl/Cmd + S */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 's' && (isMac ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+        saveNotebook();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges]);
+
 
   //INFO :: functions
-  function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
-    setCellIdToMsgId({[msg_id]: cell_id});
-    // fetch the connection to execute the code on
-    const ws = webSocketMap[parent_id];
-    // Send code to the kernel for execution
-    const message = generateMessage(msg_id, code); // imported at the top
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    } else {
-      console.log("websocket is not connected");
+  const saveNotebook = async () => {
+    const notebookData: NotebookPUT = createJSON(nodes, edges);
+    try {
+      await updateNotebook(token, notebookData, path);
+      setShowSuccessAlert(true);
+    } catch (error) {
+      setShowErrorAlert(true);
+      console.error('Error saving notebook:', error);
     }
-  }
+  };
+
 
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
@@ -93,31 +134,24 @@ function DynamicGrouping() {
       const groupNode = intersections[0];
 
       const newNode: Node = {
-        id: getId(),
+        id: getId(type),
         type,
         position,
-        data: { label: `${type}` },
+        data: {},
         style: nodeStyle,
       };
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const newWebSocket = await createSession(setLatestExecutionOutput, setLatestExecutionCount);
+        const wn = websocketNumber + 1;
+        setWebsocketNumber(wn);
+        const newWebSocket = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         // BUG - why it is executed twice if we do console.log?
         // console.log("latestExecutionCount: ", latestExecutionCount)
         // console.log("latestExecutionOutput: ", latestExecutionOutput)
-        // add the websocket to the id -> websocket map
-        setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
-        newNode.data = {
-          ...newNode.data,
-          ws: newWebSocket
-        };
+        newNode.data.ws = newWebSocket
       } else {
-        newNode.data = {
-          ...newNode.data,
-          execute: executeCode,
-          executionCount: null,
-        };
+        newNode.data.executionCount = null;
       }
 
       if (groupNode) {
@@ -144,7 +178,7 @@ function DynamicGrouping() {
           .sort(sortNodes);
         setNodes(sortedNodes);
         const newEdge: Edge = {
-          id: getId(),
+          id: getId('edge'),
           source: newNode.id,
           target: newOutputNode.id,
         };
@@ -197,6 +231,13 @@ function DynamicGrouping() {
     }, [getIntersectingNodes, setNodes]
   );
 
+  const SuccessAlert = () => {
+    return (<Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>Notebook saved successfully!</Alert>);
+  };
+  const ErrorAlert = () => {
+    return (<Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>Error saving notebook.</Alert>);
+  };
+
   return (
     <div className={"wrapper"}>
       <Sidebar />
@@ -234,6 +275,10 @@ function DynamicGrouping() {
             showInteractive={true}
             position="bottom-right"
           />
+          <Panel position="top-center">
+            <SuccessAlert />
+            <ErrorAlert />
+          </Panel>
         </ReactFlow>
       </div>
     </div>
@@ -280,4 +325,6 @@ const selector = (state: WebSocketState) => ({
   setLatestExecutionOutput: state.setLatestExecutionOutput,
   cellIdToMsgId: state.cellIdToMsgId,
   setCellIdToMsgId: state.setCellIdToMsgId,
+  websocketNumber: state.websocketNumber,
+  setWebsocketNumber: state.setWebsocketNumber,
 });

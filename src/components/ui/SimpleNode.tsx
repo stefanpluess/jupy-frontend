@@ -19,9 +19,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from 'uuid';
 import CodeEditor from '@uiw/react-textarea-code-editor';
+import { generateMessage } from '../../helpers';
+import { useWebSocketStore } from '../../helpers/websocket';
 import useAddComment from "../../helpers/useAddComment";
 import useDetachNodes from '../../helpers/useDetachNodes';
-        
+
 /*must be shifted*/
 interface CommentFieldProps {
   onClose: () => void;
@@ -56,34 +58,24 @@ function CommentField({ onClose, onSubmit }: CommentFieldProps) {
     </div>
   );
 }
-        
 
 function SimpleNode({ id, data }: NodeProps) {
-  const hasParent = useStore(
-    (store) => !!store.nodeInternals.get(id)?.parentNode
-  );
-  const parentNode = useStore(
-    (store) => store.nodeInternals.get(id)?.parentNode
-  );
-  const { deleteElements } = useReactFlow();
+  const { deleteElements, getNode } = useReactFlow();
+  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
+  const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
+  const parent = getNode(parentNode!);
+  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
   /*const addComments = useAddComment();*/
 
-  const [textareaValue, setTextareaValue] = useState("");
-  var execute = data?.execute;
-  const [executionCount, setExecutionCount] = useState(
-    data?.executionCount || 0
-  );
+  const [textareaValue, setTextareaValue] = useState(data?.code || '');
+  const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
+
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
   }, [data?.executionCount]);
-
-  useEffect(() => {
-    // console.log(id + " ----- Execute Changed -----")
-    execute = data?.execute;
-  }, [data?.execute]);
 
   // when deleting the node, automatically delete the output node as well
   const onDelete = () =>
@@ -97,15 +89,23 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // including auto indent
-    setTextareaValue(event.target.value.replace(/\t/g, "    "));
+    setTextareaValue(event.target.value.replace(/\t/g, '    '));
+    data.code = event.target.value.replace(/\t/g, '    ');
   };
 
-  const runCode = () => {
-    console.log("run code (" + textareaValue + ")!");
+  const runCode = useCallback(() => {
+    console.log('run code (' + textareaValue + ')!');
     var msg_id = uuidv4();
+    setCellIdToMsgId({ [msg_id]: id });
     setExecutionCount("*");
-    execute(parentNode, textareaValue, msg_id, id);
-  };
+    const ws = parent?.data.ws;
+    const message = generateMessage(msg_id, textareaValue);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    } else {
+      console.log("websocket is not connected");
+    }
+  }, [parent, textareaValue]);
 
   const deleteCode = () => {
     if (textareaValue === "") return;

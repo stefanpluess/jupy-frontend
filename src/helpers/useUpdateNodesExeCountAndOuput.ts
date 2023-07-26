@@ -28,6 +28,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
 		if (Object.keys(latestExecutionOutput).length === 0) return;
 		const output = latestExecutionOutput.output;
         const isImage = latestExecutionOutput.isImage;
+        const outputType = latestExecutionOutput.outputType;
         const msg_id_execCount = latestExecutionCount.msg_id;
         const msg_id_output= latestExecutionOutput.msg_id;
         const executionCount = latestExecutionCount.execution_count;
@@ -58,6 +59,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
                 ...node.data,
                 output: output,
                 isImage: isImage,
+                outputType: outputType,
             },
             };
         // if nothing matches, return the node without modification
