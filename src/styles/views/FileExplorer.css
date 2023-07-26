@@ -28,3 +28,25 @@
 .running {
   color: green;
 }
+
+.table-header {
+  border: none;
+  background: none;
+  position: relative;
+  transition: color 0.2s, opacity 0.2s;
+  font-weight: bold;
+}
+
+/* Add fancy hover effect to the table header */
+.clickable:hover {
+  color: #007bff; /* Change color on hover (you can use any color you like) */
+  opacity: 0.8; /* Reduce opacity on hover */
+}
+
+.non-clickable {
+  cursor: auto !important;
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+}

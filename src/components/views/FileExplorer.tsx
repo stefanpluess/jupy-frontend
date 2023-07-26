@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Content, Session } from "../../helpers/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFolder, faArrowLeft, faBook, faFileCirclePlus } from "@fortawesome/free-solid-svg-icons";
+import { faFolder, faArrowLeft, faBook, faFileCirclePlus, faSortUp, faSortDown, faSort } from "@fortawesome/free-solid-svg-icons";
 import Table from 'react-bootstrap/Table';
 import Error from '../views/Error'
 import { getSessions } from "../../helpers/utils";
@@ -16,7 +16,9 @@ export default function FileExplorer() {
   const [contents, setContents] = useState<Content[]>([]);
   const path = useParams()["*"] ?? '';
   const [showError, setShowError] = useState(false);
-  const token = 'd4cc13de8afab66a8dd813b8ca57df913d7f59d092991ca1'
+  const [sortColumn, setSortColumn] = useState<string>('name');
+  const [sortDirection, setSortDirection] = useState<string>('desc');
+  const token = '045acecd0713f501341d8377463a79fd35d9a729d278b91f'
 
 
   const getContentsFromPath = async () => {
@@ -118,6 +120,48 @@ export default function FileExplorer() {
     console.log('Sessions shut down');
   }
 
+  // Sort function based on the current sort column and direction
+  const sortFunction = (a: Content, b: Content) => {
+    const columnA = a[sortColumn];
+    const columnB = b[sortColumn];
+
+    if (sortDirection === 'desc') {
+      if (columnA === null) return -1;
+      if (columnB === null) return 1;
+      return columnA.localeCompare(columnB);
+    } else {
+      if (columnA === null) return 1;
+      if (columnB === null) return -1;
+      return columnB.localeCompare(columnA);
+    }
+  };
+
+  // Function to handle header click and trigger sorting
+  const handleSort = (column: string) => {
+    if (column === sortColumn) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      if (column === 'name' || column === 'last_modified') setSortDirection('desc');
+      else setSortDirection('asc');
+    }
+  };
+
+  // Icon to indicate sorting direction
+  const sortIcon = (column: string) => {
+    if (column === sortColumn) {
+      return sortDirection === "asc" ? (
+        column !== 'size' ? <FontAwesomeIcon icon={faSortUp} />: <FontAwesomeIcon icon={faSortDown} />
+      ) : (
+        column !== 'size' ? <FontAwesomeIcon icon={faSortDown} />: <FontAwesomeIcon icon={faSortUp} />
+      );
+    }
+    return <FontAwesomeIcon icon={faSort} />;
+  };
+
+  // Sort the contents based on the current sort column and direction
+  const sortedContents = contents.sort(sortFunction);
+
   if (showError) return <Error errorCode={404} errorMessage="Oops! The page you requested could not be found." />
   else return (
     <div className="FileExplorer">
@@ -133,10 +177,29 @@ export default function FileExplorer() {
       <Table bordered hover>
         <thead>
           <tr>
-            <th className="col-md-7" scope="col">Name</th>
-            <th className="col-md-2" scope="col">Status</th>
-            <th className="col-md-2" scope="col">Last Modified</th>
-            <th className="col-md-1" scope="col">File Size</th>
+            <th className="col-md-7" scope="col">
+              <button className="table-header clickable" onClick={() => handleSort("name")}>
+                Name
+                <span className="sort-icon">{sortIcon("name")}</span>
+              </button>
+            </th>
+            <th className="col-md-2" scope="col">
+              <button className="table-header clickable" onClick={() => handleSort("last_modified")}>
+                Last Modified
+                <span className="sort-icon">{sortIcon("last_modified")}</span>
+              </button>
+            </th>
+            <th className="col-md-1" scope="col">
+              <button className="table-header clickable" onClick={() => handleSort("size")}>
+                File Size
+                <span className="sort-icon">{sortIcon("size")}</span>
+              </button>
+            </th>
+            <th className="col-md-2" scope="col">
+              <button className="table-header non-clickable">
+                Status
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -153,7 +216,7 @@ export default function FileExplorer() {
               <td></td>
             </tr>
           }
-          {contents.map((file) => {
+          {sortedContents.map((file) => {
             return (
               <tr key={file.name}>
                 <td>
@@ -168,7 +231,8 @@ export default function FileExplorer() {
                     {file.name}
                   </button>}
                 </td>
-                {/* If file contains sessions, display an X */}
+                <td>{file.last_modified && timeSince(new Date(file.last_modified))}</td>
+                <td>{file.size && displayAsBytes(file.size)}</td>
                 <td>
                   <div className="running">
                     {file.sessions && 'Running - '}
@@ -176,8 +240,6 @@ export default function FileExplorer() {
                     {file.sessions && <Button className="no-y-padding" variant="outline-danger" size="sm" onClick={async () => shutdownSessions(file)}>Shutdown</Button>}
                   </div>
                 </td>
-                <td>{file.last_modified && timeSince(new Date(file.last_modified))}</td>
-                <td>{file.size && displayAsBytes(file.size)}</td>
               </tr>
             )
           }
