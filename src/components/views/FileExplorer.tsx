@@ -18,7 +18,8 @@ export default function FileExplorer() {
   const [showError, setShowError] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<string>('desc');
-  const token = '045acecd0713f501341d8377463a79fd35d9a729d278b91f'
+  const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
+  const token = '49e5f094ae4d9fcc81f87f6d55be42164207890da585e338'
 
 
   const getContentsFromPath = async () => {
@@ -112,11 +113,15 @@ export default function FileExplorer() {
 
   const shutdownSessions = async (file: Content) => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    setShuttingFiles([...shuttingFiles, file.path]);
     file.sessions?.forEach(async (session_id: string) => {
       await axios.delete(`http://localhost:8888/api/sessions/${session_id}`);
     })
     // wait for the sessions to be shut down before refreshing the page
-    setTimeout(() => { getContentsFromPath() }, 1000);
+    setTimeout(() => {
+      getContentsFromPath();
+      setShuttingFiles(shuttingFiles.filter((path: string) => path !== file.path));
+    }, 1000);
     console.log('Sessions shut down');
   }
 
@@ -230,8 +235,9 @@ export default function FileExplorer() {
                 <td>
                   <div className="running">
                     {file.sessions && 'Running - '}
-                    {/* TODO: While shutting down, disable the button */}
-                    {file.sessions && <Button className="no-y-padding" variant="outline-danger" size="sm" onClick={async () => shutdownSessions(file)}>Shutdown</Button>}
+                    {file.sessions && <Button className="no-y-padding" variant="outline-danger" size="sm" disabled={shuttingFiles.includes(file.path)} onClick={async () => shutdownSessions(file)}>
+                      {shuttingFiles.includes(file.path) ? 'Shutting...' : 'Shutdown'}
+                    </Button>}
                   </div>
                 </td>
               </tr>
