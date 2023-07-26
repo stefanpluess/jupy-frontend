@@ -29,6 +29,7 @@ import '@reactflow/node-resizer/dist/style.css';
 import '../../styles/views/Home.css';
 import axios from 'axios';
 import { NotebookPUT } from '../../helpers/types';
+import { Alert } from 'react-bootstrap';
 
 
 //INFO :: main code
@@ -48,6 +49,8 @@ function DynamicGrouping() {
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount, 
   } = useWebSocketStore(selector, shallow);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
@@ -90,10 +93,16 @@ function DynamicGrouping() {
 
 
   //INFO :: functions
-  const saveNotebook = () => {
+  const saveNotebook = async () => {
     const notebookData: NotebookPUT = createJSON(nodes, edges);
-    updateNotebook(token, notebookData, path);
-  }
+    try {
+      await updateNotebook(token, notebookData, path);
+      setShowSuccessAlert(true);
+    } catch (error) {
+      setShowErrorAlert(true);
+      console.error('Error saving notebook:', error);
+    }
+  };
 
   function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
     setCellIdToMsgId({[msg_id]: cell_id});
@@ -220,6 +229,13 @@ function DynamicGrouping() {
     }, [getIntersectingNodes, setNodes]
   );
 
+  const SuccessAlert = () => {
+    return (<Alert className="alert" variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>Notebook saved successfully!</Alert>);
+  };
+  const ErrorAlert = () => {
+    return (<Alert className="alert" variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>Error saving notebook.</Alert>);
+  };
+
   return (
     <div className={'wrapper'}>
       <Sidebar />
@@ -245,6 +261,8 @@ function DynamicGrouping() {
           <SelectedNodesToolbar />
           <MiniMap nodeColor='#b44b9f80' maskStrokeColor='#222' nodeStrokeWidth={3} position={'top-right'} zoomable pannable />
           <Controls />
+          <SuccessAlert />
+          <ErrorAlert />
         </ReactFlow>
       </div>
     </div>
