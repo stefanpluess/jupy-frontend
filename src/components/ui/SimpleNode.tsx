@@ -9,10 +9,11 @@ import { generateMessage } from '../../helpers';
 import { useWebSocketStore } from '../../helpers/websocket';
 
 function SimpleNode({ id, data }: NodeProps) {
+  const { deleteElements, getNode } = useReactFlow();
   const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
   const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
+  const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
-  const { deleteElements, getNode } = useReactFlow();
   const detachNodes = useDetachNodes();
 
   // textareaValue is data.code if it exists, otherwise it's an empty string
@@ -36,20 +37,17 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const runCode = useCallback(() => {
     console.log('run code (' + textareaValue + ')!');
-    if (parentNode) {
-      const parent = getNode(parentNode);
-      var msg_id = uuidv4();
-      setCellIdToMsgId({ [msg_id]: id });
-      setExecutionCount("*");
-      const ws = parent?.data.ws;
-      const message = generateMessage(msg_id, textareaValue);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-      } else {
-        console.log("websocket is not connected");
-      }
+    var msg_id = uuidv4();
+    setCellIdToMsgId({ [msg_id]: id });
+    setExecutionCount("*");
+    const ws = parent?.data.ws;
+    const message = generateMessage(msg_id, textareaValue);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    } else {
+      console.log("websocket is not connected");
     }
-  }, [parentNode, getNode, setCellIdToMsgId, setExecutionCount, textareaValue]);
+  }, [parent, textareaValue]);
 
 
   const deleteCode = () => {
