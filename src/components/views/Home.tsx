@@ -1,12 +1,3 @@
-// might be used:
-//import { startSession, removeEscapeCodes } from "../../helpers/utils";
-//import {
-//  ExecutionCount,
-//  ExecutionOutput,
-//  CellIdToMsgId,
-//  Cell,
-//} from "../../helpers/types";
-
 //COMMENT :: External modules/libraries
 import { MouseEvent, DragEvent, useCallback, useRef, 
   useState, useEffect
@@ -50,8 +41,8 @@ function DynamicGrouping() {
   );
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
-  const path = useParams()["*"] ?? '';
-  const token = '91cac2dcfc8ba18d6e5b7723e84d9891707feaf95233d2fa';
+  const path = useParams()["*"] ?? ''; // TODO - add to websocket store
+  const token = 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110'; // TODO - add to websocket store
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   // other 
   const { cellIdToMsgId, setCellIdToMsgId,
@@ -61,7 +52,9 @@ function DynamicGrouping() {
   } = useWebSocketStore(selector, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
-  
+
+  // this hook call ensures that the layout is re-calculated every time the graph changes
+  // useLayout(); // TODO?
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput({latestExecutionCount, latestExecutionOutput}, cellIdToMsgId);
@@ -118,18 +111,15 @@ function DynamicGrouping() {
     event.preventDefault();
     if (wrapperRef.current) {
       const wrapperBounds = wrapperRef.current.getBoundingClientRect();
-      console.log("wrapperBounds: ", wrapperBounds);
       const type = event.dataTransfer.getData('application/reactflow');
-      let position = project({ x: event.clientX - wrapperBounds.x - 20, y: event.clientY - wrapperBounds.top - 20 });
-      console.log("wrapperBounds.x: ", wrapperBounds.x);
-      console.log("wrapperBounds.top: ", wrapperBounds.top);
-      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value
+      let position = project({ x: event.clientX - wrapperBounds.x - 20, y: event.clientY - wrapperBounds.top - 20 }); // TODO - change to not fixed value / export to constant
+      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value / export to constant
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40, // TODO - change to not fixed value
-        height: 40,
+        width: 40, // TODO - change to not fixed value / export to constant
+        height: 40,// TODO - change to not fixed value / export to constant
       }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
@@ -146,9 +136,6 @@ function DynamicGrouping() {
         const wn = websocketNumber + 1;
         setWebsocketNumber(wn);
         const newWebSocket = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        // BUG - why it is executed twice if we do console.log?
-        // console.log("latestExecutionCount: ", latestExecutionCount)
-        // console.log("latestExecutionOutput: ", latestExecutionOutput)
         newNode.data.ws = newWebSocket
       } else {
         newNode.data.executionCount = null;
@@ -159,8 +146,8 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 400,
-            height: 40,
+            width: 400, // TODO - change to not fixed value / export to constant
+            height: 40, // TODO - change to not fixed value / export to constant
           },
           groupNode
         ) ?? { x: 0, y: 0 };

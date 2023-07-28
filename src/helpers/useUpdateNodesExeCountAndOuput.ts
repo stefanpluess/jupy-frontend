@@ -67,9 +67,6 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         });
         const newNodes = [...updatedNodes];
         setNodes(newNodes);
-        // BUG - why it is executed twice if we do console.log?
-        console.log("useUpdateNodesExeCountAndOuput - latestExecutionCount: ", latestExecutionCount)
-        console.log("useUpdateNodesExeCountAndOuput - latestExecutionOutput: ", latestExecutionOutput)
         }, [latestExecutionOutput, latestExecutionCount]);
 }
 
