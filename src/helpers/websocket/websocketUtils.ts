@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { removeEscapeCodes } from '../utils';
-import { WebSocketState } from './useWebSocketStore';
+import { WebSocketState } from './webSocketStore';
 import { Session } from '../types';
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];

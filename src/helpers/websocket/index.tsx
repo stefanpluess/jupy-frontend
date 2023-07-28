@@ -1,4 +1,4 @@
-export { default as useWebSocketStore} from './useWebSocketStore';
-export type {WebSocketState} from './useWebSocketStore';
+export { default as useWebSocketStore} from './webSocketStore';
+export type {WebSocketState} from './webSocketStore';
 export { createSession } from './websocketUtils';
-export {selectorBubbleBranch, selectorHome} from './useWebSocketStore';
+export {selectorBubbleBranch, selectorHome} from './webSocketStore';
