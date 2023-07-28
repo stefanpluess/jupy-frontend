@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ExecutionCount, ExecutionOutput, CellIdToMsgId} from '../types';
+import { ExecutionCount, ExecutionOutput, CellIdToMsgId} from '../../config/types';
 
 export type WebSocketState = {
     latestExecutionCount: ExecutionCount;

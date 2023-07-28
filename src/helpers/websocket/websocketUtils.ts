@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { removeEscapeCodes } from '../utils';
 import { WebSocketState } from './webSocketStore';
-import { Session } from '../types';
+import { Session } from '../../config/types';
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];

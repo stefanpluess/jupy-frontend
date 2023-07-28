@@ -1,6 +1,5 @@
-import React from 'react'
 import { useNodes, Node, getRectOfNodes, NodeToolbar, useStoreApi, useReactFlow } from 'reactflow';
-import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
+import {GROUP_NODE, EXTENT_PARENT} from '../../config/constants';
 import { getId } from '../../helpers/utils';
 
 const padding = 25;

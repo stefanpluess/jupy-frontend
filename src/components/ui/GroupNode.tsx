@@ -16,12 +16,13 @@ import {
   faTrash,
   faDiagramProject
 } from "@fortawesome/free-solid-svg-icons";
-import useDetachNodes from "../../helpers/useDetachNodes";
-import useBubbleBranchClick from "../../helpers/useBubbleBranchClick";
+import {useDetachNodes, useBubbleBranchClick} from "../../helpers/hooks";
+
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
 const padding = 25; // OPTIMIZE - externalize
+
 
 function GroupNode({ id, data }: NodeProps) {
   const store = useStoreApi();

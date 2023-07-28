@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { memo } from "react";
 import {
   Handle,
@@ -8,9 +8,9 @@ import {
   useStore,
   useReactFlow,
 } from "reactflow";
-import useDetachNodes from "../../helpers/useDetachNodes";
 import { faObjectUngroup } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useDetachNodes } from "../../helpers/hooks";
 
 function SimpleOutputNode({ id, data }: NodeProps) {
   const hasParent = useStore(

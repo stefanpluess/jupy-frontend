@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useReactFlow, useStoreApi } from 'reactflow';
-import { CellIdToMsgId, ExecutionCount, ExecutionOutput } from './types';
+import { CellIdToMsgId, ExecutionCount, ExecutionOutput } from '../../config/types';
 
 interface UpdateNodesProps {
     latestExecutionCount: ExecutionCount;
