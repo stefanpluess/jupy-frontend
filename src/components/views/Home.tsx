@@ -66,7 +66,7 @@ function DynamicGrouping() {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
-      var websocketCount = 0; // BUG - Unexpected var, use let or const instead.sonarlint(typescript:S3504)
+      let websocketCount = 0;
       initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
         if (node.type === GROUP_NODE) {
           websocketCount++;
