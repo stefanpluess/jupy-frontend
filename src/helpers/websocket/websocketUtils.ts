@@ -18,7 +18,7 @@ export async function createSession(websocketNumber: number,
                                     token,
                                     setLatestExecutionOutput,
                                     setLatestExecutionCount);
-    return ws;
+    return {ws: ws, session: session};
 }
 
 export async function startSession(token: string, path: string) {
@@ -127,9 +127,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
         console.error('WebSocket error:', error);
     };
 
-    ws.onclose = async () => {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        await axios.delete('http://localhost:8888/api/sessions/'+session_id)
+    ws.onclose = () => {
         console.log('WebSocket connection closed');
     };
 

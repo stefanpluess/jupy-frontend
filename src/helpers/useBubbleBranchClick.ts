@@ -48,8 +48,9 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         // create a websocket connection
         const wn = getWebsocketNumber() + 1;
         setWebsocketNumber(wn);
-        const newWebSocket = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        childNode.data.ws = newWebSocket
+        const {ws, session} = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        childNode.data.ws = ws;
+        childNode.data.session = session;
 
         // add the new nodes
         const sortedNodes = store
