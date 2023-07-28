@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { ExecutionCount, ExecutionOutput, CellIdToMsgId} from '../types';
-// import { useParams } from 'react-router';
 
 export type WebSocketState = {
     latestExecutionCount: ExecutionCount;
@@ -19,11 +18,8 @@ export type WebSocketState = {
     setWebsocketNumber: (newNumber: number) => void;
     getWebsocketNumber: () => number;
 
-    // path: string;
-    // getPath: () => string;
-
-    // token: string;
-    // getToken: () => string;
+    token: string;
+    getToken: () => string;
 };
 
 const useWebSocketStore = create<WebSocketState>((set, get) => ({
@@ -31,8 +27,7 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionOutput: {} as ExecutionOutput,
     cellIdToMsgId: {} as CellIdToMsgId,
     websocketNumber: 0,
-    // path : useParams()["*"] ?? '',
-    // token : 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110',
+    token : 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110',
 
     // COMMENT :: setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {
@@ -68,12 +63,30 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     getWebsocketNumber: () => {
         return get().websocketNumber;
     },
-    // getPath: () => {
-    //     return get().path;
-    // },
-    // getToken: () => {
-    //     return get().token;
-    // }
+    getToken: () => {
+        return get().token;
+    }
 }));
 
 export default useWebSocketStore;
+
+
+// COMMENT :: selectors
+export const selectorHome = (state: WebSocketState) => ({
+    latestExecutionCount: state.latestExecutionCount,
+    setLatestExecutionCount: state.setLatestExecutionCount,
+    latestExecutionOutput: state.latestExecutionOutput,
+    setLatestExecutionOutput: state.setLatestExecutionOutput,
+    cellIdToMsgId: state.cellIdToMsgId,
+    websocketNumber: state.websocketNumber,
+    setWebsocketNumber: state.setWebsocketNumber,
+    token: state.token,
+  });
+
+export const selectorBubbleBranch = (state: WebSocketState) => ({
+    setWebsocketNumber: state.setWebsocketNumber,
+    getWebsocketNumber: state.getWebsocketNumber,
+    setLatestExecutionOutput: state.setLatestExecutionOutput,
+    setLatestExecutionCount: state.setLatestExecutionCount,
+    token: state.token,
+  });

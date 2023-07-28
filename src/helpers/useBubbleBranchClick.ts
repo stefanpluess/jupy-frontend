@@ -1,22 +1,19 @@
 import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
+import { useCallback } from 'react';
+import { shallow } from 'zustand/shallow';
 import { getId, sortNodes } from '../helpers'
 import { GROUP_NODE } from './constants';
-import { useCallback } from 'react';
-import { useWebSocketStore, createSession} from './websocket';
-import { useParams } from 'react-router';
+import { useWebSocketStore, createSession, selectorBubbleBranch} from './websocket';
+import usePath from './usePath';
 
 export function useBubbleBranchClick(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getEdges, getNode } = useReactFlow();
     const store = useStoreApi();
-    const setWebsocketNumber = useWebSocketStore((state) => state.setWebsocketNumber);
-    const getWebsocketNumber = useWebSocketStore((state) => state.getWebsocketNumber);
-    const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
-    const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
-    // TODO - add to websocket store
-    const path = useParams()["*"] ?? '';
-    const token = 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110';
-    // const path = useWebSocketStore((state) => state.path);
-    // const token = useWebSocketStore((state) => state.token);
+    const path = usePath();
+    const { setWebsocketNumber, getWebsocketNumber, 
+        setLatestExecutionOutput, setLatestExecutionCount,
+        token
+      } = useWebSocketStore(selectorBubbleBranch, shallow);
 
     const onBranchOut = useCallback(async () => {
         // we need the parent node object for getting its position

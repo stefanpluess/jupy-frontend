@@ -1,6 +1,6 @@
 import axios from "axios"
 import { useEffect, useState } from "react"
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Content, Session } from "../../helpers/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,17 +9,19 @@ import Table from 'react-bootstrap/Table';
 import Error from '../views/Error'
 import { getSessions } from "../../helpers/utils";
 import { Button } from "react-bootstrap";
+import { useWebSocketStore } from "../../helpers/websocket";
+import { usePath } from "../../helpers";
 
 export default function FileExplorer() {
 
   const navigate = useNavigate();
   const [contents, setContents] = useState<Content[]>([]);
-  const path = useParams()["*"] ?? '';
+  const path = usePath();
   const [showError, setShowError] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<string>('desc');
   const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
-  const token = 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110'
+  const token = useWebSocketStore((state) => state.token);
 
 
   const getContentsFromPath = async () => {

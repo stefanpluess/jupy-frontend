@@ -7,7 +7,6 @@ import ReactFlow, {
   useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
   Connection, MiniMap, Controls, Panel,
 } from 'reactflow';
-import { useParams } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
 //COMMENT :: Internal modules UI
 import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar 
@@ -16,10 +15,10 @@ import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar
 import { nodes as initialNodes, edges as initialEdges, 
   sortNodes, getId, getNodePositionInsideParent, createOutputNode,
   useUpdateNodesExeCountAndOuput,updateClassNameOrPosition,
-  updateClassNameOrPositionInsideParent, canRunOnNodeDrag
+  updateClassNameOrPositionInsideParent, canRunOnNodeDrag, usePath
 } from '../../helpers';
 import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
-import { useWebSocketStore, WebSocketState, createSession} from '../../helpers/websocket';
+import { useWebSocketStore, createSession, selectorHome} from '../../helpers/websocket';
 import { createInitialElements, createJSON, updateNotebook } from '../../helpers/utils';
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
@@ -41,15 +40,15 @@ function DynamicGrouping() {
   );
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
-  const path = useParams()["*"] ?? ''; // TODO - add to websocket store
-  const token = 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110'; // TODO - add to websocket store
-  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
+  const path = usePath();
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
   // other 
-  const { cellIdToMsgId, setCellIdToMsgId,
+  const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount,
-    websocketNumber, setWebsocketNumber
-  } = useWebSocketStore(selector, shallow);
+    websocketNumber, setWebsocketNumber,
+    token
+  } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
 
@@ -67,8 +66,8 @@ function DynamicGrouping() {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
-      var websocketCount = 0;
-      initialNodes.forEach( async (node) => { 
+      var websocketCount = 0; // BUG - Unexpected var, use let or const instead.sonarlint(typescript:S3504)
+      initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
         if (node.type === GROUP_NODE) {
           websocketCount++;
           const newWebSocket = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
@@ -219,9 +218,11 @@ function DynamicGrouping() {
   );
 
   const SuccessAlert = () => {
+    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (<Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>Notebook saved successfully!</Alert>);
   };
   const ErrorAlert = () => {
+    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (<Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>Error saving notebook.</Alert>);
   };
 
@@ -304,14 +305,3 @@ const onDragOver = (event: DragEvent) => {
   event.preventDefault();
   event.dataTransfer.dropEffect = 'move';
 };
-
-const selector = (state: WebSocketState) => ({
-  latestExecutionCount: state.latestExecutionCount,
-  setLatestExecutionCount: state.setLatestExecutionCount,
-  latestExecutionOutput: state.latestExecutionOutput,
-  setLatestExecutionOutput: state.setLatestExecutionOutput,
-  cellIdToMsgId: state.cellIdToMsgId,
-  setCellIdToMsgId: state.setCellIdToMsgId,
-  websocketNumber: state.websocketNumber,
-  setWebsocketNumber: state.setWebsocketNumber,
-});
