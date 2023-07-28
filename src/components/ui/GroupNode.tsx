@@ -1,4 +1,3 @@
-import React from "react";
 import { memo } from "react";
 import {
   getRectOfNodes,
@@ -11,11 +10,18 @@ import {
   useStoreApi,
 } from "reactflow";
 import { NodeResizer } from "@reactflow/node-resizer";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faTrashArrowUp,
+  faTrash,
+  faDiagramProject
+} from "@fortawesome/free-solid-svg-icons";
 import useDetachNodes from "../../helpers/useDetachNodes";
+import useBubbleBranchClick from "../../helpers/useBubbleBranchClick";
 
-const lineStyle = { borderColor: "white" };
-const handleStyle = { height: 8, width: 8 };
-const padding = 25;
+const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
+const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
+const padding = 25; // OPTIMIZE - externalize
 
 function GroupNode({ id, data }: NodeProps) {
   const store = useStoreApi();
@@ -48,6 +54,8 @@ function GroupNode({ id, data }: NodeProps) {
     detachNodes(childNodeIds, id);
   };
 
+  const onBranchOut = useBubbleBranchClick(id);
+
   return (
     <div style={{ minWidth, minHeight }}>
       <NodeResizer
@@ -57,11 +65,20 @@ function GroupNode({ id, data }: NodeProps) {
         minHeight={minHeight}
       />
       <NodeToolbar className="nodrag">
-        <button onClick={onDelete}>Delete</button>
-        {hasChildNodes && <button onClick={onDetach}>Ungroup</button>}
+        <button onClick={onDelete} title="Delete Group 👥">
+          <FontAwesomeIcon className="icon" icon={faTrash} />
+        </button>
+        {hasChildNodes && 
+          <button onClick={onDetach} title="Delete Bubble 🫧">
+            <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
+          </button>
+        }
+        <button onClick={onBranchOut} title="Branch out 🍃"> 
+          <FontAwesomeIcon className="icon" icon={faDiagramProject} />
+        </button>
       </NodeToolbar>
-      <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} />
+      <Handle className="handle-group-top" type="target" position={Position.Top} isConnectable={false} />
+      <Handle className="handle-group-bottom" type="source" position={Position.Bottom} isConnectable={false} />
     </div>
   );
 }

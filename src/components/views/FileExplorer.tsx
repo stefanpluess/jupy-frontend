@@ -19,7 +19,7 @@ export default function FileExplorer() {
   const [sortColumn, setSortColumn] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<string>('desc');
   const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
-  const token = '49e5f094ae4d9fcc81f87f6d55be42164207890da585e338'
+  const token = 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110'
 
 
   const getContentsFromPath = async () => {
