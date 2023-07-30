@@ -73,8 +73,9 @@ function DynamicGrouping() {
       initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
         if (node.type === GROUP_NODE) {
           websocketCount++;
-          const newWebSocket = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-          node.data.ws = newWebSocket;
+          const {ws, session} = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          node.data.ws = ws;
+          node.data.session = session;
         }
       });
       setWebsocketNumber(websocketCount);
@@ -137,8 +138,9 @@ function DynamicGrouping() {
       if (type === GROUP_NODE) {
         const wn = websocketNumber + 1;
         setWebsocketNumber(wn);
-        const newWebSocket = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        newNode.data.ws = newWebSocket
+        const {ws, session} = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        newNode.data.ws = ws;
+        newNode.data.session = session;
       } else {
         newNode.data.executionCount = null;
       }

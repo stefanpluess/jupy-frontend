@@ -25,7 +25,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     */
     useEffect(() => {
 		// do not trigger on first render
-		if (Object.keys(latestExecutionOutput).length === 0) return;
+		if (Object.keys(latestExecutionCount).length === 0) return;
 		const output = latestExecutionOutput.output;
         const isImage = latestExecutionOutput.isImage;
         const outputType = latestExecutionOutput.outputType;
