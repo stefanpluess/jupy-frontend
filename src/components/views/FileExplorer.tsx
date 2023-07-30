@@ -1,16 +1,16 @@
 import axios from "axios"
 import { useEffect, useState } from "react"
 import { useNavigate } from 'react-router-dom';
-import { Content, Session } from "../../helpers/types";
+import { Content, Session } from "../../config/types";
 import '../../styles/views/FileExplorer.css';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolder, faArrowLeft, faBook, faFileCirclePlus, faSortUp, faSortDown, faSort } from "@fortawesome/free-solid-svg-icons";
 import Table from 'react-bootstrap/Table';
 import Error from '../views/Error'
-import { getSessions } from "../../helpers/utils";
 import { Button } from "react-bootstrap";
+import { getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
-import { usePath } from "../../helpers";
+import { usePath } from "../../helpers/hooks";
 
 export default function FileExplorer() {
 

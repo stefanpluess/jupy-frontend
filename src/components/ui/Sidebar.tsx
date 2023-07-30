@@ -1,4 +1,4 @@
-import React, { DragEvent } from 'react';
+import { DragEvent } from 'react';
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData('application/reactflow', nodeType);

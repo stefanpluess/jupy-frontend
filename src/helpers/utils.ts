@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
-import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from './types';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from '../config/types';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {

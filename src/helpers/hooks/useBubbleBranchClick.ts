@@ -1,9 +1,9 @@
 import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
-import { getId, sortNodes } from '../helpers'
-import { GROUP_NODE } from './constants';
-import { useWebSocketStore, createSession, selectorBubbleBranch} from './websocket';
+import { getId, sortNodes } from '../utils';
+import { GROUP_NODE } from '../../config/constants';
+import { useWebSocketStore, createSession, selectorBubbleBranch} from '../websocket';
 import usePath from './usePath';
 
 export function useBubbleBranchClick(id: NodeProps['id']) {

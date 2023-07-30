@@ -4,28 +4,31 @@ import { MouseEvent, DragEvent, useCallback, useRef,
 } from 'react';
 import ReactFlow, {
   Node, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, 
-  useStoreApi, MarkerType, useNodesState, useEdgesState, addEdge, Edge, 
+  useStoreApi, useNodesState, useEdgesState, addEdge, Edge, 
   Connection, MiniMap, Controls, Panel,
 } from 'reactflow';
 import { shallow } from 'zustand/shallow';
 //COMMENT :: Internal modules UI
-import { Sidebar, SimpleNode, GroupNode, SimpleOutputNode, SelectedNodesToolbar 
-} from '../ui';
+import { Sidebar, SelectedNodesToolbar } from '../ui';
 //COMMENT :: Internal modules HELPERS
-import { nodes as initialNodes, edges as initialEdges, 
+import { createInitialElements, createJSON, updateNotebook, 
   sortNodes, getId, getNodePositionInsideParent, createOutputNode,
-  useUpdateNodesExeCountAndOuput,updateClassNameOrPosition,
-  updateClassNameOrPositionInsideParent, canRunOnNodeDrag, usePath
-} from '../../helpers';
-import {GROUP_NODE, EXTENT_PARENT} from '../../helpers/constants';
+  updateClassNameOrPosition, updateClassNameOrPositionInsideParent, 
+  canRunOnNodeDrag, } from '../../helpers/utils';
+import {useUpdateNodesExeCountAndOuput, usePath} from '../../helpers/hooks';
 import { useWebSocketStore, createSession, selectorHome} from '../../helpers/websocket';
-import { createInitialElements, createJSON, updateNotebook } from '../../helpers/utils';
+//COMMENT :: Internal modules CONFIG
+import {GROUP_NODE, EXTENT_PARENT} from '../../config/constants';
+import nodeTypes from '../../config/NodeTypes';
+import {proOptions, defaultEdgeOptions, onDragOver} from '../../config/config';
+import { nodes as initialNodes, edges as initialEdges } from '../../config/initial-elements';
+
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
 import '../../styles/views/Home.css';
 import axios from 'axios';
-import { NotebookPUT } from '../../helpers/types';
+import { NotebookPUT } from '../../config/types';
 import { Alert } from 'react-bootstrap';
 
 
@@ -282,28 +285,3 @@ export default function Flow() {
     </ReactFlowProvider>
   );
 }
-
-//INFO :: configuration
-const proOptions = {
-  hideAttribution: true,
-};
-
-const nodeTypes = {
-  node: SimpleNode,
-  outputNode: SimpleOutputNode,
-  group: GroupNode,
-};
-
-const defaultEdgeOptions = {
-  style: {
-    strokeWidth: 2,
-  },
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-  },
-};
-
-const onDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-};
