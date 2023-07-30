@@ -132,21 +132,15 @@ function SimpleNode({ id, data }: NodeProps) {
     <>
       <NodeToolbar className="nodrag">
         <div>
-          {hasParent && (
-            <button title="Duplicate Cell">
-              <FontAwesomeIcon className="icon" icon={faCopy} />
-            </button>
-          )}
-          {hasParent && (
-            <button onClick={onDelete} title="Delete Cell">
-              <FontAwesomeIcon className="icon" icon={faTrashAlt} />
-            </button>
-          )}
-          {hasParent && (
-            <button title="Add Comment to Cell" onClick={onAddComment}>
-              <FontAwesomeIcon className="icon" icon={faCommentAlt} />
-            </button>
-          )}
+          <button title="Duplicate Cell">
+            <FontAwesomeIcon className="icon" icon={faCopy} />
+          </button>
+          <button onClick={onDelete} title="Delete Cell">
+            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
+          </button>
+          <button title="Add Comment to Cell" onClick={onAddComment}>
+            <FontAwesomeIcon className="icon" icon={faCommentAlt} />
+          </button>
           {hasParent && (
             <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
@@ -161,7 +155,7 @@ function SimpleNode({ id, data }: NodeProps) {
       </NodeToolbar>
 
       <CodeEditor
-        className="textareaNode"
+        className="textareaNode nodrag"
         value={textareaValue}
         language="python"
         placeholder="Please enter your Python code here"
