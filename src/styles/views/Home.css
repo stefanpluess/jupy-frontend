@@ -237,6 +237,10 @@
   /* background-color: rgba(129, 57, 113, 0.502); */
 }
 
+.wrapper .react-flow__node-mdNode:hover {
+  box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.2);
+}
+
   /*shade around coding cell when selecting it*/
 .wrapper .react-flow__node-node.selected {
   box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.2);
