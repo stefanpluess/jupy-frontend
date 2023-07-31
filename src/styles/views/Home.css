@@ -1,20 +1,23 @@
+/* INFO :: whole screen = .wrapper */
 .wrapper {
   flex-direction: row;
   display: flex;
   height: 100vh;
 }
 
+/* INFO :: sidebar*/
  /*color navigation bar */
-.wrapper aside {
+.wrapper .sidebar aside {
   border-right: 1px solid #333;
   padding: 15px;
   font-size: 12px;
   background-color: #222;
   color: #fff;
+  height: 100%;
 }
 
  /*Cells in navbar */
-.wrapper aside div[class^='react-flow__node-'] {
+.wrapper .sidebar aside div[class^='react-flow__node-'] {
   width: 100%;
   box-sizing: border-box;
   font-size: 12px;
@@ -24,7 +27,30 @@
   color: #fff;
   cursor: grab;
   margin-bottom: 35px;
-  
+}
+
+/* INFO :: sidebar - code cell*/
+ /*color of the code cell*/
+ .wrapper .sidebar .react-flow__node-node {
+  background: rgb(107, 65, 107);
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+  border: 1px solid #eee;
+  width: auto;
+  height: auto;
+  text-align: center;
+  border-radius: 4px;
+}
+
+/*shade around coding cell in sidebar when hovering over it / selecting it*/
+.wrapper .sidebar .react-flow__node-node.selected ,
+.wrapper .sidebar .react-flow__node-node:hover {
+  box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.5);
+}
+
+/* INFO :: canvas area = .rfWrapper*/
+/*background color canvas area*/
+.wrapper .react-flow {
+  background: #222;
 }
 
 .wrapper .rfWrapper {
@@ -32,23 +58,114 @@
   height: 100%;
 }
 
+.rfWrapper {
+  --bg-color: rgb(242, 9, 9);
+  --text-color: rgb(243, 244, 246);
+  --node-border-radius: 4px;
+  /* background-color: var(--bg-color);
+  color: var(--text-color); */
+}
+
+.rfWrapper .react-flow__node-node {
+  display: flex;
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper {
+  overflow: hidden;
+  display: flex;
+  padding: 2px;
+  position: relative;
+  border-radius: var(--node-border-radius);
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.2); /* opacity a bit less that inner*/
+  flex-grow: 1;
+}
+
+.rfWrapper .react-flow__node-node .inner {
+  background: rgb(107, 65, 107); /* TODO make it the same color as in the side bar*/
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+  border-radius: var(--node-border-radius);
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+ /*color of the code area in code cell*/
+.rfWrapper .textareaNode {
+  background-color: rgba(255, 255, 255, 0.223);
+  font-size: 11px;
+  min-height: 40px;
+  min-width: 150px;
+  max-width: 500px;
+  /*margin-top: 20px;*/
+  margin-bottom: 20px;
+}
+
+.rfWrapper .gradient:before {
+  content: "";
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+    from -160deg at 50% 50%,
+    #e92a67 0deg,
+    #a853ba 120deg,
+    #2a8af6 240deg,
+    #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 100%;
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper.gradient:before {
+  content: "";
+  background: conic-gradient(
+    from -160deg at 50% 50%,
+    #e92a67 0deg,
+    #a853ba 120deg,
+    #2a8af6 240deg,
+    rgba(42, 138, 246, 0) 360deg
+  );
+  animation: spinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+@keyframes spinner {
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper.selected,
+.rfWrapper .react-flow__node-node .simpleNodewrapper:hover{
+  box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.4);
+}
+.rfWrapper .react-flow__node-node .inner.selected,
+.rfWrapper .react-flow__node-node .inner:hover{
+  box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.5);
+}
+
+
+
+
+
+
+
+
+
+
+
  /*connection points for edge */
-.wrapper .react-flow__handle {
+ .wrapper .react-flow__handle {
   background: #ddd;
   box-shadow: 0px 0px 10px 0px rgba(255, 255, 255, 0.5);
   height: 8px;
   width: 8px;
-}
-
- /*color of the code cell*/
-.wrapper .react-flow__node-node {
-  background: rgba(83, 41, 41, 0.502);
-  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.1);
-  border: 1px solid #eee;
-  width: auto;
-  height: auto;
-  text-align: center;
-  border-radius: 4px;
 }
 
  /*color of labels for in navbar*/
@@ -108,31 +225,11 @@
 }
 
 
- /*color of the code area in code cell*/
-.wrapper .textareaNode {
-  background-color: rgba(255, 255, 255, 0.466);
-  font-size: 11px;
-  min-height: 40px;
-  min-width: 150px;
-  max-width: 500px;
-  /*margin-top: 20px;*/
-  margin-bottom: 20px;
-}
 
- /*color of the code area in code cell --> currently not used, check before deleting*/
- .wrapper .textareaNode .nodrag {
-  background-color: rgba(231, 24, 24, 0.274);
-  font-size: 11px;
-  min-height: 70px;
-  min-width: 150px;
-  max-width: 500px;
-  margin-top: 20px;
-  margin-bottom: 20px;
-}
 
  /*color of the output cell*/
 .wrapper .outputNode {
-  background-color: rgba(62, 20, 20, 0.502);
+  background-color: rgb(107, 65, 107);
   color: rgb(255, 255, 255);
   text-align: left;
   resize: none;
@@ -216,16 +313,7 @@
   color: #cdcdcd;
 }
 
- /*shade around coding cell when hovering over it*/
-.wrapper .react-flow__node-node:hover {
-  box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.2);
-  /* background-color: rgba(129, 57, 113, 0.502); */
-}
 
-  /*shade around coding cell when selecting it*/
-.wrapper .react-flow__node-node.selected {
-  box-shadow: 0px 0px 16px 0px rgba(255, 255, 255, 0.2);
-}
 
   /*frame around bubble cell*/
 .wrapper .react-flow__node-group {
@@ -253,10 +341,7 @@
   border-width: 2px;
 }
 
-/*background color canvas area*/
-.wrapper .react-flow {
-  background: #222;
-}
+
 
 /*shadow around upper delete/ungroup/detach bar*/
 .wrapper .react-flow__node-toolbar {
