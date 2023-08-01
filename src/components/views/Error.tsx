@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../styles/views/Error.css';
+import '../../styles/views/Error.scss';
 
 interface ErrorPageProps {
   errorCode: number;

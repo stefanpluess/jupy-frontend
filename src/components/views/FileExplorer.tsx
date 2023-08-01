@@ -2,7 +2,7 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import { useNavigate } from 'react-router-dom';
 import { Content, Session } from "../../config/types";
-import '../../styles/views/FileExplorer.css';
+import '../../styles/views/FileExplorer.scss';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolder, faArrowLeft, faBook, faFileCirclePlus, faSortUp, faSortDown, faSort } from "@fortawesome/free-solid-svg-icons";
 import Table from 'react-bootstrap/Table';
