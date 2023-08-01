@@ -18,7 +18,7 @@ import { createInitialElements, createJSON, updateNotebook,
 import {useUpdateNodesExeCountAndOuput, usePath} from '../../helpers/hooks';
 import { useWebSocketStore, createSession, selectorHome} from '../../helpers/websocket';
 //COMMENT :: Internal modules CONFIG
-import {GROUP_NODE, EXTENT_PARENT} from '../../config/constants';
+import {GROUP_NODE, NORMAL_NODE, MARKDOWN_NODE, EXTENT_PARENT} from '../../config/constants';
 import nodeTypes from '../../config/NodeTypes';
 import {proOptions, defaultEdgeOptions, onDragOver} from '../../config/config';
 import { nodes as initialNodes, edges as initialEdges } from '../../config/initial-elements';
@@ -145,8 +145,10 @@ function DynamicGrouping() {
         const {ws, session} = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         newNode.data.ws = ws;
         newNode.data.session = session;
-      } else {
+      } else if (type === NORMAL_NODE) {
         newNode.data.executionCount = null;
+      } else if (type === MARKDOWN_NODE) {
+        newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }
 
       if (groupNode) {
@@ -163,7 +165,8 @@ function DynamicGrouping() {
         newNode.extent = groupNode ? EXTENT_PARENT : undefined;
       }
 
-      if (type !== GROUP_NODE) {
+      if (type === NORMAL_NODE) {
+        // for normal nodes, we also need to create an output node
         const newOutputNode: Node = createOutputNode(newNode);
         const sortedNodes = store
           .getState()
