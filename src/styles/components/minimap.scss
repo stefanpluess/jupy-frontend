@@ -1,0 +1,19 @@
+@import '../variables';
+.react-flow__minimap {
+    background-color: $shared-bg-color;
+    border: $minimap-controls-border;
+    box-shadow: $minimap-controls-box-shadow;
+    border-radius: 5px;
+  }
+.react-flow__minimap svg{
+  background-color: $shared-bg-color;
+  border-radius: 3px;
+}
+
+$temp: rgba(red($node-background) + 70, 
+            green($node-background), 
+            blue($node-background) + 70, 
+            0.5);
+.react-flow__minimap-node {
+  fill: $temp;
+}

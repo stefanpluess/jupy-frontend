@@ -26,7 +26,11 @@ import { nodes as initialNodes, edges as initialEdges } from '../../config/initi
 //COMMENT :: Styles
 import 'reactflow/dist/style.css';
 import '@reactflow/node-resizer/dist/style.css';
-import '../../styles/views/Home.css';
+import '../../styles/views/Home.scss';
+import '../../styles/ui/sidebar.scss';
+import '../../styles/ui/canvas.scss';
+import '../../styles/components/controls.scss';
+import '../../styles/components/minimap.scss';
 import axios from 'axios';
 import { NotebookPUT } from '../../config/types';
 import { Alert } from 'react-bootstrap';
@@ -227,7 +231,9 @@ function DynamicGrouping() {
 
   return (
     <div className={"wrapper"}>
-      <Sidebar />
+      <div className={"sidebar"}>
+        <Sidebar />
+      </div>
       <div className={"rfWrapper"} ref={wrapperRef}>
         <ReactFlow
           nodes={nodes}
@@ -246,12 +252,9 @@ function DynamicGrouping() {
           defaultEdgeOptions={defaultEdgeOptions}
           minZoom={0.2}
         >
-          <Background color="#bbb" gap={50} variant={BackgroundVariant.Dots} />
+          <Background gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
           <MiniMap
-            nodeColor="#b44b9f80"
-            maskStrokeColor="#222"
-            nodeStrokeWidth={3}
             position={"top-right"}
             zoomable
             pannable
