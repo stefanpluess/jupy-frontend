@@ -160,7 +160,7 @@ function SimpleNode({ id, data }: NodeProps) {
         language="python"
         placeholder="Please enter your Python code here"
         onChange={handleTextareaChange}
-        padding={2}
+        padding={4}
         style={{
           flexGrow: "1",
           fontFamily:

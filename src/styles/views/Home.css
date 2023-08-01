@@ -58,7 +58,7 @@
   border: 1px solid #eee;
   width: auto;
   height: auto;
-  text-align: center;
+  text-align: left !important;
   border-radius: 4px;
 }
 
@@ -130,8 +130,9 @@
   min-height: 40px;
   min-width: 150px;
   max-width: 500px;
-  /*margin-top: 20px;*/
+  /* margin-top: 20px; */
   margin-bottom: 20px;
+  padding-right: 6px!important;
 }
 
  /*color of the code area in code cell --> currently not used, check before deleting*/

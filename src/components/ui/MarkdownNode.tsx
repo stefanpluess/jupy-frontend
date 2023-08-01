@@ -61,7 +61,7 @@ function MarkdownNode({ id, data }: NodeProps) {
   if (!editMode) return (
     <>
       {toolbar}
-      <div className="textareaNode" onDoubleClick={() => setEditMode(true)}>
+      <div className="textareaNode" style={{paddingLeft: '4px'}} onDoubleClick={() => setEditMode(true)}>
         <ReactMarkdown className="markdown" >{code}</ReactMarkdown>
       </div>
       {buttons}
@@ -76,7 +76,7 @@ function MarkdownNode({ id, data }: NodeProps) {
         language="markdown"
         placeholder="Please enter your Markdown code here"
         onChange={handleTextareaChange}
-        padding={2}
+        padding={4}
         style={{
           flexGrow: "1",
           fontFamily:
