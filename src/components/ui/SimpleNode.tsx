@@ -154,75 +154,79 @@ function SimpleNode({ id, data }: NodeProps) {
         </div>
       </NodeToolbar>
 
-      <CodeEditor
-        className="textareaNode nodrag"
-        value={textareaValue}
-        language="python"
-        placeholder="Please enter your Python code here"
-        onChange={handleTextareaChange}
-        padding={4}
-        style={{
-          flexGrow: "1",
-          fontFamily:
-            "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace",
-        }}
-        onKeyDown={(e) => {
-          if (e.ctrlKey && e.code === "Enter") {
-            e.preventDefault(); // TODO: doesn't work somehow
-            runCode();
-          }
-        }}
-      ></CodeEditor>
-
-      <div className="inputCentered buttonArea nodrag">
-        <button
-          className="inputCentered cellButton bLeft"
-          title="Delete Code in Cell"
-          onClick={deleteCode}
-        >
-          <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
-        </button>
-        <button
-          title="Copy Text from Cell"
-          className="inputCentered cellButton bRight"
-          onClick={copyCode}
-        >
-          <FontAwesomeIcon className="icon" icon={faCopy} />
-        </button>
-      </div>
-      <Handle type="source" position={Position.Right}>
-        <div>
-          <button
-            title="Run CodeCell"
-            className="rinputCentered playButton rcentral"
-            onClick={runCode}
-            disabled={!hasParent}
-          >
-            <FontAwesomeIcon className="icon" icon={faPlayCircle} />
-          </button>
-          <div className="rinputCentered cellButton rbottom">
-            [{executionCount != null ? executionCount : " "}]
-          </div>
-          <button
-            title="Lock Edge"
-            className="rinputCentered cellButton rtop"
-            /*onClick={}*/
-          >
-            <FontAwesomeIcon className="icon" icon={faLock} />
-          </button>
+      <div className={executionCount === '*' ? 'simpleNodewrapper gradient' : 'simpleNodewrapper'}>
+        <div className="inner">
+          <CodeEditor
+            className="textareaNode nodrag"
+            value={textareaValue}
+            language="python"
+            placeholder="Please enter your Python code here"
+            onChange={handleTextareaChange}
+            padding={4}
+            style={{
+              flexGrow: "1",
+              fontFamily:
+                "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace",
+            }}
+            onKeyDown={(e) => {
+              if (e.ctrlKey && e.code === "Enter") {
+                e.preventDefault(); // TODO: doesn't work somehow
+                runCode();
+              }
+            }}
+          ></CodeEditor>
         </div>
-      </Handle>
+      </div>
 
-      {isCommentVisible && (
-        <CommentField
-          onClose={() => setIsCommentVisible(false)}
-          onSubmit={(comment) => {
-            console.log("Submitted Comment:", comment);
-            // Handle submitting the comment as required.
-            // You can use this comment in your application logic.
-          }}
-        />
-      )}
+          <div className="inputCentered buttonArea nodrag">
+            <button
+              className="inputCentered cellButton bLeft"
+              title="Delete Code in Cell"
+              onClick={deleteCode}
+            >
+              <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
+            </button>
+            <button
+              title="Copy Text from Cell"
+              className="inputCentered cellButton bRight"
+              onClick={copyCode}
+            >
+              <FontAwesomeIcon className="icon" icon={faCopy} />
+            </button>
+          </div>
+          <Handle type="source" position={Position.Right}>
+            <div>
+              <button
+                title="Run CodeCell"
+                className="rinputCentered playButton rcentral"
+                onClick={runCode}
+                disabled={!hasParent}
+              >
+                <FontAwesomeIcon className="icon" icon={faPlayCircle} />
+              </button>
+              <div className="rinputCentered cellButton rbottom">
+                [{executionCount != null ? executionCount : " "}]
+              </div>
+              <button
+                title="Lock Edge"
+                className="rinputCentered cellButton rtop"
+                /*onClick={}*/
+              >
+                <FontAwesomeIcon className="icon" icon={faLock} />
+              </button>
+            </div>
+          </Handle>
+
+          {isCommentVisible && (
+            <CommentField
+              onClose={() => setIsCommentVisible(false)}
+              onSubmit={(comment) => {
+                console.log("Submitted Comment:", comment);
+                // Handle submitting the comment as required.
+                // You can use this comment in your application logic.
+              }}
+            />
+          )}
     </>
   );
 }

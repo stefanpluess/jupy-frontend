@@ -1,0 +1,148 @@
+@import '../variables';
+
+
+/* INFO :: canvas area = .rfWrapper*/
+/*background color canvas area*/
+.wrapper .react-flow {
+    background: $shared-bg-color;
+}
+
+.wrapper .rfWrapper {
+    flex-grow: 1;
+    height: 100%;
+}
+
+/* INFO :: canvas area - simple node*/
+.rfWrapper .react-flow__node-node {
+    display: flex;
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper {
+    overflow: hidden;
+    display: flex;
+    padding: 2px;
+    position: relative;
+    border-radius: $node-border-radius;
+    box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
+    flex-grow: 1;
+}
+
+.rfWrapper .react-flow__node-node .inner {
+    background: $node-background;
+    box-shadow: $node-box-shadow-not-active;
+    border-radius: $node-border-radius;
+    border: $node-border;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+    position: relative;
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper.selected,
+.rfWrapper .react-flow__node-node .simpleNodewrapper:hover{
+    box-shadow: $node-box-shadow-lighter;
+}
+.rfWrapper .react-flow__node-node .inner.selected,
+.rfWrapper .react-flow__node-node .inner:hover{
+    box-shadow: $node-box-shadow;
+}
+
+/*color of the code area in code cell*/
+.rfWrapper .textareaNode {
+    background-color: rgba(255, 255, 255, 0.223);
+    font-size: 11px;
+    min-height: 40px;
+    min-width: 150px;
+    max-width: 500px;
+    margin-bottom: 20px;
+    padding-right: 6px !important;
+}
+
+/* animation of the execution */
+.rfWrapper .gradient:before {
+    content: "";
+    position: absolute;
+    padding-bottom: calc(100% * 1.41421356237);
+    width: calc(100% * 1.41421356237);
+    background: conic-gradient(
+        from -160deg at 50% 50%,
+        #e92a67 0deg,
+        #a853ba 120deg,
+        #2a8af6 240deg,
+        #e92a67 360deg
+    );
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 100%;
+}
+.rfWrapper .react-flow__node-node .simpleNodewrapper.gradient:before {
+    content: "";
+    background: conic-gradient(
+        from -160deg at 50% 50%,
+        #e92a67 0deg,
+        #a853ba 120deg,
+        #2a8af6 240deg,
+        rgba(42, 138, 246, 0) 360deg
+    );
+    animation: spinner 4s linear infinite;
+    transform: translate(-50%, -50%) rotate(0deg);
+    z-index: -1;
+}
+@keyframes spinner {
+    100% {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+/* INFO :: canvas area - ouput node*/
+/*color of the output cell*/
+.rfWrapper .outputNode {
+    background-color: $node-background;
+    color: $shared-text-color;
+    text-align: left;
+    resize: none;
+    outline: none;
+    font-size: 11px;
+    min-width: 40px;
+    min-height: 40px;
+    border: $node-border;
+    padding: 4px;
+}
+
+.rfWrapper .outputNode:hover {
+    box-shadow: $node-box-shadow;;
+}
+
+/* INFO :: canvas area - group node*/
+/*frame around bubble cell*/
+.rfWrapper .react-flow__node-group {
+    background: $group-node-background;
+    border: $node-border;
+    box-shadow: $node-box-shadow-not-active;
+    resize: both;
+    width: auto;
+}
+/*shade around bubble cell when hovering/selecting */
+.rfWrapper .react-flow__node-group.selected,
+.rfWrapper .react-flow__node-group:hover {
+    box-shadow: $node-box-shadow;
+}
+.rfWrapper .react-flow__node-group.selected {
+    border-width: 2px;
+}
+
+/* INFO :: canvas area - markdown node*/
+.rfWrapper .react-flow__node-mdNode {
+    background: $markdown-node-background;
+    box-shadow: $node-box-shadow-not-active;
+    border: $node-border;
+    width: auto;
+    height: auto;
+    text-align: left !important;
+    border-radius: $node-border-radius;
+}
+.rfWrapper .react-flow__node-mdNode:hover {
+    box-shadow: $node-box-shadow;
+}

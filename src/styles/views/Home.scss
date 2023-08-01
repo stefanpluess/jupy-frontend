@@ -1,0 +1,223 @@
+@import '../variables';
+/* 
+=========================
+Structure of the webpage
+=========================
+
+The whole screen is encapsulated in a div with the id 'wrapper':
+The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
+
+------------------------------------------------------
+|                    .wrapper                        |
+|   ------------------  ---------------------------  |
+|   |   .sidebar     |  |        .rfWrapper       |  |
+|   |                |  |                         |  |
+|   |      see       |  |          see            |  |
+|   |  sidebar.scss  |  |      canvas.scss        |  |
+|   |                |  |                         |  |
+|   ------------------  ---------------------------  |
+------------------------------------------------------
+
+'rfWrapper' = canvas space
+*/
+/* INFO :: whole screen = .wrapper */
+.wrapper {
+  flex-direction: row;
+  display: flex;
+  height: 100vh;
+}
+
+
+// TODO - organize and clean what is below
+ /*connection points for edge */
+ .wrapper .react-flow__handle {
+  background: #ddd;
+  box-shadow: 0px 0px 10px 0px rgba(255, 255, 255, 0.5);
+  height: 8px;
+  width: 8px;
+}
+
+ /*color of labels for in navbar*/
+.wrapper .label {
+  position: absolute;
+  bottom: 0;
+  width: 100px;
+  left: 50%;
+  transform: translate(-50%, 120%);
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+ /*???*/
+.wrapper .inputCentered {
+  background-color: blue;
+  color: blue;
+  position: absolute;
+  margin-left: 87%;
+  color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /*border-top: 0.2px solid #fff;*/
+
+}
+
+.wrapper .rinputCentered{
+  position: fixed;
+  width: 10%;
+  height: 10px;
+  border-right: 0.2px solid #fff;
+  color: red;
+  background-color: red;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.wrapper .rbottom{
+  margin-left: 350%;
+  top: 10px;
+  font-size: 12px;
+}
+
+.wrapper .rtop{
+  margin-left: 6px;
+  top: -15px;
+  left: 100%;
+  font-size: 12px;
+}
+
+.wrapper .rcentral{
+ margin-left: -16px;
+ margin-top: 0px;
+}
+
+ /*color of the lower button area in code cell*/
+.wrapper .buttonArea {
+  background-color: rgba(99, 64, 32, 0.502);
+  bottom: 2px;
+  height: 20px;
+}
+
+ /*color of the lower button icons in code cell*/
+.wrapper .cellButton {
+  background-color: transparent;
+  border-color: transparent;
+  color: white;
+}
+
+ /*color of the play button icons in code cell*/
+ .wrapper .playButton {
+  background-color: transparent;
+  border-color: transparent;
+  color: green;
+  height: 100%;
+  font-size: 22px;
+}
+
+ /*color of the play button icons in code cell when not attached to bubble cell*/
+.wrapper .playButton:disabled {
+  background-color: transparent;
+  border-color: transparent;
+  color: red;
+  height: 100%;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/*left frame buttonarea in code cell*/
+.wrapper .bLeft {
+  width: 10%;
+  right: 10%;
+}
+
+/*right frame buttonarea in code cell*/
+.wrapper .bRight {
+  width: 10%;
+  left: 90%;
+}
+
+/*lower button area changes color when hovering over it*/
+.wrapper .bRight:hover, .bLeft:hover{
+  color: rgba(223, 223, 223, 0.502);
+}
+
+.wrapper .icon {
+  transform: scale(0.8);
+}
+
+  /*execution count*/
+.wrapper .executionCount {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  height: 20%;
+  width: 20%;
+  right: 0;
+  padding-top: 2px;
+  font-size: 11px;
+  color: #cdcdcd;
+}
+
+/*shadow around upper delete/ungroup/detach bar*/
+.wrapper .react-flow__node-toolbar {
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+/*color of upper delete/ungroup/detach bar*/
+.wrapper .react-flow__node-toolbar button {
+  border-radius: 1px;
+  background: #b6b6b6;
+  opacity: 0.7;
+  color: #111;
+  font-size: 20px;
+  border: 1px solid #999;
+  padding: 1px 5px;
+  cursor: pointer;
+  font-weight: 700;
+  display: inline;
+}
+
+/*color of upper delete/ungroup/detach bar when hovering over it*/
+.wrapper .react-flow__node-toolbar button:hover {
+  background-color: #ddd;
+
+}
+
+/*frame color upper delete/ungroup/detach bar*/
+.wrapper .react-flow__node-toolbar button:nth-child(even) {
+  border-left: 1px solid #999;
+}
+
+/* Comment Field */
+.comment-field {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  margin-top: 10px;
+  margin-bottom: 20px;
+
+}
+
+.comment-field textarea {
+  width: 80%;
+  min-height: 70px;
+  resize: vertical;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 14px;
+  margin: 5px;
+}
+
+.comment-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.comment-buttons button {
+  margin-left: 8px;
+}
