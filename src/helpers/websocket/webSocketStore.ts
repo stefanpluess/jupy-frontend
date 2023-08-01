@@ -14,10 +14,6 @@ export type WebSocketState = {
     setCellIdToMsgId: (newObj: CellIdToMsgId) => void;
     getCellIdToMsgId: () => CellIdToMsgId;
 
-    websocketNumber: number;
-    setWebsocketNumber: (newNumber: number) => void;
-    getWebsocketNumber: () => number;
-
     token: string;
     getToken: () => string;
 };
@@ -26,8 +22,7 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionCount: {} as ExecutionCount,
     latestExecutionOutput: {} as ExecutionOutput,
     cellIdToMsgId: {} as CellIdToMsgId,
-    websocketNumber: 0,
-    token : 'd1441e5c6eada22e95e418c1b291dfa77dca2a7c22cb0110',
+    token : '0bde1ce3af08fc96dd18e9ebb1d30416ab8484ac1edf7a9d',
 
     // COMMENT :: setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {
@@ -45,11 +40,6 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
             cellIdToMsgId: newObj,
         });
     },
-    setWebsocketNumber: (newNumber: number) => {
-        set({
-            websocketNumber: newNumber,
-        });
-    },
     // COMMENT :: getters 
     getLatestExecutionCount: () => {
         return get().latestExecutionCount;
@@ -59,9 +49,6 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     },
     getCellIdToMsgId: () => {
         return get().cellIdToMsgId;
-    },
-    getWebsocketNumber: () => {
-        return get().websocketNumber;
     },
     getToken: () => {
         return get().token;
@@ -78,14 +65,10 @@ export const selectorHome = (state: WebSocketState) => ({
     latestExecutionOutput: state.latestExecutionOutput,
     setLatestExecutionOutput: state.setLatestExecutionOutput,
     cellIdToMsgId: state.cellIdToMsgId,
-    websocketNumber: state.websocketNumber,
-    setWebsocketNumber: state.setWebsocketNumber,
     token: state.token,
   });
 
 export const selectorBubbleBranch = (state: WebSocketState) => ({
-    setWebsocketNumber: state.setWebsocketNumber,
-    getWebsocketNumber: state.getWebsocketNumber,
     setLatestExecutionOutput: state.setLatestExecutionOutput,
     setLatestExecutionCount: state.setLatestExecutionCount,
     token: state.token,

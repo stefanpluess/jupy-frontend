@@ -49,7 +49,6 @@ function DynamicGrouping() {
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount,
-    websocketNumber, setWebsocketNumber,
     token
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -69,16 +68,13 @@ function DynamicGrouping() {
       const notebookData = res.data
       const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
-      let websocketCount = 0;
       initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
         if (node.type === GROUP_NODE) {
-          websocketCount++;
-          const {ws, session} = await createSession(websocketCount, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
         }
       });
-      setWebsocketNumber(websocketCount);
       setNodes(initialNodes);
       setEdges(initialEdges);
     });
@@ -136,9 +132,7 @@ function DynamicGrouping() {
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const wn = websocketNumber + 1;
-        setWebsocketNumber(wn);
-        const {ws, session} = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         newNode.data.ws = ws;
         newNode.data.session = session;
       } else {

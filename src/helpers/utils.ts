@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from '../config/types';
+import { ID_LENGTH } from '../config/constants';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
@@ -347,7 +348,7 @@ export const sortNodes = (a: Node, b: Node): number => {
   
 export const getId = (prefix = 'node') => {
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  const idLength = 8;
+  const idLength = ID_LENGTH;
   let id = '';
   for (let i = 0; i < idLength; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);

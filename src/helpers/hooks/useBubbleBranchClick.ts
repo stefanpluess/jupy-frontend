@@ -10,8 +10,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getEdges, getNode } = useReactFlow();
     const store = useStoreApi();
     const path = usePath();
-    const { setWebsocketNumber, getWebsocketNumber, 
-        setLatestExecutionOutput, setLatestExecutionCount,
+    const { setLatestExecutionOutput, setLatestExecutionCount,
         token
       } = useWebSocketStore(selectorBubbleBranch, shallow);
 
@@ -46,9 +45,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         };
 
         // create a websocket connection
-        const wn = getWebsocketNumber() + 1;
-        setWebsocketNumber(wn);
-        const {ws, session} = await createSession(wn, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const {ws, session} = await createSession(childNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         childNode.data.ws = ws;
         childNode.data.session = session;
 
