@@ -1,0 +1,57 @@
+@import '../variables';
+/* INFO :: sidebar*/
+ /*color navigation bar */
+ .wrapper .sidebar aside {
+    border-right: 1px solid #333;
+    padding: 15px;
+    font-size: 12px;
+    background-color: $shared-bg-color;
+    color: $shared-text-color;
+    height: 100%;
+  }
+/*cells in navbar */
+.wrapper .sidebar aside div[class^='react-flow__node-'] {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 12px;
+    width: 40px;
+    height: 40px;
+    position: relative;
+    color: $shared-text-color;
+    cursor: grab;
+    margin-bottom: 35px;
+}
+
+/* INFO :: sidebar - code cell*/
+/*color of the code cell*/
+.wrapper .sidebar .react-flow__node-node {
+    background: $node-background;
+    box-shadow: $node-box-shadow-not-active;
+    border: $node-border;
+    width: auto;
+    height: auto;
+    text-align: center;
+    border-radius: $node-border-radius;
+}
+/*shade around coding cell in sidebar when hovering over it / selecting it*/
+.wrapper .sidebar .react-flow__node-node.selected ,
+.wrapper .sidebar .react-flow__node-node:hover {
+    box-shadow: $sidebar-node-box-shadow-selected-hover;
+    border-width: $sidebar-node-border-width;
+}
+
+/* INFO :: sidebar - bubble cell*/
+/*frame around bubble cell*/
+.wrapper .sidebar .react-flow__node-group {
+    background: $group-node-background;
+    border: $node-border;
+    box-shadow: $node-box-shadow-not-active;
+    resize: both;
+    width: auto;
+}
+/*shade around bubble cell when hovering/selecting */
+.wrapper .sidebar .react-flow__node-group.selected,
+.wrapper .sidebar .react-flow__node-group:hover {
+    box-shadow: $sidebar-node-box-shadow-selected-hover;
+    border-width: $sidebar-node-border-width;
+}

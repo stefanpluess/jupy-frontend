@@ -1,9 +1,10 @@
+@import '../variables';
 .react-flow__controls button {
-    background-color: #222; /* TODO: same as background-color*/ 
-    color: #fff; /* TODO: text color*/ 
-    border: 1px solid #95679e;
+    background-color: $shared-bg-color;
+    color: $shared-text-color;
+    border: $minimap-controls-border;
     border-bottom: none;
-    box-shadow: 0px 0px 16px 0 rgba(0, 0, 0, 0.7);
+    box-shadow: $minimap-controls-box-shadow;
   }
   
 .react-flow__controls button:hover {
@@ -15,10 +16,10 @@
 }
 
 .react-flow__controls button:last-child {
-  border-bottom: 1px solid #95679e;
+  border-bottom: $minimap-controls-border;
   border-radius: 0 0 5px 5px;
 }
 
 .react-flow__controls button path {
-  fill: #fff;
+  fill: $shared-text-color;
 }
