@@ -55,3 +55,19 @@
     box-shadow: $sidebar-node-box-shadow-selected-hover;
     border-width: $sidebar-node-border-width;
 }
+
+/* INFO :: sidebar - markdown cell*/
+.wrapper .sidebar .react-flow__node-mdNode {
+    background: $markdown-node-background;
+    border: $node-border;
+    box-shadow: $node-box-shadow-not-active;
+    resize: both;
+    width: auto;
+    border-radius: $node-border-radius;
+}
+/*shade around bubble cell when hovering/selecting */
+.wrapper .sidebar .react-flow__node-mdNode.selected,
+.wrapper .sidebar .react-flow__node-mdNode:hover {
+    box-shadow: $sidebar-node-box-shadow-selected-hover;
+    border-width: $sidebar-node-border-width;
+}
