@@ -1,12 +1,12 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from '../config/types';
-import { ID_LENGTH } from '../config/constants';
+import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, ID_LENGTH } from '../config/constants';
 
 /* ================== helpers for onNodeDrag... ================== */
 export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
   const groupClassName = intersections.length && node.parentNode !== intersections[0]?.id ? 'active' : '';
-  if (n.type === 'group') { // TODO - export and use a type as a constant
+  if (n.type === GROUP_NODE) { // TODO - export and use a type as a constant
     return {
       ...n,
       className: groupClassName,
@@ -39,10 +39,9 @@ export function updateClassNameOrPositionInsideParent(n: Node, node: Node, group
 }
 
 export function canRunOnNodeDrag(node: Node): boolean {
-  if ((node.type !== 'node' && node.type !== 'outputNode') && !node.parentNode) {
+  if ((node.type === GROUP_NODE) && !node.parentNode) {
     return false;
-  }
-  else{
+  } else {
     return true;
   }
 }
@@ -60,10 +59,12 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     const position = cell.position ? { x: cell.position.x, y: cell.position.y } : { x: 0, y: 140 * initialNodes.length };
     const node: Node = {
       id: cell.id,
-      type: cell.cell_type === 'code' ? 'node' : cell.cell_type === 'group' ? 'group' : 'mdnode',
+      type: cell.cell_type === 'code' ? NORMAL_NODE : cell.cell_type === 'group' ? GROUP_NODE : MARKDOWN_NODE,
       data: cell.cell_type  === 'code' ? {
         code: cell.source,
         executionCount: cell.execution_count
+      } : cell.cell_type === 'markdown' ? {
+        code: cell.source
       } : {},
       position: position,
     };
@@ -128,10 +129,10 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
   const cells: NotebookCell[] = [];
   nodes.forEach((node: Node) => {
     // create a cell object for each node (NO output node)
-    if (node.type !== 'outputNode') {
+    if (node.type !== OUTPUT_NODE) {
       const cell: NotebookCell = {
         id: node.id,
-        cell_type: node.type === 'node' ? 'code' : node.type === 'group' ? 'group' : 'markdown',
+        cell_type: node.type === NORMAL_NODE ? 'code' : node.type === GROUP_NODE ? 'group' : 'markdown',
         source: node.data.code,
         execution_count: node.data.executionCount,
         outputs: [],
@@ -139,7 +140,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         parentNode: node?.parentNode,
         metadata: {},
       };
-      if (node.type === 'group') {
+      if (node.type === GROUP_NODE) {
         cell.height = node.height;
         cell.width = node.width;
       }
@@ -172,7 +173,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
   edges.forEach((edge: Edge) => {
     const sourceNode = nodes.find((node: Node) => node.id === edge.source);
     const targetNode = nodes.find((node: Node) => node.id === edge.target);
-    if (sourceNode?.type === 'group' && targetNode?.type === 'group') {
+    if (sourceNode?.type === GROUP_NODE && targetNode?.type === GROUP_NODE) {
       const sourceCell = cells.find((cell: NotebookCell) => cell.id === sourceNode.id);
       if (sourceCell?.successors) sourceCell.successors.push(targetNode.id);
       else if (sourceCell) sourceCell.successors = [targetNode.id];
@@ -314,12 +315,12 @@ export function generateMessage( msg_id: string, code: string, {
 export function createOutputNode(node: Node) {
   const newOutputNode: Node = {
     id: node.id+"_output",
-    type: 'outputNode',
+    type: OUTPUT_NODE,
     // position it on the right of the given position
     // TODO: use the position provided in the JSON
     position: {
-      x: node.position.x + 180,
-      y: node.position.y + 36,
+      x: node.position.x + 200,
+      y: node.position.y +11,
     },
     data: { output: "", isImage: false, outputType: 'stream' },
   };
@@ -327,7 +328,7 @@ export function createOutputNode(node: Node) {
   // in case the node has a parent, we want to make sure that the output node has the same parent
   if (node.parentNode) {
     newOutputNode.parentNode = node.parentNode;
-    newOutputNode.extent = 'parent';
+    newOutputNode.extent = EXTENT_PARENT;
   }
   return newOutputNode;
 }
@@ -343,10 +344,10 @@ export const sortNodes = (a: Node, b: Node): number => {
     if (a.type === b.type) {
       return 0;
     }
-    return a.type === 'group' && b.type !== 'group' ? -1 : 1;
+    return a.type === GROUP_NODE && b.type !== GROUP_NODE ? -1 : 1;
 };
   
-export const getId = (prefix = 'node') => {
+export const getId = (prefix = NORMAL_NODE) => {
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const idLength = ID_LENGTH;
   let id = '';

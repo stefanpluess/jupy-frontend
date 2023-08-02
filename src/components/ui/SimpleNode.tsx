@@ -1,6 +1,19 @@
-import { ChangeEvent, useState, useEffect, useCallback, memo} from 'react'
-import { Handle, Position, NodeToolbar, NodeProps, useStore, useReactFlow } from 'reactflow';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, {
+  ChangeEvent,
+  useState,
+  useEffect,
+  useCallback,
+  memo,
+} from "react";
+import {
+  Handle,
+  Position,
+  NodeToolbar,
+  NodeProps,
+  useStore,
+  useReactFlow,
+} from "reactflow";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTrash,
   faPlay,
@@ -17,59 +30,37 @@ import {
   faCirclePlay,
   faLock,
 } from "@fortawesome/free-solid-svg-icons";
-import { v4 as uuidv4 } from 'uuid';
-import CodeEditor from '@uiw/react-textarea-code-editor';
-import { generateMessage } from '../../helpers/utils';
-import { useWebSocketStore } from '../../helpers/websocket';
-import { useAddComment, useDetachNodes} from '../../helpers/hooks';
-
-/*must be shifted*/
-interface CommentFieldProps {
-  onClose: () => void;
-  onSubmit: (comment: string) => void;
-}
-
-/*must be shifted*/
-function CommentField({ onClose, onSubmit }: CommentFieldProps) {
-  const [comment, setComment] = useState("");
-
-  const handleSubmit = () => {
-    onSubmit(comment);
-    setComment("");
-    onClose();
-  };
-
-  const handleCommentChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    setComment(event.target.value);
-  };
-
-  return (
-    <div className="comment-field">
-      <textarea
-        value={comment}
-        onChange={handleCommentChange}
-        placeholder="Enter your comment here..."
-      />
-      <div className="comment-buttons">
-        <button onClick={onClose}>Cancel</button>
-        <button onClick={handleSubmit}>Submit</button>
-      </div>
-    </div>
-  );
-}
+import { v4 as uuidv4 } from "uuid";
+import CodeEditor from "@uiw/react-textarea-code-editor";
+import useAddComment from "../../helpers/hooks/useAddComment";
+import useDetachNodes from "../../helpers/hooks/useDetachNodes";
+import { useWebSocketStore } from "../../helpers/websocket";
+import CommentNode from "./CommentNode";
+import { generateMessage } from "../../helpers/utils";
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
-  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
-  const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
+  const hasParent = useStore(
+    (store) => !!store.nodeInternals.get(id)?.parentNode
+  );
+  const parentNode = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
+  );
   const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
-  /*const addComments = useAddComment();*/
 
-  const [textareaValue, setTextareaValue] = useState(data?.code || '');
-  const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
+  const [textareaValue, setTextareaValue] = useState(data?.code || "");
+  const [executionCount, setExecutionCount] = useState(
+    data?.executionCount || 0
+  );
 
+  //to be deleted of code above works
+  // const [textareaValue, setTextareaValue] = useState("");
+  // var execute = data?.execute;
+  // const [executionCount, setExecutionCount] = useState(
+  //   data?.executionCount || 0
+  // );
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
@@ -82,18 +73,35 @@ function SimpleNode({ id, data }: NodeProps) {
   const onDetach = () => detachNodes([id]);
 
   /*AddComments*/
-  /*const onAddComment = () => addComments([id]);*/
-  const [isCommentVisible, setIsCommentVisible] = useState(false);
-  const onAddComment = () => setIsCommentVisible(true);
+  const addComments = useAddComment();
+  const [textComment, setTextComment] = useState("");
+  const onAddComment = () => addComments([id], textComment);
+
+  /*const [isCommentVisible, setIsCommentVisible] = useState(false);*/
+  /*const onAddComment = () => setIsCommentVisible(true);*/
+  const [showCommentNode, setShowCommentNode] = useState(false);
+
+  const onCloseCommentNode = () => {
+    setShowCommentNode(false);
+  };
+
+  const onSaveComment = (comment: string) => {
+    // Call the addComments function to add the comment to the SimpleNode
+    addComments([id], comment);
+  };
+
+  const handleCommentChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setTextComment(event.target.value);
+  };
 
   const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     // including auto indent
-    setTextareaValue(event.target.value.replace(/\t/g, '    '));
-    data.code = event.target.value.replace(/\t/g, '    ');
+    setTextareaValue(event.target.value.replace(/\t/g, "    "));
+    data.code = event.target.value.replace(/\t/g, "    ");
   };
 
   const runCode = useCallback(() => {
-    console.log('run code (' + textareaValue + ')!');
+    console.log("run code (" + textareaValue + ")!");
     var msg_id = uuidv4();
     setCellIdToMsgId({ [msg_id]: id });
     setExecutionCount("*");
@@ -121,9 +129,13 @@ function SimpleNode({ id, data }: NodeProps) {
     console.log("Copied code:\n" + textareaValue);
   };
 
+  const duplicateCell = () => {
+    //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
+  };
+
   /**
    @todo: 
-   add onClick to copy cell, 
+   add onClick to duplicate cell, 
    add comment to cell, 
    add onClick to addtional cell settings,
    add onClick to lock edge**/
@@ -132,21 +144,22 @@ function SimpleNode({ id, data }: NodeProps) {
     <>
       <NodeToolbar className="nodrag">
         <div>
-          {hasParent && (
-            <button title="Duplicate Cell">
-              <FontAwesomeIcon className="icon" icon={faCopy} />
-            </button>
-          )}
-          {hasParent && (
-            <button onClick={onDelete} title="Delete Cell">
-              <FontAwesomeIcon className="icon" icon={faTrashAlt} />
-            </button>
-          )}
-          {hasParent && (
-            <button title="Add Comment to Cell" onClick={onAddComment}>
-              <FontAwesomeIcon className="icon" icon={faCommentAlt} />
-            </button>
-          )}
+          <button onClick={duplicateCell} title="Duplicate Cell">
+            <FontAwesomeIcon className="icon" icon={faCopy} />
+          </button>
+
+          <button onClick={onDelete} title="Delete Cell">
+            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
+          </button>
+
+          <button
+            title="Add Comment to Cell"
+            onClick={onAddComment}
+            value="textComment"
+          >
+            <FontAwesomeIcon className="icon" icon={faCommentAlt} />
+          </button>
+
           {hasParent && (
             <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
@@ -160,15 +173,21 @@ function SimpleNode({ id, data }: NodeProps) {
         </div>
       </NodeToolbar>
 
-      <div className={executionCount === '*' ? 'simpleNodewrapper gradient' : 'simpleNodewrapper'}>
+      <div
+        className={
+          executionCount === "*"
+            ? "simpleNodewrapper gradient"
+            : "simpleNodewrapper"
+        }
+      >
         <div className="inner">
           <CodeEditor
-            className="textareaNode"
+            className="textareaNode nodrag"
             value={textareaValue}
             language="python"
             placeholder="Please enter your Python code here"
             onChange={handleTextareaChange}
-            padding={2}
+            padding={4}
             style={{
               flexGrow: "1",
               fontFamily:
@@ -184,46 +203,48 @@ function SimpleNode({ id, data }: NodeProps) {
         </div>
       </div>
 
-          <div className="inputCentered buttonArea nodrag">
-            <button
-              className="inputCentered cellButton bLeft"
-              title="Delete Code in Cell"
-              onClick={deleteCode}
-            >
-              <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
-            </button>
-            <button
-              title="Copy Text from Cell"
-              className="inputCentered cellButton bRight"
-              onClick={copyCode}
-            >
-              <FontAwesomeIcon className="icon" icon={faCopy} />
-            </button>
+      <div className="inputCentered buttonArea nodrag">
+        <button
+          className="inputCentered cellButton bLeft"
+          title="Delete Code in Cell"
+          onClick={deleteCode}
+        >
+          <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
+        </button>
+        <button
+          title="Copy Text from Cell"
+          className="inputCentered cellButton bRight"
+          onClick={copyCode}
+        >
+          <FontAwesomeIcon className="icon" icon={faCopy} />
+        </button>
+      </div>
+      <Handle type="source" position={Position.Right}>
+        <div>
+          <button
+            title="Run CodeCell"
+            className="rinputCentered playButton rcentral"
+            onClick={runCode}
+            disabled={!hasParent}
+          >
+            <FontAwesomeIcon className="icon" icon={faPlayCircle} />
+          </button>
+          <div className="rinputCentered cellButton rbottom">
+            [{executionCount != null ? executionCount : " "}]
           </div>
-          <Handle type="source" position={Position.Right}>
-            <div>
-              <button
-                title="Run CodeCell"
-                className="rinputCentered playButton rcentral"
-                onClick={runCode}
-                disabled={!hasParent}
-              >
-                <FontAwesomeIcon className="icon" icon={faPlayCircle} />
-              </button>
-              <div className="rinputCentered cellButton rbottom">
-                [{executionCount != null ? executionCount : " "}]
-              </div>
-              <button
-                title="Lock Edge"
-                className="rinputCentered cellButton rtop"
-                /*onClick={}*/
-              >
-                <FontAwesomeIcon className="icon" icon={faLock} />
-              </button>
-            </div>
-          </Handle>
+          <button
+            title="Lock Edge"
+            className="rinputCentered cellButton rtop"
+            /*onClick={}*/
+          >
+            <FontAwesomeIcon className="icon" icon={faLock} />
+          </button>
+        </div>
+      </Handle>
 
-          {isCommentVisible && (
+      {/*to be deleted of code above works*/}
+
+      {/* {isCommentVisible && (
             <CommentField
               onClose={() => setIsCommentVisible(false)}
               onSubmit={(comment) => {
@@ -232,7 +253,17 @@ function SimpleNode({ id, data }: NodeProps) {
                 // You can use this comment in your application logic.
               }}
             />
-          )}
+          )} */}
+      <Handle type="target" position={Position.Left} />
+
+      {/* CommentNode may be deleted if we dont use it*/}
+      {/*showCommentNode && (
+        <CommentNode
+          nodeId={id}
+          onClose={onCloseCommentNode}
+          onSaveComment={onSaveComment}
+        />
+      )*/}
     </>
   );
 }
