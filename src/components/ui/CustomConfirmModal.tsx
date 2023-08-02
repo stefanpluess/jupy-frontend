@@ -1,7 +1,16 @@
 import React from "react";
 import { Modal, Button } from "react-bootstrap";
 
-function CustomConfirmModal({ title, message, show, onHide, onConfirm }) {
+type CustomConfirmModalProps = {
+  title: string;
+  message: string;
+  show: boolean;
+  onHide: () => void;
+  onConfirm: () => void;
+  confirmText: string;
+};
+
+function CustomConfirmModal({ title, message, show, onHide, onConfirm, confirmText }: CustomConfirmModalProps) {
   return (
     <Modal title={title} message={message} show={show} onHide={onHide} centered>
       <Modal.Header closeButton>
@@ -13,7 +22,7 @@ function CustomConfirmModal({ title, message, show, onHide, onConfirm }) {
           Continue Running
         </Button>
         <Button variant="danger" onClick={onConfirm}>
-          Restart
+          {confirmText}
         </Button>
       </Modal.Footer>
     </Modal>

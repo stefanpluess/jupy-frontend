@@ -18,6 +18,7 @@ import {
   faSquare,
   faArrowRotateRight,
   faPowerOff,
+  faCirclePlay,
 } from "@fortawesome/free-solid-svg-icons";
 import {useDetachNodes, useBubbleBranchClick, usePath} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -38,7 +39,8 @@ function GroupNode({ id, data }: NodeProps) {
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
   const { deleteElements } = useReactFlow();
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
+  const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
   const [isRunning, setIsRunning] = useState(true); // TODO: - use data.ws.readyState
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
@@ -96,7 +98,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const onRestart = () => {
-    if (isRunning) setShowConfirmModal(true);
+    if (isRunning) setShowConfirmModalRestart(true);
     else startNewSession();
   };
 
@@ -110,11 +112,13 @@ function GroupNode({ id, data }: NodeProps) {
     const ws = await startWebsocket(nodeData.session.session_id, nodeData.session.kernel_id, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
-    setShowConfirmModal(false);
+    setShowConfirmModalRestart(false);
   };
 
+  /* Cancel method for both modals (restart and shutdown) */
   const continueWorking = () => {
-    setShowConfirmModal(false);
+    if (showConfirmModalRestart) setShowConfirmModalRestart(false);
+    if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
   };
 
   const startNewSession = async () => {
@@ -126,10 +130,15 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const onShutdown = async () => {
+    if (isRunning) setShowConfirmModalShutdown(true);
+  };
+
+  const shutdownKernel = async () => {
     console.log('Shutting kernel down')
     nodeData.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.session_id)
+    setShowConfirmModalShutdown(false);
   };
 
   return (
@@ -149,16 +158,15 @@ function GroupNode({ id, data }: NodeProps) {
         {hasChildNodes && 
           <button onClick={onDetach} title="Delete Bubble 🫧">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
-          </button>
-        }
+          </button>}
         <button onClick={onInterrupt} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>
-        <button onClick={onRestart} title="Restart Kernel 🔄"> 
+        {isRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
-        </button>
-        <button onClick={onShutdown} disabled={!isRunning} title="Shutdown Kernel ❌"> 
-          <FontAwesomeIcon className="icon" icon={faPowerOff} />
+        </button>}
+        <button onClick={isRunning ? onShutdown : onRestart} title={isRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"}> 
+          <FontAwesomeIcon className="icon" icon={isRunning ? faPowerOff : faCirclePlay} />
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
           <FontAwesomeIcon className="icon" icon={faDiagramProject} />
@@ -169,9 +177,18 @@ function GroupNode({ id, data }: NodeProps) {
       <CustomConfirmModal 
         title="Restart Kernel?" 
         message="Are you sure you want to restart the kernel? All variables will be lost!" 
-        show={showConfirmModal} 
+        show={showConfirmModalRestart} 
         onHide={continueWorking} 
         onConfirm={restartKernel} 
+        confirmText="Restart"
+      />
+      <CustomConfirmModal 
+        title="Shutdown Kernel?" 
+        message="Are you sure you want to shutdown the kernel? All variables will be lost!" 
+        show={showConfirmModalShutdown} 
+        onHide={continueWorking} 
+        onConfirm={shutdownKernel} 
+        confirmText="Shutdown"
       />
     </div>
   );
