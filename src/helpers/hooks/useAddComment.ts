@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
-import { useReactFlow, useStoreApi } from 'reactflow';
-
-
+import { Position, useReactFlow, useStoreApi } from 'reactflow';
+import { COMMENT_NODE } from './constants';
 
 
 function useAddComment() {
@@ -9,35 +8,42 @@ function useAddComment() {
   const store = useStoreApi();
 
   const addComments = useCallback(
-    (ids: string[]) => {
-
+    (ids: string[], textComment: string) => {
       const nodes = ids.map((id) => {
         const node = store.getState().nodeInternals.get(id);
         if (!node) {
           return null;
         }
         const comment = {
-          id: `comment-${id}`,
-          type: 'comment',
-          data: { label: 'Comments:' },
+          id: `${COMMENT_NODE}-${id}`,
+          type: COMMENT_NODE,
+          data: {
+            label: 'Comments:',
+            text: textComment,
+
+          },
           position: {
-            x: node.position.x + 200,
+            x: node.position.x + 150,
             y: node.position.y + 100,
           },
           style: {
             width: 200,
             height: 100,
           },
+          isVisible: true,
         };
         return comment;
-      });
+      }).filter(Boolean);
 
-      /*setNodes((currentNodes) => [...currentNodes, ...nodes]);*/
+      //setNodes((currentNodes) => [...currentNodes, ...nodes]);
     },
     [setNodes, store]
   );
 
   return addComments;
 }
+
+// <Handle type="source" position={Position.Bottom} />
+
 
 export default useAddComment;

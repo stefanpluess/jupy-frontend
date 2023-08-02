@@ -319,8 +319,8 @@ export function createOutputNode(node: Node) {
     // position it on the right of the given position
     // TODO: use the position provided in the JSON
     position: {
-      x: node.position.x + 180,
-      y: node.position.y + 36,
+      x: node.position.x + 200,
+      y: node.position.y +11,
     },
     data: { output: "", isImage: false, outputType: 'stream' },
   };
