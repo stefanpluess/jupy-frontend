@@ -14,10 +14,6 @@ export type WebSocketState = {
     setCellIdToMsgId: (newObj: CellIdToMsgId) => void;
     getCellIdToMsgId: () => CellIdToMsgId;
 
-    websocketNumber: number;
-    setWebsocketNumber: (newNumber: number) => void;
-    getWebsocketNumber: () => number;
-
     token: string;
     getToken: () => string;
 };
@@ -45,11 +41,6 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
             cellIdToMsgId: newObj,
         });
     },
-    setWebsocketNumber: (newNumber: number) => {
-        set({
-            websocketNumber: newNumber,
-        });
-    },
     // COMMENT :: getters 
     getLatestExecutionCount: () => {
         return get().latestExecutionCount;
@@ -59,9 +50,6 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     },
     getCellIdToMsgId: () => {
         return get().cellIdToMsgId;
-    },
-    getWebsocketNumber: () => {
-        return get().websocketNumber;
     },
     getToken: () => {
         return get().token;
@@ -78,14 +66,10 @@ export const selectorHome = (state: WebSocketState) => ({
     latestExecutionOutput: state.latestExecutionOutput,
     setLatestExecutionOutput: state.setLatestExecutionOutput,
     cellIdToMsgId: state.cellIdToMsgId,
-    websocketNumber: state.websocketNumber,
-    setWebsocketNumber: state.setWebsocketNumber,
     token: state.token,
   });
 
 export const selectorBubbleBranch = (state: WebSocketState) => ({
-    setWebsocketNumber: state.setWebsocketNumber,
-    getWebsocketNumber: state.getWebsocketNumber,
     setLatestExecutionOutput: state.setLatestExecutionOutput,
     setLatestExecutionCount: state.setLatestExecutionCount,
     token: state.token,

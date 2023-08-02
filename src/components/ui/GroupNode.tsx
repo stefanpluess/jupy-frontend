@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   getRectOfNodes,
   Handle,
@@ -18,11 +18,12 @@ import {
   faSquare,
   faArrowRotateRight,
   faPowerOff,
+  faCirclePlay,
 } from "@fortawesome/free-solid-svg-icons";
-import {useDetachNodes, useBubbleBranchClick} from "../../helpers/hooks";
+import {useDetachNodes, useBubbleBranchClick, usePath} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
-import { startWebsocket } from "../../helpers/websocket/websocketUtils";
+import { startWebsocket, createSession } from "../../helpers/websocket/websocketUtils";
 import CustomConfirmModal from "./CustomConfirmModal";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
@@ -31,14 +32,16 @@ const padding = 25; // OPTIMIZE - externalize
 
 
 function GroupNode({ id, data }: NodeProps) {
+  const [nodeData, setNodeData] = useState(data);
   const store = useStoreApi();
   const token = useWebSocketStore((state) => state.token);
+  const path = usePath();
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
   const { deleteElements } = useReactFlow();
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  var ws = data?.ws;
-  const session = data?.session;
+  const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
+  const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
+  const [isRunning, setIsRunning] = useState(true); // TODO: - use data.ws.readyState
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -53,11 +56,29 @@ function GroupNode({ id, data }: NodeProps) {
     };
   }, isEqual);
 
+  useEffect(() => {
+    console.log("useEffect")
+    const handleWebSocketOpen = () => setIsRunning(true);
+    const handleWebSocketClose = () => setIsRunning(false);
+    if (nodeData.ws) {
+      // Add event listeners to handle WebSocket state changes
+      nodeData.ws.addEventListener('open', handleWebSocketOpen);
+      nodeData.ws.addEventListener('close', handleWebSocketClose)
+      // Remove event listeners when the component unmounts
+      return () => {
+        nodeData.ws.removeEventListener('open', handleWebSocketOpen);
+        nodeData.ws.removeEventListener('close', handleWebSocketClose);
+      };
+    }
+  }, [nodeData.ws, data.ws]);
+
   const onDelete = async () => {
     deleteElements({ nodes: [{ id }] });
-    ws.close();
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete('http://localhost:8888/api/sessions/'+session.session_id)
+    if (isRunning) {
+      nodeData.ws.close();
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.session_id)
+    }
   };
 
   const onDetach = () => {
@@ -73,38 +94,57 @@ function GroupNode({ id, data }: NodeProps) {
   const onInterrupt = async () => {
     console.log('Interrupting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${session.kernel_id}/interrupt`)
+    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel_id}/interrupt`)
+  };
+
+  const onRestart = () => {
+    if (isRunning) setShowConfirmModalRestart(true);
+    else startNewSession();
   };
 
   /* restarts the kernel (call to /restart) and creates a new websocket connection */
-  const onRestart = () => {
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirm = async () => {
+  const restartKernel = async () => {
     console.log('Restarting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${session.kernel_id}/restart`)
+    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel_id}/restart`)
     // and also restart the websocket connection
-    ws.close();
-    data.ws = await startWebsocket(session.session_id, session.kernel_id, token, setLatestExecutionOutput, setLatestExecutionCount);
-    ws = data?.ws;
-    setShowConfirmModal(false);
+    nodeData.ws.close();
+    const ws = await startWebsocket(nodeData.session.session_id, nodeData.session.kernel_id, token, setLatestExecutionOutput, setLatestExecutionCount);
+    setNodeData({...nodeData, ws: ws});
+    data.ws = ws;
+    setShowConfirmModalRestart(false);
   };
 
-  const handleCancel = () => {
-    setShowConfirmModal(false);
+  /* Cancel method for both modals (restart and shutdown) */
+  const continueWorking = () => {
+    if (showConfirmModalRestart) setShowConfirmModalRestart(false);
+    if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
   };
 
-  //TODO: is shutdown really needed within the notebook?
+  const startNewSession = async () => {
+    console.log('Starting new session')
+    const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+    setNodeData({...nodeData, ws: ws, session: session});
+    data.ws = ws;
+    data.session = session;
+  };
+
   const onShutdown = async () => {
+    if (isRunning) setShowConfirmModalShutdown(true);
+  };
+
+  const shutdownKernel = async () => {
     console.log('Shutting kernel down')
+    nodeData.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete(`http://localhost:8888/api/kernels/${session.session_id}`)
+    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.session_id)
+    setShowConfirmModalShutdown(false);
   };
 
   return (
     <div style={{ minWidth, minHeight }}>
+      {isRunning && <div style={{color:'green', fontWeight:'bold'}}>Running...</div>}
+      {!isRunning && <div style={{color:'red', fontWeight:'bold'}}>Not running...</div>}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}
@@ -118,17 +158,16 @@ function GroupNode({ id, data }: NodeProps) {
         {hasChildNodes && 
           <button onClick={onDetach} title="Delete Bubble 🫧">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
-          </button>
-        }
+          </button>}
         <button onClick={onInterrupt} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>
-        <button onClick={onRestart} title="Restart Kernel 🔄"> 
+        {isRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
+        </button>}
+        <button onClick={isRunning ? onShutdown : onRestart} title={isRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"}> 
+          <FontAwesomeIcon className="icon" icon={isRunning ? faPowerOff : faCirclePlay} />
         </button>
-        {/* <button onClick={onShutdown} title="Shutdown Kernel ❌"> 
-          <FontAwesomeIcon className="icon" icon={faPowerOff} />
-        </button> */}
         <button onClick={onBranchOut} title="Branch out 🍃"> 
           <FontAwesomeIcon className="icon" icon={faDiagramProject} />
         </button>
@@ -138,9 +177,18 @@ function GroupNode({ id, data }: NodeProps) {
       <CustomConfirmModal 
         title="Restart Kernel?" 
         message="Are you sure you want to restart the kernel? All variables will be lost!" 
-        show={showConfirmModal} 
-        onHide={handleCancel} 
-        onConfirm={handleConfirm} 
+        show={showConfirmModalRestart} 
+        onHide={continueWorking} 
+        onConfirm={restartKernel} 
+        confirmText="Restart"
+      />
+      <CustomConfirmModal 
+        title="Shutdown Kernel?" 
+        message="Are you sure you want to shutdown the kernel? All variables will be lost!" 
+        show={showConfirmModalShutdown} 
+        onHide={continueWorking} 
+        onConfirm={shutdownKernel} 
+        confirmText="Shutdown"
       />
     </div>
   );

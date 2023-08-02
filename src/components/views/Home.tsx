@@ -87,17 +87,12 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
-  const isMac = navigator?.platform.toUpperCase().indexOf("MAC") >= 0; // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
-  // other
-  const {
-    cellIdToMsgId,
-    latestExecutionCount,
-    setLatestExecutionOutput,
-    latestExecutionOutput,
-    setLatestExecutionCount,
-    websocketNumber,
-    setWebsocketNumber,
-    token,
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
+  // other 
+  const { cellIdToMsgId,
+    latestExecutionCount, setLatestExecutionOutput, 
+    latestExecutionOutput, setLatestExecutionCount,
+    token
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -121,23 +116,13 @@ function DynamicGrouping() {
         notebookData.content.cells
       );
       // For each group node, start a websocket connection
-      let websocketCount = 0;
-      initialNodes.forEach(async (node) => {
-        // BUG - Promise returned in function argument where a void return was expected.
+      initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
         if (node.type === GROUP_NODE) {
-          websocketCount++;
-          const { ws, session } = await createSession(
-            websocketCount,
-            path,
-            token,
-            setLatestExecutionOutput,
-            setLatestExecutionCount
-          );
+          const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
         }
       });
-      setWebsocketNumber(websocketCount);
       setNodes(initialNodes);
       setEdges(initialEdges);
     });
@@ -197,15 +182,7 @@ function DynamicGrouping() {
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const wn = websocketNumber + 1;
-        setWebsocketNumber(wn);
-        const { ws, session } = await createSession(
-          wn,
-          path,
-          token,
-          setLatestExecutionOutput,
-          setLatestExecutionCount
-        );
+        const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
         newNode.data.ws = ws;
         newNode.data.session = session;
       } else if (type === NORMAL_NODE) {

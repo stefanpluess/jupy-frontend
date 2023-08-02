@@ -6,12 +6,12 @@ import { Session } from '../../config/types';
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
 
-export async function createSession(websocketNumber: number,
+export async function createSession(node_id: string,
                                     path: string,
                                     token: string,
                                     setLatestExecutionOutput: setLEOType,
                                     setLatestExecutionCount: setLECType) {
-    const adjustedPath = path + '_' + websocketNumber.toString();
+    const adjustedPath = path + '_' + node_id;
     const session = await startSession(token, adjustedPath);
     const ws = await startWebsocket(session.session_id,
                                     session.kernel_id,

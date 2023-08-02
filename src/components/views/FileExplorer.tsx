@@ -11,6 +11,7 @@ import { Button } from "react-bootstrap";
 import { getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
+import { ID_LENGTH } from "../../config/constants";
 
 export default function FileExplorer() {
 
@@ -65,8 +66,8 @@ export default function FileExplorer() {
   }, [path])
 
   const hasRunningSession = (file_path: string, session_path: string): boolean => {
-    // Regular expression to match "_X" at the end of the string, where X is any positive integer
-    const suffixPattern = /_\d+$/;
+    // Regular expression to match "_X" at the end of the string, where X is 'group_' followed by any 8 digit id (using numbers and lowercase letters)
+    const suffixPattern = new RegExp(`_group_[a-z0-9]{${ID_LENGTH}}$`);
     // Remove the suffix "_X" from the strings using regex and then compare
     const filePathWithoutSuffix = file_path.replace(suffixPattern, '');
     const sessionPathWithoutSuffix = session_path.replace(suffixPattern, '');
