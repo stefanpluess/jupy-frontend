@@ -53,13 +53,16 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   background-color: blue;
   color: blue;
   position: absolute;
-  margin-left: 87%;
   color: #f5f5f5;
   display: flex;
   justify-content: center;
   align-items: center;
   /*border-top: 0.2px solid #fff;*/
 
+  margin-left: 87%;
+
+  // TESTME merge - in Home.css was like this:
+  // margin-left: 90%;
 }
 
 .wrapper .rinputCentered{
@@ -88,8 +91,48 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
 .wrapper .rcentral{
- margin-left: -16px;
+ margin-left: -15px;
  margin-top: 0px;
+}
+
+.wrapper .oinputCentered {
+  background-color: transparent;
+  border-color: transparent;
+  color: white;
+  position: absolute;
+  color: #f5f5f5;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  margin-left: 100%;
+  margin-top: -5px;
+
+
+}
+
+.wrapper .obuttonArea {
+  background-color: transparent;
+  border-color: transparent;
+  color: white;
+
+}
+
+ .wrapper .oUpper {
+  /*margin: 10%;*/
+
+}
+
+.wrapper .oLower {
+  margin-left: -50%;
+  margin-bottom: -40px;
+
+}
+
+.wrapper .oLower:disabled {
+  margin-left: -50%;
+  margin-bottom: -40px;
+  color: red;
+
 }
 
  /*color of the lower button area in code cell*/
@@ -98,13 +141,14 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   bottom: 2px;
   height: 20px;
 }
-// DEV VERSION:
+// TESTME merge - in Home.css was like this - similar to above
 // .wrapper .buttonArea {
 //   background-color: rgba(99, 64, 32, 0.502);
-//   bottom: 2px;
+//   color: green;
+//   bottom: 0px;
 //   height: 20px;
+//   width: 100%;
 // }
-
 
 
  /*color of the lower button icons in code cell*/
@@ -202,6 +246,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 /* Comment Field */
 .comment-field {
   border: 1px solid #ccc;
+  max-width: 150px;
   border-radius: 4px;
   background-color: #fff;
   margin-top: 10px;

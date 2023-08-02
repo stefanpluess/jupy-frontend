@@ -56,7 +56,11 @@
     min-width: 150px;
     max-width: 500px;
     margin-bottom: 20px;
+
+    // TESTME merge - this was not in Home.css
     padding-right: 6px !important;
+    // TESTME merge - this was in Home.css but commented out
+    /*margin-top: 20px;*/
 }
 
 /* animation of the execution */
@@ -105,10 +109,16 @@
     resize: none;
     outline: none;
     font-size: 11px;
-    min-width: 40px;
     min-height: 40px;
     border: $node-border;
+
+    min-width: 40px;
     padding: 4px;
+
+    // TESTME merge - in Home.css was like this:
+    // min-width: 50px;
+    // border-radius: 2px;
+    // padding: 5px;
 }
 
 .rfWrapper .outputNode:hover {

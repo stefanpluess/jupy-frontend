@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Position, useReactFlow, useStoreApi } from 'reactflow';
-import { COMMENT_NODE } from './constants';
+import { COMMENT_NODE } from '../../config/constants';
 
 
 function useAddComment() {
