@@ -22,6 +22,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Panel,
+  useKeyPress,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules UI
@@ -87,7 +88,6 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
-  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
   // other 
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
@@ -96,6 +96,8 @@ function DynamicGrouping() {
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const cmdAndSPressed = useKeyPress(['Meta+s', 'Strg+s']); // https://reactflow.dev/docs/api/hooks/use-key-press
+  const ctrlAndEnterPressed = useKeyPress("Control+Enter");
 
   // this hook call ensures that the layout is re-calculated every time the graph changes
   // useLayout(); // TODO?
@@ -128,17 +130,18 @@ function DynamicGrouping() {
     });
   }, []);
 
-  /* add and update eventListener for Ctrl/Cmd + S */
+  /* Saving notebook when pressing Ctrl/Cmd + S */
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "s" && (isMac ? e.metaKey : e.ctrlKey)) {
-        e.preventDefault();
-        saveNotebook();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [nodes, edges]);
+    if (cmdAndSPressed) saveNotebook();
+  }, [cmdAndSPressed]);
+
+  useEffect(() => {
+    if (ctrlAndEnterPressed) console.log("HEY FROM HOME") //runCode();
+    // get the selected node(s)
+    nodes.forEach((node) => {
+      console.log(node.selected);
+    });
+  }, [ctrlAndEnterPressed]);
 
   //INFO :: functions
   const saveNotebook = async () => {
