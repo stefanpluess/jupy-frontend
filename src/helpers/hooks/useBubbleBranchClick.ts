@@ -1,9 +1,9 @@
 import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
-import { getId, sortNodes } from '../utils';
+import { getId, passParentState, sortNodes } from '../utils';
 import { GROUP_NODE } from '../../config/constants';
-import { useWebSocketStore, createSession, selectorBubbleBranch} from '../websocket';
+import { useWebSocketStore, createSession, selectorBubbleBranch } from '../websocket';
 import usePath from './usePath';
 
 export function useBubbleBranchClick(id: NodeProps['id']) {
@@ -17,9 +17,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const onBranchOut = useCallback(async () => {
         // we need the parent node object for getting its position
         const parentNode = getNode(id);
-        if (!parentNode) {
-        return;
-        }
+        if (!parentNode) return;
         const parentWidth = Number(parentNode.style!.width);
         const parentHeight = Number(parentNode.style!.height);
         const childWidth = 0.8*parentWidth;
@@ -44,8 +42,12 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
             target: childNodeId,
         };
 
-        // create a websocket connection
+        // create a websocket connection and pass the parent state to the child
         const {ws, session} = await createSession(childNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const parentKernel = parentNode.data.session?.kernel.id;
+        const childKernel = session?.kernel.id;
+        await passParentState(token, parentKernel, childKernel);
         childNode.data.ws = ws;
         childNode.data.session = session;
 

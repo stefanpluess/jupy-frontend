@@ -77,7 +77,7 @@ function GroupNode({ id, data }: NodeProps) {
     if (isRunning) {
       nodeData.ws.close();
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.session_id)
+      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
   };
 
@@ -94,7 +94,7 @@ function GroupNode({ id, data }: NodeProps) {
   const onInterrupt = async () => {
     console.log('Interrupting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel_id}/interrupt`)
+    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/interrupt`)
   };
 
   const onRestart = () => {
@@ -106,10 +106,10 @@ function GroupNode({ id, data }: NodeProps) {
   const restartKernel = async () => {
     console.log('Restarting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel_id}/restart`)
+    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/restart`)
     // and also restart the websocket connection
     nodeData.ws.close();
-    const ws = await startWebsocket(nodeData.session.session_id, nodeData.session.kernel_id, token, setLatestExecutionOutput, setLatestExecutionCount);
+    const ws = await startWebsocket(nodeData.session.id, nodeData.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
     setShowConfirmModalRestart(false);
@@ -137,7 +137,7 @@ function GroupNode({ id, data }: NodeProps) {
     console.log('Shutting kernel down')
     nodeData.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.session_id)
+    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     setShowConfirmModalShutdown(false);
   };
 

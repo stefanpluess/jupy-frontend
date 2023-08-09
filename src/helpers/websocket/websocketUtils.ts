@@ -10,18 +10,18 @@ export async function createSession(node_id: string,
                                     path: string,
                                     token: string,
                                     setLatestExecutionOutput: setLEOType,
-                                    setLatestExecutionCount: setLECType) {
+                                    setLatestExecutionCount: setLECType): Promise<{ws: WebSocket, session: Session}> {
     const adjustedPath = path + '_' + node_id;
     const session = await startSession(token, adjustedPath);
-    const ws = await startWebsocket(session.session_id,
-                                    session.kernel_id,
+    const ws = await startWebsocket(session.id,
+                                    session.kernel.id,
                                     token,
                                     setLatestExecutionOutput,
                                     setLatestExecutionCount);
     return {ws: ws, session: session};
 }
 
-export async function startSession(token: string, path: string) {
+export async function startSession(token: string, path: string): Promise<Session> {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     let requestBody: Session = {
         "name": "",
@@ -32,17 +32,13 @@ export async function startSession(token: string, path: string) {
         },
     }
     const res = await axios.post('http://localhost:8888/api/sessions', requestBody)
-    const kernel_id = res.data['kernel']['id']
-    const session_id = res.data['id']
-    return {
-        kernel_id: kernel_id,
-        session_id: session_id
-    }
+    const session: Session = res.data
+    return session
 }
 
 export async function startWebsocket(session_id: string, kernel_id: string, token: string, 
                                      setLatestExecutionOutput: setLEOType,
-                                     setLatestExecutionCount: setLECType) {
+                                     setLatestExecutionCount: setLECType): Promise<WebSocket> {
     const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);

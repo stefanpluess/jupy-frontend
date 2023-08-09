@@ -228,6 +228,16 @@ export async function getSessions(token: string) {
   return res.data
 }
 
+export async function passParentState(token: string, parent_kernel_id: string, child_kernel_id: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  await axios.post('http://localhost:8888/canvas_ext/export', { 'kernel_id': parent_kernel_id })
+    .catch((err) => console.log(err));
+  // wait for 200ms to ensure the state was actually saved
+  await new Promise(resolve => setTimeout(resolve, 200));
+  await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+    .catch((err) => console.log(err));
+}
+
 // ------------------------- START -------------------------
 // collection of helper methods
 // export async function getContent(url: String, token: String) {
