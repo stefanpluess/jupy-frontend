@@ -13,7 +13,7 @@ import { NodeResizer } from "@reactflow/node-resizer";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faTrashArrowUp,
-  faTrash,
+  faTrashAlt,
   faDiagramProject,
   faSquare,
   faArrowRotateRight,
@@ -25,6 +25,7 @@ import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession } from "../../helpers/websocket/websocketUtils";
 import CustomConfirmModal from "./CustomConfirmModal";
+import CustomInformationModal from "./CustomInformationModal";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -41,7 +42,9 @@ function GroupNode({ id, data }: NodeProps) {
   const { deleteElements } = useReactFlow();
   const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
   const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
+  const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
   const [isRunning, setIsRunning] = useState(true); // TODO: - use data.ws.readyState
+  const [isBranching, setIsBranching] = useState(false);
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -57,7 +60,6 @@ function GroupNode({ id, data }: NodeProps) {
   }, isEqual);
 
   useEffect(() => {
-    console.log("useEffect")
     const handleWebSocketOpen = () => setIsRunning(true);
     const handleWebSocketClose = () => setIsRunning(false);
     if (nodeData.ws) {
@@ -72,7 +74,12 @@ function GroupNode({ id, data }: NodeProps) {
     }
   }, [nodeData.ws, data.ws]);
 
+  /* DELETE */
   const onDelete = async () => {
+    if (isRunning) setShowConfirmModalDelete(true);
+  };
+
+  const deleteGroup = async () => {
     deleteElements({ nodes: [{ id }] });
     if (isRunning) {
       nodeData.ws.close();
@@ -81,22 +88,31 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
+  /* DETACH */
   const onDetach = () => {
     const childNodeIds = Array.from(store.getState().nodeInternals.values())
       .filter((n) => n.parentNode === id)
       .map((n) => n.id);
-
     detachNodes(childNodeIds, id);
   };
 
-  const onBranchOut = useBubbleBranchClick(id);
+  /* BRANCH OUT */
+  const handleBranchOut = useBubbleBranchClick(id);
 
+  const onBranchOut = async () => {
+    setIsBranching(true);
+    await handleBranchOut();
+    setIsBranching(false);
+  };
+
+  /* INTERRUPT */
   const onInterrupt = async () => {
     console.log('Interrupting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/interrupt`)
   };
 
+  /* RESTART */
   const onRestart = () => {
     if (isRunning) setShowConfirmModalRestart(true);
     else startNewSession();
@@ -115,12 +131,6 @@ function GroupNode({ id, data }: NodeProps) {
     setShowConfirmModalRestart(false);
   };
 
-  /* Cancel method for both modals (restart and shutdown) */
-  const continueWorking = () => {
-    if (showConfirmModalRestart) setShowConfirmModalRestart(false);
-    if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
-  };
-
   const startNewSession = async () => {
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
@@ -129,6 +139,7 @@ function GroupNode({ id, data }: NodeProps) {
     data.session = session;
   };
 
+  /* SHUTDOWN */
   const onShutdown = async () => {
     if (isRunning) setShowConfirmModalShutdown(true);
   };
@@ -139,6 +150,13 @@ function GroupNode({ id, data }: NodeProps) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     setShowConfirmModalShutdown(false);
+  };
+
+  /* Cancel method for all modals (restart, shutdown and delete) */
+  const continueWorking = () => {
+    if (showConfirmModalRestart) setShowConfirmModalRestart(false);
+    if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
+    if (showConfirmModalDelete) setShowConfirmModalDelete(false);
   };
 
   return (
@@ -153,7 +171,7 @@ function GroupNode({ id, data }: NodeProps) {
       />
       <NodeToolbar className="nodrag">
         <button onClick={onDelete} title="Delete Group 👥">
-          <FontAwesomeIcon className="icon" icon={faTrash} />
+          <FontAwesomeIcon className="icon" icon={faTrashAlt} />
         </button>
         {hasChildNodes && 
           <button onClick={onDetach} title="Delete Bubble 🫧">
@@ -190,6 +208,15 @@ function GroupNode({ id, data }: NodeProps) {
         onConfirm={shutdownKernel} 
         confirmText="Shutdown"
       />
+      <CustomConfirmModal 
+        title="Delete Group?" 
+        message="Are you sure you want to delete the group and shutdown the kernel? All cells will be deleted and all variables will be lost!" 
+        show={showConfirmModalDelete} 
+        onHide={continueWorking} 
+        onConfirm={deleteGroup} 
+        confirmText="Delete"
+      />
+      <CustomInformationModal show={isBranching} text='Branching Out...' />
     </div>
   );
 }
