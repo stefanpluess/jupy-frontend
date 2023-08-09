@@ -3,49 +3,6 @@ import type { Edge, Node } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from '../config/types';
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, ID_LENGTH } from '../config/constants';
 
-/* ================== helpers for onNodeDrag... ================== */
-export function updateClassNameOrPosition(n: Node, node: Node, intersections: Node<any>[]): Node {
-  const groupClassName = intersections.length && node.parentNode !== intersections[0]?.id ? 'active' : '';
-  if (n.type === GROUP_NODE) { // TODO - export and use a type as a constant
-    return {
-      ...n,
-      className: groupClassName,
-    };
-  } else if (n.id === node.id) {
-    return {
-      ...n,
-      position: node.position,
-    };
-  }
-  return { ...n };
-}
-
-export function updateClassNameOrPositionInsideParent(n: Node, node: Node, groupNode: Node<any>): Node {
-  if (n.id === groupNode.id) {
-    return {
-      ...n,
-      className: '',
-    };
-  } else if (n.id === node.id) {
-    const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-    return {
-      ...n,
-      position,
-      parentNode: groupNode.id,
-      extent: 'parent' as 'parent',
-    };
-  }
-  return n;
-}
-
-export function canRunOnNodeDrag(node: Node): boolean {
-  if ((node.type === GROUP_NODE) && !node.parentNode) {
-    return false;
-  } else {
-    return true;
-  }
-}
-
 
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
 
@@ -75,7 +32,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     if (cell.cell_type === 'group') {
       node.height = cell.height;
       node.width = cell.width;
-      node.style = { height: cell.height, width: cell.width };
+      node.style = { height: cell.height, width: cell.width }; // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
     }
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
@@ -384,3 +341,66 @@ export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node
   
     return position;
 };
+
+/* ================== helpers for onNodeDrag... ================== */
+export function canRunOnNodeDrag(node: Node): boolean {
+  if ((node.type === GROUP_NODE) && !node.parentNode) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+/* given the group node and newPostion of the node, keep the 
+newPostion.x between 0 and groupNode.width - node.width, and 
+newPostion.y between 0 and groupNode.height - node.height */
+export const keepPositionInsideParent = (node: Partial<Node>, groupNode: Node, newPosition: {x: number, y: number}) => {
+  const position = { ...newPosition };
+  const nodeWidth = node.width ?? 0;
+  const nodeHeight = node.height ?? 0;
+  const groupWidth = groupNode.width ?? 0;
+  const groupHeight = groupNode.height ?? 0;
+
+  if (position.x < 0) {
+    position.x = 0;
+  } else if (position.x + nodeWidth > groupWidth) {
+    position.x = groupWidth - nodeWidth;
+  } else {
+    position.x = position.x;
+  }
+
+  if (position.y < 0) {
+    position.y = 0;
+  } else if (position.y + nodeHeight > groupHeight) {
+    position.y = groupHeight - nodeHeight;
+  } else {
+    position.y = position.y;
+  }
+
+  return position;
+}
+
+export const getConnectedNodeId = (id: string) : string => {
+  if (id.includes(NORMAL_NODE)) {
+    if (id.includes('output')) {
+      // for OutputNode return id of the Simple Node
+      return id.replace(/_output.*$/, '');
+    }
+    // for SimpleNode return id of the OutputNode
+    return id.concat("_output");
+  }
+  console.error('getConnectedNodeId: id is not a node id');
+  return '';
+}
+
+// given a node id return id without "_output"
+export const getSimpleNodeId = (id: string) : string => {
+  if (id.includes(NORMAL_NODE)) {
+    if (id.includes('output')) {
+      return id.replace(/_output.*$/, '');
+    }
+    return id;
+  }
+  console.error('getSimpleNodeId: id is not a node id');
+  return '';
+}

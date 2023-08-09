@@ -23,7 +23,7 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionOutput: {} as ExecutionOutput,
     cellIdToMsgId: {} as CellIdToMsgId,
     websocketNumber: 0,
-    token : 'ecf747619e964357cffd30a12b2b9087a8331d8db1de6b99',
+    token : 'e1630c153107a74bebc9bd3115d03742601d561c94c10085',
 
     // COMMENT :: setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {

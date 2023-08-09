@@ -15,6 +15,8 @@ import {
   faSave,
 } from "@fortawesome/free-solid-svg-icons";
 import { useDetachNodes } from "../../helpers/hooks";
+import useNodesStore from "../../helpers/nodesStore";
+import { getConnectedNodeId } from "../../helpers/utils";
 
 function SimpleOutputNode({ id, data }: NodeProps) {
   const hasParent = useStore(
@@ -170,20 +172,25 @@ function SimpleOutputNode({ id, data }: NodeProps) {
     }
   };
 
+  // INFO :: lock functionality - observe the lock state of the connected SimpleNode with code
+  const isSimpleNodeLocked = useNodesStore((state) => state.locks[getConnectedNodeId(id)]);
+
   return (
     <>
       <>
-        <NodeToolbar className="nodrag">
-          {/* <button onClick={onDelete}>Delete</button> */}
-          {hasParent && (
-            <button
-              title="Ungroup OutputCell from BubbleCell"
-              onClick={onDetach}
-            >
-              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
-            </button>
-          )}
-        </NodeToolbar>
+        {!isSimpleNodeLocked && (
+          <NodeToolbar className="nodrag">
+            {/* <button onClick={onDelete}>Delete</button> */}
+            {hasParent && (
+              <button
+                title="Ungroup OutputCell from BubbleCell"
+                onClick={onDetach}
+              >
+                <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
+              </button>
+            )}
+          </NodeToolbar>
+        )}
         <div className="oinputCentered obuttonArea nodrag">
           <button
             title="Copy Output"

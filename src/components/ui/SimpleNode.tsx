@@ -29,6 +29,7 @@ import {
   faPlayCircle,
   faCirclePlay,
   faLock,
+  faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
 import CodeEditor from "@uiw/react-textarea-code-editor";
@@ -36,7 +37,8 @@ import useAddComment from "../../helpers/hooks/useAddComment";
 import useDetachNodes from "../../helpers/hooks/useDetachNodes";
 import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
-import { generateMessage } from "../../helpers/utils";
+import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
+import useNodesStore from "../../helpers/nodesStore";
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -70,7 +72,18 @@ function SimpleNode({ id, data }: NodeProps) {
   // when deleting the node, automatically delete the output node as well
   const onDelete = () =>
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
-  const onDetach = () => detachNodes([id]);
+  const onDetach = () => {
+    if (isLocked) {
+      // if locked then detach the SimpleNode and the OutputNode
+      const outputNodeId = getConnectedNodeId(id);
+      console.log("run detach for " + id + " and " + outputNodeId + "!");
+      detachNodes([id, outputNodeId]);
+    }else{
+      // if unlocked then detach just the SimpleNode
+      console.log("run detach for " + id + "!");
+      detachNodes([id]);
+    }
+  };
 
   /*AddComments*/
   const addComments = useAddComment();
@@ -131,6 +144,14 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const duplicateCell = () => {
     //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
+  };
+
+  // INFO :: lock functionality
+  const toggleLock = useNodesStore((state) => state.toggleLock);
+  const isLocked = useNodesStore((state) => state.locks[id]);
+  const runLockUnlock = () => {
+    // console.log("run lock/unlock!");
+    toggleLock(id);
   };
 
   /**
@@ -232,12 +253,17 @@ function SimpleNode({ id, data }: NodeProps) {
           <div className="rinputCentered cellButton rbottom">
             [{executionCount != null ? executionCount : " "}]
           </div>
-          <button
-            title="Lock Edge"
-            className="rinputCentered cellButton rtop"
-            /*onClick={}*/
-          >
-            <FontAwesomeIcon className="icon" icon={faLock} />
+          {/* INFO :: lock button */}
+            <button
+              title="Lock Edge"
+              className="rinputCentered cellButton rtop"
+              onClick={runLockUnlock}
+            >
+            {isLocked ? (
+              <FontAwesomeIcon className="icon" icon={faLock} />
+            ) : (
+              <FontAwesomeIcon className="icon" icon={faLockOpen} />
+            )}
           </button>
         </div>
       </Handle>
