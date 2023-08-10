@@ -404,3 +404,10 @@ export const getSimpleNodeId = (id: string) : string => {
   console.error('getSimpleNodeId: id is not a node id');
   return '';
 }
+// implement a function that takes id and returns true if node is a NORMAL_NODE or OUTPUT_NODE
+export const checkNodeAllowed = (id: string) : boolean => {
+  if (id.includes(NORMAL_NODE) || id.includes(OUTPUT_NODE)) {
+    return true;
+  }
+  return false;
+}

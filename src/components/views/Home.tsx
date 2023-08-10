@@ -39,6 +39,7 @@ import {
   keepPositionInsideParent,
   getConnectedNodeId,
   getSimpleNodeId,
+  checkNodeAllowed,
 } from "../../helpers/utils";
 import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
 import {
@@ -251,6 +252,7 @@ function DynamicGrouping() {
                               .filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
       const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
       /* when there is an intersection on drag stop, we want 
       to attach the node to its new parent */
       if (intersections.length && node.parentNode !== groupNode?.id) {
@@ -273,7 +275,7 @@ function DynamicGrouping() {
               };
             }
             // if 🔒 lock is ✅ then update also connected node
-            else if (n.id === onDragStartData.connectedNodeId && isLockOn) {
+            else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
               /* OPTIMIZE - get the difference between {x,y} of the node and the connected node at the DragStart
                  OPTIMIZE - if there is space in group node ensure that the nodes are not overlapping */
@@ -295,8 +297,8 @@ function DynamicGrouping() {
 
   const onNodeDragStart = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (!canRunOnNodeDrag(node)) return;
-      const draggedNodeId = node.id; 
+      if (!canRunOnNodeDrag(node) || !checkNodeAllowed(node.id)) return;
+      const draggedNodeId = node.id;
       // find the connected node - could be SimpleNode or SimpleOutputNode
       const connectedNodeId = getConnectedNodeId(draggedNodeId);
       const connectedNode = store.getState().getNodes()
@@ -329,6 +331,7 @@ function DynamicGrouping() {
                              ? 'active' 
                              : '';
       const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
       // update the nodes
       setNodes((nds) => {
         return nds.map((n) => {
@@ -341,7 +344,7 @@ function DynamicGrouping() {
             };
           }
           // if 🔒 lock is ✅ then update also connected node
-          else if (n.id === onDragStartData.connectedNodeId && isLockOn) {
+          else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
             const newPosition = {
               x: onDragStartData.connectedNodePosition.x + 
                 (node.position.x - onDragStartData.nodePosition.x),
