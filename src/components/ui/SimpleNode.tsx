@@ -62,8 +62,6 @@ function SimpleNode({ id, data }: NodeProps) {
   );
 
   const outputType = getNode(id + "_output")?.data.outputType;
-
-  const [isLocked, setIsLocked] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
   //to be deleted of code above works
@@ -150,14 +148,6 @@ function SimpleNode({ id, data }: NodeProps) {
     navigator.clipboard.writeText(copyText);
     alert("Copied Code:\n" + textareaValue);
     console.log("Copied code:\n" + textareaValue);
-  };
-
-  const lockEdge = () => {
-    if (isLocked) {
-      setIsLocked(false);
-    } else {
-      setIsLocked(true);
-    }
   };
 
   const duplicateCell = () => {

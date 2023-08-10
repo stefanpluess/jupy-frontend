@@ -189,7 +189,6 @@ function SimpleOutputNode({ id, data }: NodeProps) {
   };
 
   return (
-    <>
       <>
           <NodeToolbar className="nodrag">
             {/* <button onClick={onDelete}>Delete</button> */}
