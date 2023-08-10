@@ -172,43 +172,46 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
   return (
     <>
-      <>
-        <NodeToolbar className="nodrag">
-          {/* <button onClick={onDelete}>Delete</button> */}
-          {hasParent && (
-            <button
-              title="Ungroup OutputCell from BubbleCell"
-              onClick={onDetach}
-            >
-              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
-            </button>
-          )}
-        </NodeToolbar>
-        <div className="oinputCentered obuttonArea nodrag">
-          <button
-            title="Copy Output"
-            className="obuttonArea oUpper"
-            onClick={copyOutput}
-          >
-            <FontAwesomeIcon className="icon" icon={faCopy} />
+      <NodeToolbar className="nodrag">
+        {/* <button onClick={onDelete}>Delete</button> */}
+        {hasParent && (
+          <button title="Ungroup OutputCell from BubbleCell" onClick={onDetach}>
+            <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
           </button>
+        )}
+      </NodeToolbar>
+      <div className="oinputCentered obuttonArea nodrag">
+        <button
+          title="Copy Output"
+          className="obuttonArea oUpper"
+          onClick={copyOutput}
+        >
+          <FontAwesomeIcon className="icon" icon={faCopy} />
+        </button>
 
-          {data?.isImage && (
-            <button
-              className="obuttonArea oLower"
-              title="Save Output"
-              onClick={saveOutput}
-              //disabled={!data?.isImage} --> disabled and turning red if output != image
-              //disabled={!data.output} --> as long as there is no output button is disabled and red
-            >
-              <FontAwesomeIcon className="icon" icon={faSave} />
-            </button>
-          )}
-        </div>
+        {data?.isImage && (
+          <button
+            className="obuttonArea oLower"
+            title="Save Output"
+            onClick={saveOutput}
+            //disabled={!data?.isImage} --> disabled and turning red if output != image
+            //disabled={!data.output} --> as long as there is no output button is disabled and red
+          >
+            <FontAwesomeIcon className="icon" icon={faSave} />
+          </button>
+        )}
+      </div>
 
+      {data?.isImage ? (
+        <div
+          dangerouslySetInnerHTML={output}
+          style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
+        ></div>
+      ) : (
         <div className="outputNode" dangerouslySetInnerHTML={output}></div>
-        <Handle type="target" position={Position.Left} />
-      </>
+      )}
+
+      <Handle type="target" position={Position.Left} />
     </>
   );
 }
