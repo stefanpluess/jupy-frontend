@@ -278,16 +278,13 @@ function DynamicGrouping() {
     },
     [getIntersectingNodes, setNodes]
   );
+  
 
+  // ---------- ALERTS ----------
   const SuccessAlert = () => {
     // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
-      <Alert
-        variant="success"
-        show={showSuccessAlert}
-        onClose={() => setShowSuccessAlert(false)}
-        dismissible
-      >
+      <Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>
         Notebook saved successfully!
       </Alert>
     );
@@ -295,17 +292,25 @@ function DynamicGrouping() {
   const ErrorAlert = () => {
     // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
-      <Alert
-        variant="danger"
-        show={showErrorAlert}
-        onClose={() => setShowErrorAlert(false)}
-        dismissible
-      >
-        Error saving notebook.
+      <Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>
+        Error saving notebook!
       </Alert>
     );
   };
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const successTimeout = setTimeout(() => { setShowSuccessAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showSuccessAlert]);
+  useEffect(() => {
+    if (showErrorAlert) {
+      const successTimeout = setTimeout(() => { setShowErrorAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showErrorAlert]);
 
+  
   return (
     <div className={"wrapper"}>
       <div className={"sidebar"}>
