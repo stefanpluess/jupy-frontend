@@ -13,8 +13,13 @@ import {
   faCopy,
   faObjectUngroup,
   faSave,
+  faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { useDetachNodes } from "../../helpers/hooks";
+import useNodesStore from "../../helpers/nodesStore";
+import { getConnectedNodeId } from "../../helpers/utils";
+import Swal from "sweetalert2";
+import withReactContent from 'sweetalert2-react-content'
 
 function SimpleOutputNode({ id, data }: NodeProps) {
   const hasParent = useStore(
@@ -171,37 +176,63 @@ function SimpleOutputNode({ id, data }: NodeProps) {
     }
   };
 
+  // INFO :: lock functionality - observe the lock state of the connected SimpleNode with code
+  const isSimpleNodeLocked = useNodesStore((state) => state.locks[getConnectedNodeId(id)]);
+  const MySwal = withReactContent(Swal)
+  const showAlertDetachOff = () => {
+    // window.alert('Unlock 🔓 before detaching!');
+    MySwal.fire({
+      title: <strong>Detach error!</strong>,
+      html: <i>Unlock 🔓 before detaching!</i>,
+      icon: 'error'
+    })  
+  };
+
   return (
     <>
-      <NodeToolbar className="nodrag">
-        {/* <button onClick={onDelete}>Delete</button> */}
-        {hasParent && (
-          <button title="Ungroup OutputCell from BubbleCell" onClick={onDetach}>
-            <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
-          </button>
-        )}
-      </NodeToolbar>
-      <div className="oinputCentered obuttonArea nodrag">
-        <button
-          title="Copy Output"
-          className="obuttonArea oUpper"
-          onClick={copyOutput}
-        >
-          <FontAwesomeIcon className="icon" icon={faCopy} />
-        </button>
-
-        {data?.isImage && (
+      <>
+          <NodeToolbar className="nodrag">
+            {/* <button onClick={onDelete}>Delete</button> */}
+            {!isSimpleNodeLocked ? (hasParent && (
+                <button
+                  title="Ungroup OutputCell from BubbleCell"
+                  onClick={onDetach}
+                >
+                  <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
+                </button>
+              )
+            ) : (
+              <button
+                title="Unlock 🔓 before detaching"
+                onClick={showAlertDetachOff}
+                className='detachDisabled'
+              >
+                  <FontAwesomeIcon className="icon-detachoff-warning" icon={faTriangleExclamation} />
+                  <FontAwesomeIcon className="icon-detachoff-detach" icon={faObjectUngroup} />
+              </button>
+            )}
+          </NodeToolbar>
+        <div className="oinputCentered obuttonArea nodrag">
           <button
-            className="obuttonArea oLower"
-            title="Save Output"
-            onClick={saveOutput}
-            //disabled={!data?.isImage} --> disabled and turning red if output != image
-            //disabled={!data.output} --> as long as there is no output button is disabled and red
+            title="Copy Output"
+            className="obuttonArea oUpper"
+            onClick={copyOutput}
           >
-            <FontAwesomeIcon className="icon" icon={faSave} />
+            <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
-        )}
-      </div>
+
+          {data?.isImage && (
+            <button
+              className="obuttonArea oLower"
+              title="Save Output"
+              onClick={saveOutput}
+              //disabled={!data?.isImage} --> disabled and turning red if output != image
+              //disabled={!data.output} --> as long as there is no output button is disabled and red
+            >
+              <FontAwesomeIcon className="icon" icon={faSave} />
+            </button>
+          )}
+        </div>
 
       {data?.isImage ? (
         <div
