@@ -30,6 +30,11 @@ import {
   faPlayCircle,
   faCirclePlay,
   faLock,
+  faCross,
+  faCrosshairs,
+  faSkullCrossbones,
+  faXmarkCircle,
+  faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
 import MonacoEditor from '@uiw/react-monacoeditor';
@@ -37,7 +42,8 @@ import useAddComment from "../../helpers/hooks/useAddComment";
 import useDetachNodes from "../../helpers/hooks/useDetachNodes";
 import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
-import { generateMessage } from "../../helpers/utils";
+import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
+import useNodesStore from "../../helpers/nodesStore";
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -56,6 +62,9 @@ function SimpleNode({ id, data }: NodeProps) {
     data?.executionCount || 0
   );
 
+  const outputType = getNode(id + "_output")?.data.outputType;
+  const [isHovered, setIsHovered] = useState(false);
+
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
@@ -64,7 +73,19 @@ function SimpleNode({ id, data }: NodeProps) {
   // when deleting the node, automatically delete the output node as well
   const onDelete = () =>
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
-  const onDetach = () => detachNodes([id]);
+
+  const onDetach = () => {
+    if (isLocked) {
+      // if locked then detach the SimpleNode and the OutputNode
+      const outputNodeId = getConnectedNodeId(id);
+      console.log("run detach for " + id + " and " + outputNodeId + "!");
+      detachNodes([id, outputNodeId]);
+    }else{
+      // if unlocked then detach just the SimpleNode
+      console.log("run detach for " + id + "!");
+      detachNodes([id]);
+    }
+  };
 
   /*AddComments*/
   const addComments = useAddComment();
@@ -126,6 +147,19 @@ function SimpleNode({ id, data }: NodeProps) {
     //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
   };
 
+  // INFO :: lock functionality
+  const [transitioning, setTransitioning] = useState(false);
+  const toggleLock = useNodesStore((state) => state.toggleLock);
+  const isLocked = useNodesStore((state) => state.locks[id]);
+  const runLockUnlock = () => {
+    // console.log("run lock/unlock!");
+    setTransitioning(true);
+    toggleLock(id);
+    setTimeout(() => {
+      setTransitioning(false);
+    }, 300);
+  };
+
   /**
    @todo: 
    add onClick to duplicate cell, 
@@ -158,11 +192,9 @@ function SimpleNode({ id, data }: NodeProps) {
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
-          {hasParent && (
-            <button title="Additonal cell settings">
-              <FontAwesomeIcon className="icon" icon={faEllipsisVertical} />
-            </button>
-          )}
+          <button title="Additonal cell settings">
+            <FontAwesomeIcon className="icon" icon={faEllipsisVertical} />
+          </button>
         </div>
       </NodeToolbar>
 
@@ -233,23 +265,66 @@ function SimpleNode({ id, data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
-          <button
-            title="Run CodeCell"
-            className="rinputCentered playButton rcentral"
-            onClick={runCode}
-            disabled={!hasParent}
-          >
-            <FontAwesomeIcon className="icon" icon={faPlayCircle} />
-          </button>
+          {outputType !== "error" ? (
+            <button
+              title="Run Code"
+              className="rinputCentered playButton rcentral"
+              onClick={runCode}
+              disabled={!hasParent}
+            >
+              <FontAwesomeIcon className="icon" icon={faPlayCircle} />
+            </button>
+          ) : (
+            <div>
+              {!isHovered ? (
+                <button
+                  title="Error: Fix your Code and then let's try it again mate"
+                  className="rinputCentered playButton rcentral"
+                  onClick={runCode}
+                  disabled={!hasParent || isHovered}
+                  onMouseEnter={() => setIsHovered(false)}
+                  onMouseLeave={() => setIsHovered(true)}
+                >
+                  <FontAwesomeIcon className="icon" icon={faCirclePlay} />
+                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
+                </button>
+              ) : (
+                <button
+                  title="Error: Fix your Code and then let's try it again mate"
+                  className="rinputCentered playErrorButton rcentral"
+                  onClick={runCode}
+                  disabled={!hasParent || !isHovered}
+                  onMouseEnter={() => setIsHovered(false)}
+                >
+                  <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
+                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="rinputCentered cellButton rbottom">
             [{executionCount != null ? executionCount : " "}]
           </div>
-          <button
-            title="Lock Edge"
-            className="rinputCentered cellButton rtop"
-            /*onClick={}*/
-          >
-            <FontAwesomeIcon className="icon" icon={faLock} />
+          {/* INFO :: lock button */}
+            <button
+              title="Lock Edge"
+              className="rinputCentered cellButton rtop"
+              onClick={runLockUnlock}
+            >
+            <div className={transitioning ? "lock-icon-transition" : ""}>
+              {isLocked ? (
+                <FontAwesomeIcon
+                  className={`lock-icon ${isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  icon={faLock}
+                />
+              ) : (
+                <FontAwesomeIcon
+                  className={`lock-icon ${!isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  icon={faLockOpen}
+                />
+              )}
+            </div>
           </button>
         </div>
       </Handle>
@@ -266,7 +341,6 @@ function SimpleNode({ id, data }: NodeProps) {
               }}
             />
           )} */}
-      <Handle type="target" position={Position.Left} />
 
       {/* CommentNode may be deleted if we dont use it*/}
       {/*showCommentNode && (

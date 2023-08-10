@@ -36,9 +36,11 @@ import {
   getId,
   getNodePositionInsideParent,
   createOutputNode,
-  updateClassNameOrPosition,
-  updateClassNameOrPositionInsideParent,
   canRunOnNodeDrag,
+  keepPositionInsideParent,
+  getConnectedNodeId,
+  getSimpleNodeId,
+  checkNodeAllowed,
 } from "../../helpers/utils";
 import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
 import {
@@ -52,6 +54,8 @@ import {
   NORMAL_NODE,
   MARKDOWN_NODE,
   EXTENT_PARENT,
+  OUTPUT_NODE,
+  DEFAULT_LOCK_STATUS,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import {
@@ -75,6 +79,7 @@ import "../../styles/components/minimap.scss";
 import axios from "axios";
 import { NotebookPUT } from "../../config/types";
 import { Alert } from "react-bootstrap";
+import useNodesStore from "../../helpers/nodesStore";
 
 //INFO :: main code
 function DynamicGrouping() {
@@ -97,9 +102,12 @@ function DynamicGrouping() {
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const cmdAndSPressed = useKeyPress(['Meta+s', 'Strg+s']); // https://reactflow.dev/docs/api/hooks/use-key-press
+  // INFO :: needed for lock functionality and moving nodes together:
+  const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
+  const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
   // this hook call ensures that the layout is re-calculated every time the graph changes
-  // useLayout(); // TODO?
+  // useLayout(); // TODO? nice functions to use: https://reactflow.dev/docs/examples/nodes/delete-middle-node/
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput(
@@ -231,43 +239,132 @@ function DynamicGrouping() {
   //INFO :: onNodeDrag... Callbacks
   const onNodeDragStop = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (!canRunOnNodeDrag(node)) {
-        return;
-      }
-      const intersections = getIntersectingNodes(node).filter(
-        (n) => n.type === GROUP_NODE
-      );
+      if (!canRunOnNodeDrag(node)) return;
+      /* function calculates intersections, i.e., the group nodes 
+      that the moved node might now be inside of.*/
+      const intersections = getIntersectingNodes(node)
+                              .filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
-      // when there is an intersection on drag stop, we want to attach the node to its new parent
+      const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
+      /* when there is an intersection on drag stop, we want 
+      to attach the node to its new parent */
       if (intersections.length && node.parentNode !== groupNode?.id) {
-        const nextNodes: Node[] = store
-          .getState()
-          .getNodes()
+        /* if dragged node has any intersections on DragStop we need to 
+        move it and its connected node to the group node this is not 
+        activated if we just drag node within the group node */
+        // OPTIMIZE - for now assume we always have two nodes connected, what if we have only code cell without output node?
+        const nextNodes: Node[] = store.getState().getNodes() 
           .map((n) => {
-            return updateClassNameOrPositionInsideParent(n, node, groupNode);
+            if (n.id === groupNode.id) {
+              return {...n, className: ''};
+            } else if (n.id === node.id) {
+              const position = getNodePositionInsideParent(n, groupNode) 
+                               ?? { x: 0, y: 0 };
+              return { 
+                ...n,
+                position,
+                parentNode: groupNode.id,
+                extent: EXTENT_PARENT as 'parent',
+              };
+            }
+            // if 🔒 lock is ✅ then update also connected node
+            else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
+              const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
+              /* OPTIMIZE - get the difference between {x,y} of the node and the connected node at the DragStart
+                 OPTIMIZE - if there is space in group node ensure that the nodes are not overlapping */
+              return {
+                ...n,
+                position,
+                parentNode: groupNode.id,
+                extent: EXTENT_PARENT as 'parent',
+              };
+            }
+            return n;
           })
           .sort(sortNodes);
         setNodes(nextNodes);
       }
     },
-    [getIntersectingNodes, setNodes, store]
+    [getIntersectingNodes, setNodes, store, onDragStartData]
+  );
+
+  const onNodeDragStart = useCallback(
+    (_: MouseEvent, node: Node) => {
+      if (!canRunOnNodeDrag(node) || !checkNodeAllowed(node.id)) return;
+      const draggedNodeId = node.id;
+      // find the connected node - could be SimpleNode or SimpleOutputNode
+      const connectedNodeId = getConnectedNodeId(draggedNodeId);
+      const connectedNode = store.getState().getNodes()
+                              .find(n => n.id === connectedNodeId);
+      if (!connectedNode) {
+        console.error("connectedNode not found");
+        return;
+      }
+      // update the data used in onNodeDrag and onNodeDragStop
+      setOnDragStartData({
+        nodePosition: node.position,
+        nodeId: draggedNodeId,
+        connectedNodePosition: connectedNode.position,
+        connectedNodeId: connectedNode.id,
+        isLockOn: getIsLockedForId(getSimpleNodeId(draggedNodeId)),
+      });
+    }, 
+    [store]
   );
 
   const onNodeDrag = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (!canRunOnNodeDrag(node)) {
-        return;
-      }
-      const intersections = getIntersectingNodes(node).filter(
-        (n) => n.type === GROUP_NODE
-      );
+      if (!canRunOnNodeDrag(node)) return;
+      const intersections = getIntersectingNodes(node)
+                              .filter((n) => n.type === GROUP_NODE);
+      /* groupClassName will be 'active' if there is at least one intersection
+      and the parent node of the current node is not the first intersection. */
+      const groupClassName = intersections.length && 
+                             node.parentNode !== intersections[0]?.id
+                             ? 'active' 
+                             : '';
+      const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
+      // update the nodes
       setNodes((nds) => {
         return nds.map((n) => {
-          return updateClassNameOrPosition(n, node, intersections);
+          if (n.type === GROUP_NODE) {
+            return { ...n, className: groupClassName};
+          } else if (n.id === node.id) {
+            return { 
+              ...n, 
+              position: node.position
+            };
+          }
+          // if 🔒 lock is ✅ then update also connected node
+          else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
+            const newPosition = {
+              x: onDragStartData.connectedNodePosition.x + 
+                (node.position.x - onDragStartData.nodePosition.x),
+              y: onDragStartData.connectedNodePosition.y + 
+                (node.position.y - onDragStartData.nodePosition.y)
+            };
+            const groupNode = intersections.length &&
+                  n.parentNode === intersections[0]?.id
+                  ? intersections[0]
+                  : undefined;
+            if (groupNode) {
+              // we have parent and are inside parent
+              const position = keepPositionInsideParent(n, groupNode, newPosition) 
+                               ?? { x: 0, y: 0 };
+              /*keep the connected node inside the group node if 
+              it is close to the bounds and has a parent already*/
+              return {...n, position: position};
+            } else{
+              return {...n, position: newPosition};
+            }
+          }
+          return { ...n };
         });
       });
     },
-    [getIntersectingNodes, setNodes]
+    [getIntersectingNodes, setNodes, onDragStartData]
   );
   
 
@@ -315,6 +412,7 @@ function DynamicGrouping() {
           onNodesChange={onNodesChange}
           onConnect={onConnect}
           onNodeDrag={onNodeDrag}
+          onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
           onDragOver={onDragOver}

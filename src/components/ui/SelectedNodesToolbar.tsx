@@ -14,6 +14,8 @@ export default function SelectedNodesToolbar() {
   const selectedNodeIds = selectedNodes.map((node) => node.id);
   const isVisible = selectedNodeIds.length > 1;
 
+  // TODO - selectionMode? -> ReactFlow docs
+
   const onGroup = () => {
     const rectOfNodes = getRectOfNodes(selectedNodes);
     const groupId = getId(GROUP_NODE);
