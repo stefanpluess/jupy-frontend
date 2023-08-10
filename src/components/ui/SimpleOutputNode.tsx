@@ -205,6 +205,7 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
       {data?.isImage ? (
         <div
+          className="outputNode" //to be deleted???
           dangerouslySetInnerHTML={output}
           style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
         ></div>
