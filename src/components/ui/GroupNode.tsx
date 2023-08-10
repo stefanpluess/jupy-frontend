@@ -76,7 +76,7 @@ function GroupNode({ id, data }: NodeProps) {
 
   /* DELETE */
   const onDelete = async () => {
-    if (isRunning) setShowConfirmModalDelete(true);
+    setShowConfirmModalDelete(true);
   };
 
   const deleteGroup = async () => {
