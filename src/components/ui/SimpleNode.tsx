@@ -29,6 +29,10 @@ import {
   faPlayCircle,
   faCirclePlay,
   faLock,
+  faCross,
+  faCrosshairs,
+  faSkullCrossbones,
+  faXmarkCircle,
   faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
@@ -57,6 +61,11 @@ function SimpleNode({ id, data }: NodeProps) {
     data?.executionCount || 0
   );
 
+  const outputType = getNode(id + "_output")?.data.outputType;
+
+  const [isLocked, setIsLocked] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
   //to be deleted of code above works
   // const [textareaValue, setTextareaValue] = useState("");
   // var execute = data?.execute;
@@ -72,6 +81,7 @@ function SimpleNode({ id, data }: NodeProps) {
   // when deleting the node, automatically delete the output node as well
   const onDelete = () =>
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
+
   const onDetach = () => {
     if (isLocked) {
       // if locked then detach the SimpleNode and the OutputNode
@@ -142,6 +152,14 @@ function SimpleNode({ id, data }: NodeProps) {
     console.log("Copied code:\n" + textareaValue);
   };
 
+  const lockEdge = () => {
+    if (isLocked) {
+      setIsLocked(false);
+    } else {
+      setIsLocked(true);
+    }
+  };
+
   const duplicateCell = () => {
     //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
   };
@@ -191,11 +209,9 @@ function SimpleNode({ id, data }: NodeProps) {
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
-          {hasParent && (
-            <button title="Additonal cell settings">
-              <FontAwesomeIcon className="icon" icon={faEllipsisVertical} />
-            </button>
-          )}
+          <button title="Additonal cell settings">
+            <FontAwesomeIcon className="icon" icon={faEllipsisVertical} />
+          </button>
         </div>
       </NodeToolbar>
 
@@ -247,14 +263,44 @@ function SimpleNode({ id, data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
-          <button
-            title="Run CodeCell"
-            className="rinputCentered playButton rcentral"
-            onClick={runCode}
-            disabled={!hasParent}
-          >
-            <FontAwesomeIcon className="icon" icon={faPlayCircle} />
-          </button>
+          {outputType !== "error" ? (
+            <button
+              title="Run Code"
+              className="rinputCentered playButton rcentral"
+              onClick={runCode}
+              disabled={!hasParent}
+            >
+              <FontAwesomeIcon className="icon" icon={faPlayCircle} />
+            </button>
+          ) : (
+            <div>
+              {!isHovered ? (
+                <button
+                  title="Error: Fix your Code and then let's try it again mate"
+                  className="rinputCentered playButton rcentral"
+                  onClick={runCode}
+                  disabled={!hasParent || isHovered}
+                  onMouseEnter={() => setIsHovered(false)}
+                  onMouseLeave={() => setIsHovered(true)}
+                >
+                  <FontAwesomeIcon className="icon" icon={faCirclePlay} />
+                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
+                </button>
+              ) : (
+                <button
+                  title="Error: Fix your Code and then let's try it again mate"
+                  className="rinputCentered playErrorButton rcentral"
+                  onClick={runCode}
+                  disabled={!hasParent || !isHovered}
+                  onMouseEnter={() => setIsHovered(false)}
+                >
+                  <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
+                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="rinputCentered cellButton rbottom">
             [{executionCount != null ? executionCount : " "}]
           </div>
@@ -293,7 +339,6 @@ function SimpleNode({ id, data }: NodeProps) {
               }}
             />
           )} */}
-      <Handle type="target" position={Position.Left} />
 
       {/* CommentNode may be deleted if we dont use it*/}
       {/*showCommentNode && (

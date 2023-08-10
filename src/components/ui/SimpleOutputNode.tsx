@@ -172,6 +172,7 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
       // alert("Saved Output:\n" + link);
       // console.log("Saved Output:\n" + link);
+      // alert("Saved Output:\n" + link);
     }
   };
 
@@ -233,9 +234,17 @@ function SimpleOutputNode({ id, data }: NodeProps) {
           )}
         </div>
 
+      {data?.isImage ? (
+        <div
+          className="outputNode" //to be deleted???
+          dangerouslySetInnerHTML={output}
+          style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
+        ></div>
+      ) : (
         <div className="outputNode" dangerouslySetInnerHTML={output}></div>
-        <Handle type="target" position={Position.Left} />
-      </>
+      )}
+
+      <Handle type="target" position={Position.Left} />
     </>
   );
 }
