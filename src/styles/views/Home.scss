@@ -221,7 +221,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 /*color of upper delete/ungroup/detach bar*/
 .wrapper .react-flow__node-toolbar button {
   border-radius: 1px;
-  background: #b6b6b6;
+  background: $toolbar-background;
   opacity: 0.7;
   color: #111;
   font-size: 20px;

@@ -171,3 +171,19 @@
 .rfWrapper .lock-icon-visible {
     opacity: 1;
 }
+
+/* INFO :: canvas area - ouput node disabled toolbar*/
+// .rfWrapper .detachDisabled {
+//     pointer-events: none;
+// }
+// .rfWrapper .detachDisabled:hover{
+//     background: $toolbar-background;
+// }
+
+.rfWrapper .icon-detachoff-warning{
+    color: #a60034;
+}
+
+.rfWrapper .icon-detachoff-detach{
+    opacity: 0.2;
+}
