@@ -167,6 +167,7 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
       // alert("Saved Output:\n" + link);
       // console.log("Saved Output:\n" + link);
+      // alert("Saved Output:\n" + link);
     }
   };
 
