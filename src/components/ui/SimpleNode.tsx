@@ -147,11 +147,16 @@ function SimpleNode({ id, data }: NodeProps) {
   };
 
   // INFO :: lock functionality
+  const [transitioning, setTransitioning] = useState(false);
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
   const runLockUnlock = () => {
     // console.log("run lock/unlock!");
+    setTransitioning(true);
     toggleLock(id);
+    setTimeout(() => {
+      setTransitioning(false);
+    }, 300);
   };
 
   /**
@@ -259,11 +264,19 @@ function SimpleNode({ id, data }: NodeProps) {
               className="rinputCentered cellButton rtop"
               onClick={runLockUnlock}
             >
-            {isLocked ? (
-              <FontAwesomeIcon className="icon" icon={faLock} />
-            ) : (
-              <FontAwesomeIcon className="icon" icon={faLockOpen} />
-            )}
+            <div className={transitioning ? "lock-icon-transition" : ""}>
+              {isLocked ? (
+                <FontAwesomeIcon
+                  className={`lock-icon ${isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  icon={faLock}
+                />
+              ) : (
+                <FontAwesomeIcon
+                  className={`lock-icon ${!isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  icon={faLockOpen}
+                />
+              )}
+            </div>
           </button>
         </div>
       </Handle>
