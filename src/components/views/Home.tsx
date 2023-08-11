@@ -41,6 +41,7 @@ import {
   getConnectedNodeId,
   getSimpleNodeId,
   checkNodeAllowed,
+  saveNotebook,
 } from "../../helpers/utils";
 import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
 import {
@@ -78,7 +79,7 @@ import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import axios from "axios";
 import { NotebookPUT } from "../../config/types";
-import { Alert } from "react-bootstrap";
+import { Alert, Button } from "react-bootstrap";
 import useNodesStore from "../../helpers/nodesStore";
 
 //INFO :: main code
@@ -139,21 +140,11 @@ function DynamicGrouping() {
 
   /* Saving notebook when pressing Ctrl/Cmd + S */
   useEffect(() => {
-    if (cmdAndSPressed) saveNotebook();
+    if (cmdAndSPressed) saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert);
   }, [cmdAndSPressed]);
 
-  //INFO :: functions
-  const saveNotebook = async () => {
-    const notebookData: NotebookPUT = createJSON(nodes, edges);
-    try {
-      await updateNotebook(token, notebookData, path);
-      setShowSuccessAlert(true);
-    } catch (error) {
-      setShowErrorAlert(true);
-      console.error("Error saving notebook:", error);
-    }
-  };
 
+  //INFO :: functions
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     if (wrapperRef.current) {
@@ -402,7 +393,7 @@ function DynamicGrouping() {
   return (
     <div className={"wrapper"}>
       <div className={"sidebar"}>
-        <Sidebar />
+        <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
       </div>
       <div className={"rfWrapper"} ref={wrapperRef}>
         <ReactFlow

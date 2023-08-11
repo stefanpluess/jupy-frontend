@@ -168,6 +168,18 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
   return notebookPut;
 }
 
+export async function saveNotebook(nodes: Node[], edges: Edge[], token: string, 
+                                   path: string, setShowSuccessAlert: any, setShowErrorAlert: any) {
+  const notebookData: NotebookPUT = createJSON(nodes, edges);
+  try {
+    await updateNotebook(token, notebookData, path);
+    setShowSuccessAlert(true);
+  } catch (error) {
+    setShowErrorAlert(true);
+    console.error("Error saving notebook:", error);
+  }
+}
+
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
