@@ -25,6 +25,7 @@
     border-radius: $node-border-radius;
     box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
     flex-grow: 1;
+    min-height: 85px;
 }
 
 .rfWrapper .react-flow__node-node .inner {
@@ -37,6 +38,7 @@
     justify-content: center;
     flex-grow: 1;
     position: relative;
+    min-width: 196px;
 }
 
 .rfWrapper .react-flow__node-node .simpleNodewrapper.selected,
@@ -50,17 +52,11 @@
 
 /*color of the code area in code cell*/
 .rfWrapper .textareaNode {
+    border-radius: $node-border-radius;
     background-color: rgba(255, 255, 255, 0.223);
-    font-size: 11px;
-    min-height: 40px;
+    min-height: 59px;  // min-height - 26px
     min-width: 150px;
-    max-width: 500px;
     margin-bottom: 20px;
-
-    // TESTME merge - this was not in Home.css
-    padding-right: 6px !important;
-    // TESTME merge - this was in Home.css but commented out
-    /*margin-top: 20px;*/
 }
 
 /* animation of the execution */

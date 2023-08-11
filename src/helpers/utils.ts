@@ -24,16 +24,14 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         code: cell.source
       } : {},
       position: position,
+      height: cell.height,
+      width: cell.width,
+      style: { height: cell.height, width: cell.width }, // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
     };
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
     };
-    if (cell.cell_type === 'group') {
-      node.height = cell.height;
-      node.width = cell.width;
-      node.style = { height: cell.height, width: cell.width }; // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
-    }
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
@@ -96,11 +94,9 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         position: node.position,
         parentNode: node?.parentNode,
         metadata: {},
+        height: node.height,
+        width: node.width,
       };
-      if (node.type === GROUP_NODE) {
-        cell.height = node.height;
-        cell.width = node.width;
-      }
       cells.push(cell);
     } else {
       const output: NotebookOutput = {
@@ -172,6 +168,18 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
   return notebookPut;
 }
 
+export async function saveNotebook(nodes: Node[], edges: Edge[], token: string, 
+                                   path: string, setShowSuccessAlert: any, setShowErrorAlert: any) {
+  const notebookData: NotebookPUT = createJSON(nodes, edges);
+  try {
+    await updateNotebook(token, notebookData, path);
+    setShowSuccessAlert(true);
+  } catch (error) {
+    setShowErrorAlert(true);
+    console.error("Error saving notebook:", error);
+  }
+}
+
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
@@ -183,6 +191,16 @@ export async function getSessions(token: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   const res = await axios.get('http://localhost:8888/api/sessions')
   return res.data
+}
+
+export async function passParentState(token: string, parent_kernel_id: string, child_kernel_id: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  await axios.post('http://localhost:8888/canvas_ext/export', { 'kernel_id': parent_kernel_id })
+    .catch((err) => console.log(err));
+  // wait for 200ms to ensure the state was actually saved
+  await new Promise(resolve => setTimeout(resolve, 200));
+  await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+    .catch((err) => console.log(err));
 }
 
 // ------------------------- START -------------------------
@@ -276,8 +294,8 @@ export function createOutputNode(node: Node) {
     // position it on the right of the given position
     // TODO: use the position provided in the JSON
     position: {
-      x: node.position.x + 200,
-      y: node.position.y +11,
+      x: node.position.x + 255,
+      y: node.position.y +22,
     },
     data: { output: "", isImage: false, outputType: 'stream' },
   };
