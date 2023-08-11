@@ -13,6 +13,7 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
+  NodeResizer,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -44,6 +45,8 @@ import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
+
+const handleStyle = { height: 4, width: 4 };
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -166,6 +169,12 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
+      <NodeResizer
+        lineStyle={{ borderColor: "transparent" }}
+        handleStyle={handleStyle}
+        minWidth={200}
+        minHeight={85}
+      />
       <NodeToolbar className="nodrag">
         <div>
           <button onClick={duplicateCell} title="Duplicate Cell">
@@ -208,8 +217,6 @@ function SimpleNode({ id, data }: NodeProps) {
             className="textareaNode nodrag"
             language="python"
             value={data.code}
-            height="150px"
-            width="250px"
             onChange={handleEditorChange}
             onKeyDown={(e) => {
               if (e.ctrlKey && e.code === "Enter") {
@@ -219,10 +226,11 @@ function SimpleNode({ id, data }: NodeProps) {
             }}
             style={{textAlign: "left"}}
             options={{
-              padding: { top: 4, bottom: 4 },
+              padding: { top: 3, bottom: 3 },
               theme: 'vs-dark', 
               selectOnLineNumbers: true,
-              roundedSelection: false,
+              roundedSelection: true,
+              automaticLayout: true,
               // cursorStyle: 'line',
               lineNumbersMinChars: 3,
               lineNumbers: "on",

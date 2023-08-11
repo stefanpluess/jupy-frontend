@@ -24,16 +24,14 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         code: cell.source
       } : {},
       position: position,
+      height: cell.height,
+      width: cell.width,
+      style: { height: cell.height, width: cell.width }, // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
     };
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
     };
-    if (cell.cell_type === 'group') {
-      node.height = cell.height;
-      node.width = cell.width;
-      node.style = { height: cell.height, width: cell.width }; // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
-    }
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
@@ -96,11 +94,9 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         position: node.position,
         parentNode: node?.parentNode,
         metadata: {},
+        height: node.height,
+        width: node.width,
       };
-      if (node.type === GROUP_NODE) {
-        cell.height = node.height;
-        cell.width = node.width;
-      }
       cells.push(cell);
     } else {
       const output: NotebookOutput = {
@@ -286,8 +282,8 @@ export function createOutputNode(node: Node) {
     // position it on the right of the given position
     // TODO: use the position provided in the JSON
     position: {
-      x: node.position.x + 300,
-      y: node.position.y +68,
+      x: node.position.x + 255,
+      y: node.position.y +22,
     },
     data: { output: "", isImage: false, outputType: 'stream' },
   };
