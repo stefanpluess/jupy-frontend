@@ -47,21 +47,12 @@ import useNodesStore from "../../helpers/nodesStore";
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
-  const hasParent = useStore(
-    (store) => !!store.nodeInternals.get(id)?.parentNode
-  );
-  const parentNode = useStore(
-    (store) => store.nodeInternals.get(id)?.parentNode
-  );
+  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
+  const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
   const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
-
-  const textareaValue = useRef(data?.code || "");
-  const [executionCount, setExecutionCount] = useState(
-    data?.executionCount || 0
-  );
-
+  const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
   const outputType = getNode(id + "_output")?.data.outputType;
   const [isHovered, setIsHovered] = useState(false);
 
@@ -109,38 +100,44 @@ function SimpleNode({ id, data }: NodeProps) {
     setTextComment(event.target.value);
   };
 
-  const handleEditorChange = (value: string, event: any) => {
-    textareaValue.current = value;
-    data.code = value;
-  };
+  const handleEditorChange = useCallback ((value: string, event: any) => {
+    // fetch the node using the store and update the code (needed for the editor to work)
+    const node = getNode(id);
+    node!.data.code = value;
+  }, [data, data.code]);
 
   const runCode = useCallback(() => {
-    console.log("run code (" + textareaValue.current + ")!");
+    console.log("run code (" + data.code + ")!");
     var msg_id = uuidv4();
     setCellIdToMsgId({ [msg_id]: id });
     setExecutionCount("*");
     const ws = parent?.data.ws;
-    const message = generateMessage(msg_id, textareaValue.current);
+    const message = generateMessage(msg_id, data.code);
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     } else {
       console.log("websocket is not connected");
     }
-  }, [parent, textareaValue]);
+  }, [parent, data.code]);
 
-  const deleteCode = () => {
-    if (textareaValue.current === "") return;
+  // BUG: with the new editor, deleting is not always shown
+  const deleteCode = useCallback (() => {
+    if (data.code === "") return;
     const confirmed = window.confirm(
       "Are you sure you want clear the cell content?"
     );
-    if (confirmed) textareaValue.current = "";
-  };
+    if (confirmed) {
+      const node = getNode(id);
+      data.code = "";
+      node!.data.code = "";
+    };
+  }, [data, data.code]);
 
   const copyCode = () => {
-    var copyText = textareaValue.current;
+    var copyText = data.code;
     navigator.clipboard.writeText(copyText);
-    alert("Copied Code:\n" + textareaValue.current);
-    console.log("Copied code:\n" + textareaValue.current);
+    alert("Copied Code:\n" + data.code);
+    console.log("Copied code:\n" + data.code);
   };
 
   const duplicateCell = () => {
@@ -207,9 +204,10 @@ function SimpleNode({ id, data }: NodeProps) {
       >
         <div className="inner">
           <MonacoEditor
+            key={data}
             className="textareaNode nodrag"
             language="python"
-            value={textareaValue.current}
+            value={data.code}
             height="150px"
             width="250px"
             onChange={handleEditorChange}
