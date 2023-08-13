@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useReactFlow, useStoreApi } from 'reactflow';
 import { CellIdToMsgId, ExecutionCount, ExecutionOutput } from '../../config/types';
 
@@ -16,6 +16,7 @@ interface UpdateNodesProps {
 const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOutput} : UpdateNodesProps, cellIdToMsgId: CellIdToMsgId): void => {
     const { setNodes } = useReactFlow();
     const store = useStoreApi();
+    const firstRender = useRef(true);
     /* 
      Another approach: instead of passing arguments we could use the useWebSocketStore
         import useWebSocketStore from './websocket/useWebSocketStore';
@@ -25,7 +26,10 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     */
     useEffect(() => {
 		// do not trigger on first render
-		if (Object.keys(latestExecutionCount).length === 0) return;
+        if (firstRender.current) {
+            firstRender.current = false;
+            return;
+        }
 		const output = latestExecutionOutput.output;
         const isImage = latestExecutionOutput.isImage;
         const outputType = latestExecutionOutput.outputType;
@@ -36,23 +40,24 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
         const cell_id_output = cellIdToMsgId[msg_id_output];
 
-
         //get nodes 
         const nodes = store.getState().getNodes();
 
         const updatedNodes = nodes.map((node) => {
         // if it matches, update the execution count
         if (node.id === cell_id_execCount) {
+            // console.log("EXECUTION COUNT")
             return {
-            ...node,
-            data: {
-                ...node.data,
-                executionCount: executionCount
-            },
+                ...node,
+                data: {
+                    ...node.data,
+                    executionCount: executionCount
+                },
             };
         // for the update cell, update the output
         // TODO: if the output is not changed, set it to empty
-        } else if (node.id === cell_id_output+"_output") {
+        } else if (node.id === cell_id_output+"_output" ) {
+            // console.log("OUTPUT")
             return {
             ...node,
             data: {
@@ -67,7 +72,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         });
         const newNodes = [...updatedNodes];
         setNodes(newNodes);
-        }, [latestExecutionOutput, latestExecutionCount]);
+    }, [latestExecutionOutput, latestExecutionCount]);
 }
 
 export default useUpdateNodesExeCountAndOuput;

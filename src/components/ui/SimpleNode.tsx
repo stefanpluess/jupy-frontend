@@ -40,7 +40,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import MonacoEditor from '@uiw/react-monacoeditor';
 import useAddComment from "../../helpers/hooks/useAddComment";
-import useDetachNodes from "../../helpers/hooks/useDetachNodes";
+import { useDetachNodes, useDeleteOutput } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
@@ -55,6 +55,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
+  const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
   const outputType = getNode(id + "_output")?.data.outputType;
   const [isHovered, setIsHovered] = useState(false);
@@ -117,6 +118,7 @@ function SimpleNode({ id, data }: NodeProps) {
     const ws = parent?.data.ws;
     const message = generateMessage(msg_id, data.code);
     if (ws.readyState === WebSocket.OPEN) {
+      deleteOutput(id + "_output");
       ws.send(JSON.stringify(message));
     } else {
       console.log("websocket is not connected");
