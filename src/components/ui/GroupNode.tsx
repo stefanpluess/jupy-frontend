@@ -14,11 +14,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faTrashArrowUp,
   faTrashAlt,
-  faDiagramProject,
   faSquare,
   faArrowRotateRight,
   faPowerOff,
   faCirclePlay,
+  faNetworkWired,
 } from "@fortawesome/free-solid-svg-icons";
 import {useDetachNodes, useBubbleBranchClick, usePath} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -187,7 +187,7 @@ function GroupNode({ id, data }: NodeProps) {
           <FontAwesomeIcon className="icon" icon={isRunning ? faPowerOff : faCirclePlay} />
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
-          <FontAwesomeIcon className="icon" icon={faDiagramProject} />
+          <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
         </button>
       </NodeToolbar>
       <Handle className="handle-group-top" type="target" position={Position.Top} isConnectable={false} />

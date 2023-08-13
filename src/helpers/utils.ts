@@ -302,6 +302,7 @@ export function createOutputNode(node: Node) {
 
   // in case the node has a parent, we want to make sure that the output node has the same parent
   if (node.parentNode) {
+    // COMMENT - same part of code used in useDuplicateCell.ts
     newOutputNode.parentNode = node.parentNode;
     newOutputNode.extent = EXTENT_PARENT;
   }

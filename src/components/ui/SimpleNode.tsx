@@ -45,6 +45,7 @@ import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
+import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 
 const handleStyle = { height: 4, width: 4 };
 
@@ -143,8 +144,10 @@ function SimpleNode({ id, data }: NodeProps) {
     console.log("Copied code:\n" + data.code);
   };
 
+  // INFO :: DUPLICATE CELL
+  const handleDuplicateCell = useDuplicateCell(id);
   const duplicateCell = () => {
-    //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
+    handleDuplicateCell();
   };
 
   // INFO :: lock functionality
