@@ -15,6 +15,20 @@
 /* INFO :: canvas area - simple node*/
 .rfWrapper .react-flow__node-node {
     display: flex;
+    border-radius: 10% / 50%;
+    border: 0;
+    border-color: 'transparent';
+    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2), 
+                inset 0px 0px 40px 2px rgba(255, 255, 255, 0.2);
+}
+
+.rfWrapper .react-flow__node-node:hover{
+    box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
+                inset 0px 0px 40px 3px rgba(255, 255, 255, 0.3);
+}
+.rfWrapper .react-flow__node-node.selected {
+    box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
+                inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
 }
 
 .rfWrapper .react-flow__node-node .simpleNodewrapper {
@@ -23,15 +37,15 @@
     padding: 2px;
     position: relative;
     border-radius: $node-border-radius;
-    box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
+    // box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
     flex-grow: 1;
     min-height: 85px;
 }
 
 .rfWrapper .react-flow__node-node .inner {
     background: $node-background;
-    box-shadow: $node-box-shadow-not-active;
-    border-radius: $node-border-radius;
+    // box-shadow: $node-box-shadow-not-active;
+    border-radius: $code-and-output-border-radius;
     border: $node-border;
     display: flex;
     flex-direction: column;
@@ -41,18 +55,8 @@
     min-width: 196px;
 }
 
-.rfWrapper .react-flow__node-node .simpleNodewrapper.selected,
-.rfWrapper .react-flow__node-node .simpleNodewrapper:hover{
-    box-shadow: $node-box-shadow-lighter;
-}
-.rfWrapper .react-flow__node-node .inner.selected,
-.rfWrapper .react-flow__node-node .inner:hover{
-    box-shadow: $node-box-shadow;
-}
-
 /*color of the code area in code cell*/
 .rfWrapper .textareaNode {
-    border-radius: $node-border-radius;
     background-color: rgba(255, 255, 255, 0.223);
     min-height: 59px;  // min-height - 26px
     min-width: 150px;
@@ -97,8 +101,9 @@
 }
 
 /* INFO :: canvas area - ouput node*/
+// react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
-.rfWrapper .outputNode {
+.rfWrapper .react-flow__node-outputNode {
     background-color: $node-background;
     color: $shared-text-color;
     text-align: left;
@@ -107,18 +112,17 @@
     font-size: 11px;
     min-height: 40px;
     border: $node-border;
-
+    border-radius: $code-and-output-border-radius;
     min-width: 40px;
     padding: 4px;
-
-    // TESTME merge - in Home.css was like this:
-    // min-width: 50px;
-    // border-radius: 2px;
-    // padding: 5px;
 }
 
-.rfWrapper .outputNode:hover {
-    box-shadow: $node-box-shadow;;
+.rfWrapper .react-flow__node-outputNode:hover {
+    box-shadow: $node-box-shadow;
+}
+
+.rfWrapper .react-flow__node-outputNode.selected {
+    box-shadow: $node-box-shadow-selected;
 }
 
 /* INFO :: canvas area - group node*/
@@ -126,17 +130,17 @@
 .rfWrapper .react-flow__node-group {
     background: $group-node-background;
     border: $node-border;
-    box-shadow: $node-box-shadow-not-active;
+    box-shadow: $node-box-shadow-not-active; 
     resize: both;
     width: auto;
 }
 /*shade around bubble cell when hovering/selecting */
-.rfWrapper .react-flow__node-group.selected,
 .rfWrapper .react-flow__node-group:hover {
-    box-shadow: $node-box-shadow;
+    box-shadow: $node-box-shadow; 
 }
 .rfWrapper .react-flow__node-group.selected {
     border-width: 2px;
+    box-shadow: $node-box-shadow;
 }
 
 /* INFO :: canvas area - markdown node*/
@@ -149,8 +153,11 @@
     text-align: left !important;
     border-radius: $node-border-radius;
 }
-.rfWrapper .react-flow__node-mdNode:hover {
+.rfWrapper .react-flow__node-mdNode:hover{
     box-shadow: $node-box-shadow;
+}
+.rfWrapper .react-flow__node-mdNode.selected {
+    box-shadow: $node-box-shadow-selected;
 }
 
 /* INFO :: canvas area - lock icon*/

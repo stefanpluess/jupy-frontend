@@ -3,8 +3,9 @@ $shared-bg-color: #222;
 $shared-text-color: #fff;
 
 // COMMENT - node - variables might be used across many files
+$code-and-output-border-radius: 2px;
 $node-border-radius: 4px;
-$node-border: 1px solid #fff;
+$node-border: 1.5px solid #fff;
 $node-background: rgb(107, 65, 107);
 $group-node-background: rgba(153, 26, 152, 0.1);
 $markdown-node-background: rgba(26, 36, 62, 0.502);
@@ -12,6 +13,7 @@ $node-box-shadow-not-active: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
 $node-box-shadow-not-active-lighter: 0px 0px 8px 0px rgba(255, 255, 255, 0.2);
 $node-box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.5);
 $node-box-shadow-lighter: 0px 0px 12px 0px rgba(255, 255, 255, 0.4);
+$node-box-shadow-selected: 0px 0px 12px 2px rgba(255, 255, 255, 0.5);
 
 //COMMENT - sidebar - variables might be used across many files
 $sidebar-node-box-shadow-selected-hover: 0px 0px 16px 0px rgba(255, 255, 255, 0.5);

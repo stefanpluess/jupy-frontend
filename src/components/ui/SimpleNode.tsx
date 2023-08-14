@@ -228,6 +228,7 @@ function SimpleNode({ id, data }: NodeProps) {
               }
             }}
             style={{textAlign: "left"}}
+            // TODO - export options to config file
             options={{
               padding: { top: 3, bottom: 3 },
               theme: 'vs-dark', 
