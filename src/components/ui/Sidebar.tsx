@@ -1,11 +1,29 @@
+import { faSave } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DragEvent } from "react";
+import { Button } from "react-bootstrap";
+import { Node, Edge } from "reactflow";
+import { saveNotebook } from "../../helpers/utils";
+import { usePath } from "../../helpers/hooks";
+import { shallow } from "zustand/shallow";
+import { selectorHome, useWebSocketStore } from "../../helpers/websocket";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
   event.dataTransfer.effectAllowed = "move";
 };
 
-const Sidebar = () => {
+type SidebarProps = {
+  nodes: Node[];
+  edges: Edge[];
+  setShowSuccessAlert: any;
+  setShowErrorAlert: any;
+};
+
+const Sidebar = ( {nodes, edges, setShowSuccessAlert, setShowErrorAlert } : SidebarProps) => {
+  const path = usePath();
+  const { token } = useWebSocketStore(selectorHome, shallow);
+
   return (
     <aside>
       <div
@@ -29,6 +47,10 @@ const Sidebar = () => {
       >
         <div className="label">Markdown</div>
       </div>
+
+      <Button variant="success" style={{ position: 'relative', bottom: -400, }} onClick={() => { saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert) }}>
+        <FontAwesomeIcon icon={faSave} />
+      </Button>
     </aside>
   );
 };

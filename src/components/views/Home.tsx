@@ -22,6 +22,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Panel,
+  useKeyPress,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules UI
@@ -40,6 +41,7 @@ import {
   getConnectedNodeId,
   getSimpleNodeId,
   checkNodeAllowed,
+  saveNotebook,
 } from "../../helpers/utils";
 import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
 import {
@@ -77,7 +79,7 @@ import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import axios from "axios";
 import { NotebookPUT } from "../../config/types";
-import { Alert } from "react-bootstrap";
+import { Alert, Button } from "react-bootstrap";
 import useNodesStore from "../../helpers/nodesStore";
 
 //INFO :: main code
@@ -92,7 +94,6 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
-  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
   // other 
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
@@ -101,6 +102,7 @@ function DynamicGrouping() {
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const cmdAndSPressed = useKeyPress(['Meta+s', 'Strg+s']); // https://reactflow.dev/docs/api/hooks/use-key-press
   // INFO :: needed for lock functionality and moving nodes together:
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
@@ -136,30 +138,13 @@ function DynamicGrouping() {
     });
   }, []);
 
-  /* add and update eventListener for Ctrl/Cmd + S */
+  /* Saving notebook when pressing Ctrl/Cmd + S */
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "s" && (isMac ? e.metaKey : e.ctrlKey)) {
-        e.preventDefault();
-        saveNotebook();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [nodes, edges]);
+    if (cmdAndSPressed) saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert);
+  }, [cmdAndSPressed]);
+
 
   //INFO :: functions
-  const saveNotebook = async () => {
-    const notebookData: NotebookPUT = createJSON(nodes, edges);
-    try {
-      await updateNotebook(token, notebookData, path);
-      setShowSuccessAlert(true);
-    } catch (error) {
-      setShowErrorAlert(true);
-      console.error("Error saving notebook:", error);
-    }
-  };
-
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     if (wrapperRef.current) {
@@ -169,8 +154,8 @@ function DynamicGrouping() {
         x: event.clientX - wrapperBounds.x - 20,
         y: event.clientY - wrapperBounds.top - 20,
       }); // TODO - change to not fixed value / export to constant
-      const nodeStyle =
-        type === GROUP_NODE ? { width: 800, height: 500 } : undefined; // TODO - change to not fixed value / export to constant
+      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
+                        type === NORMAL_NODE ? { width: 200, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
 
       const intersections = getIntersectingNodes({
         x: position.x,
@@ -372,16 +357,13 @@ function DynamicGrouping() {
     },
     [getIntersectingNodes, setNodes, onDragStartData]
   );
+  
 
+  // ---------- ALERTS ----------
   const SuccessAlert = () => {
     // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
-      <Alert
-        variant="success"
-        show={showSuccessAlert}
-        onClose={() => setShowSuccessAlert(false)}
-        dismissible
-      >
+      <Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>
         Notebook saved successfully!
       </Alert>
     );
@@ -389,21 +371,29 @@ function DynamicGrouping() {
   const ErrorAlert = () => {
     // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
-      <Alert
-        variant="danger"
-        show={showErrorAlert}
-        onClose={() => setShowErrorAlert(false)}
-        dismissible
-      >
-        Error saving notebook.
+      <Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>
+        Error saving notebook!
       </Alert>
     );
   };
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const successTimeout = setTimeout(() => { setShowSuccessAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showSuccessAlert]);
+  useEffect(() => {
+    if (showErrorAlert) {
+      const successTimeout = setTimeout(() => { setShowErrorAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showErrorAlert]);
+
 
   return (
     <div className={"wrapper"}>
       <div className={"sidebar"}>
-        <Sidebar />
+        <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
       </div>
       <div className={"rfWrapper"} ref={wrapperRef}>
         <ReactFlow

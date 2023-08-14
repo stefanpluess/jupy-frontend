@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useCallback,
   memo,
+  useRef,
 } from "react";
 import {
   Handle,
@@ -12,6 +13,7 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
+  NodeResizer,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -36,40 +38,27 @@ import {
   faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
-import CodeEditor from "@uiw/react-textarea-code-editor";
+import MonacoEditor from '@uiw/react-monacoeditor';
 import useAddComment from "../../helpers/hooks/useAddComment";
 import useDetachNodes from "../../helpers/hooks/useDetachNodes";
 import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
+import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
+
+const handleStyle = { height: 4, width: 4 };
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
-  const hasParent = useStore(
-    (store) => !!store.nodeInternals.get(id)?.parentNode
-  );
-  const parentNode = useStore(
-    (store) => store.nodeInternals.get(id)?.parentNode
-  );
+  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
+  const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
   const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
-
-  const [textareaValue, setTextareaValue] = useState(data?.code || "");
-  const [executionCount, setExecutionCount] = useState(
-    data?.executionCount || 0
-  );
-
+  const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
   const outputType = getNode(id + "_output")?.data.outputType;
   const [isHovered, setIsHovered] = useState(false);
-
-  //to be deleted of code above works
-  // const [textareaValue, setTextareaValue] = useState("");
-  // var execute = data?.execute;
-  // const [executionCount, setExecutionCount] = useState(
-  //   data?.executionCount || 0
-  // );
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
@@ -115,43 +104,50 @@ function SimpleNode({ id, data }: NodeProps) {
     setTextComment(event.target.value);
   };
 
-  const handleTextareaChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    // including auto indent
-    setTextareaValue(event.target.value.replace(/\t/g, "    "));
-    data.code = event.target.value.replace(/\t/g, "    ");
-  };
+  const handleEditorChange = useCallback ((value: string, event: any) => {
+    // fetch the node using the store and update the code (needed for the editor to work)
+    const node = getNode(id);
+    node!.data.code = value;
+  }, [data, data.code]);
 
   const runCode = useCallback(() => {
-    console.log("run code (" + textareaValue + ")!");
+    console.log("run code (" + data.code + ")!");
     var msg_id = uuidv4();
     setCellIdToMsgId({ [msg_id]: id });
     setExecutionCount("*");
     const ws = parent?.data.ws;
-    const message = generateMessage(msg_id, textareaValue);
+    const message = generateMessage(msg_id, data.code);
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     } else {
       console.log("websocket is not connected");
     }
-  }, [parent, textareaValue]);
+  }, [parent, data.code]);
 
-  const deleteCode = () => {
-    if (textareaValue === "") return;
+  // BUG: with the new editor, deleting is not always shown
+  const deleteCode = useCallback (() => {
+    if (data.code === "") return;
     const confirmed = window.confirm(
       "Are you sure you want clear the cell content?"
     );
-    if (confirmed) setTextareaValue("");
-  };
+    if (confirmed) {
+      const node = getNode(id);
+      data.code = "";
+      node!.data.code = "";
+    };
+  }, [data, data.code]);
 
   const copyCode = () => {
-    var copyText = textareaValue;
+    var copyText = data.code;
     navigator.clipboard.writeText(copyText);
-    alert("Copied Code:\n" + textareaValue);
-    console.log("Copied code:\n" + textareaValue);
+    alert("Copied Code:\n" + data.code);
+    console.log("Copied code:\n" + data.code);
   };
 
+  // INFO :: DUPLICATE CELL
+  const handleDuplicateCell = useDuplicateCell(id);
   const duplicateCell = () => {
-    //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
+    handleDuplicateCell();
   };
 
   // INFO :: lock functionality
@@ -176,6 +172,12 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
+      <NodeResizer
+        lineStyle={{ borderColor: "transparent" }}
+        handleStyle={handleStyle}
+        minWidth={200}
+        minHeight={85}
+      />
       <NodeToolbar className="nodrag">
         <div>
           <button onClick={duplicateCell} title="Duplicate Cell">
@@ -213,25 +215,44 @@ function SimpleNode({ id, data }: NodeProps) {
         }
       >
         <div className="inner">
-          <CodeEditor
+          <MonacoEditor
+            key={data}
             className="textareaNode nodrag"
-            value={textareaValue}
             language="python"
-            placeholder="Please enter your Python code here"
-            onChange={handleTextareaChange}
-            padding={4}
-            style={{
-              flexGrow: "1",
-              fontFamily:
-                "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace",
-            }}
+            value={data.code}
+            onChange={handleEditorChange}
             onKeyDown={(e) => {
               if (e.ctrlKey && e.code === "Enter") {
-                e.preventDefault(); // TODO: doesn't work somehow
+                e.preventDefault();
                 runCode();
               }
             }}
-          ></CodeEditor>
+            style={{textAlign: "left"}}
+            options={{
+              padding: { top: 3, bottom: 3 },
+              theme: 'vs-dark', 
+              selectOnLineNumbers: true,
+              roundedSelection: true,
+              automaticLayout: true,
+              // cursorStyle: 'line',
+              lineNumbersMinChars: 3,
+              lineNumbers: "on",
+              folding: false,
+              scrollBeyondLastLine: false,
+              scrollBeyondLastColumn: 0,
+              fontSize: 10,
+              wordWrap: 'off',
+              // wrappingIndent: 'none',
+              minimap: { enabled: false },
+              renderLineHighlightOnlyWhenFocus: true,
+              scrollbar: { 
+                vertical: 'auto', 
+                horizontal: 'auto',
+                verticalScrollbarSize: 8,
+                horizontalScrollbarSize: 6,
+              },
+            }}
+          />
         </div>
       </div>
 
