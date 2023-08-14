@@ -154,8 +154,13 @@
 }
 
 /* INFO :: canvas area - lock icon*/
+.rfWrapper .lock-icon{
+    font-size: 10px;
+  }
+
 .rfWrapper .lock-icon:hover{
     color: rgba(223, 223, 223, 0.502);
+
   }
 
 .rfWrapper .lock-icon-transition {
