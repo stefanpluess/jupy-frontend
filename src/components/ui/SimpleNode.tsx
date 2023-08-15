@@ -62,7 +62,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const detachNodes = useDetachNodes();
   const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
-  const outputType = getNode(id + "_output")?.data.outputType;
+  const outputType = getNode(id + "_output")?.data.outputs[0]?.outputType;
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {

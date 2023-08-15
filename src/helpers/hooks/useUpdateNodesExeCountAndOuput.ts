@@ -1,22 +1,33 @@
-import { useEffect, useRef } from 'react';
-import { useReactFlow, useStoreApi } from 'reactflow';
-import { CellIdToMsgId, ExecutionCount, ExecutionOutput } from '../../config/types';
+import { useEffect, useRef, useState } from 'react';
+import { useReactFlow } from 'reactflow';
+import { CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
+import { WebSocketState } from '../websocket/webSocketStore';
+// access the type from WebSocketState
+type setCITOType = WebSocketState['setCellIdToOutputs'];
 
 interface UpdateNodesProps {
     latestExecutionCount: ExecutionCount;
     latestExecutionOutput: ExecutionOutput;
+    cellIdToOutputs: CellIdToOutputs;
+    setCellIdToOutputs: setCITOType;
   }
 /**
  * A hook that updates the nodes in the React Flow graph based on the latest execution count and output.
  * @param latestExecutionCount The latest execution count.
  * @param latestExecutionOutput The latest execution output.
+ * @param cellIdToOutputs A mapping of cell IDs to outputs.
+ * @param setCellIdToOutputs A setter function for the cellIdToOutputs mapping.
  * Additional helper function:
  * @param cellIdToMsgId A mapping of cell IDs to message IDs.
  */
-const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOutput} : UpdateNodesProps, cellIdToMsgId: CellIdToMsgId): void => {
+const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOutput, 
+                                         cellIdToOutputs, setCellIdToOutputs} : UpdateNodesProps, 
+                                         cellIdToMsgId: CellIdToMsgId): void => {
     const { setNodes } = useReactFlow();
-    const store = useStoreApi();
-    const firstRender = useRef(true);
+    const firstRenderExecCount = useRef(true);
+    const firstRenderOutput = useRef(true);
+    const [execCount, setExecCount] = useState(0);
+    // create a mapping of cell ids to output objects (CellIdToOutputs)
     /* 
      Another approach: instead of passing arguments we could use the useWebSocketStore
         import useWebSocketStore from './websocket/useWebSocketStore';
@@ -26,53 +37,100 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     */
     useEffect(() => {
 		// do not trigger on first render
-        if (firstRender.current) {
-            firstRender.current = false;
+        if (firstRenderExecCount.current) {
+            firstRenderExecCount.current = false;
             return;
         }
-		const output = latestExecutionOutput.output;
-        const isImage = latestExecutionOutput.isImage;
-        const outputType = latestExecutionOutput.outputType;
-        const msg_id_execCount = latestExecutionCount.msg_id;
-        const msg_id_output= latestExecutionOutput.msg_id;
+        // console.log("EXECUTION COUNT")
         const executionCount = latestExecutionCount.execution_count;
-        // TODO: in case of error, change font color
-        const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
-        const cell_id_output = cellIdToMsgId[msg_id_output];
+        setExecCount(executionCount);
+    }, [latestExecutionCount]);
 
-        //get nodes 
-        const nodes = store.getState().getNodes();
 
-        const updatedNodes = nodes.map((node) => {
-        // if it matches, update the execution count
-        if (node.id === cell_id_execCount) {
-            // console.log("EXECUTION COUNT")
-            return {
-                ...node,
-                data: {
-                    ...node.data,
-                    executionCount: executionCount
-                },
-            };
-        // for the update cell, update the output
-        // TODO: if the output is not changed, set it to empty
-        } else if (node.id === cell_id_output+"_output" ) {
-            // console.log("OUTPUT")
-            return {
-            ...node,
-            data: {
-                ...node.data,
-                output: output,
-                isImage: isImage,
-                outputType: outputType,
-            },
-            };
-        // if nothing matches, return the node without modification
-        } else return node;
+    useEffect(() => {
+        if (firstRenderOutput.current) {
+            firstRenderOutput.current = false;
+            return;
+        }
+        // console.log("OUTPUT")
+        const msg_id_output= latestExecutionOutput.msg_id;
+        const cell_id_output = cellIdToMsgId[msg_id_output]+"_output";
+        // create the new mapping (add if it doesn't exist, otherwise append to the existing array)
+        const updatedCellIdToOutputs = {
+            ...cellIdToOutputs,
+            [cell_id_output]: [
+                ...(cellIdToOutputs[cell_id_output] || []), {
+                    output: latestExecutionOutput.output,
+                    isImage: latestExecutionOutput.isImage,
+                    outputType: latestExecutionOutput.outputType,
+                } as OutputNodeData,
+            ],
+        }
+        setCellIdToOutputs(updatedCellIdToOutputs);
+    }, [latestExecutionOutput]);
+
+
+    useEffect(() => {
+        if (Object.keys(cellIdToOutputs).length === 0) return;
+        // console.log("cellIdToOutputs changed: ", cellIdToOutputs)
+        const msg_id_output= latestExecutionOutput.msg_id;
+        const cell_id_output = cellIdToMsgId[msg_id_output]+"_output";
+        if (cellIdToOutputs[cell_id_output] === undefined || !cellIdToOutputs[cell_id_output]) return;
+
+        // go through all the nodes and set the outputs of the changed node
+        setNodes((prevNodes) => {
+            const updatedNodes = prevNodes.map((node) => {
+                if (node.id === cell_id_output ) {
+                    const allOutputs = [] as OutputNodeData[];
+                    cellIdToOutputs[cell_id_output].forEach((output) => {
+                        const newOutputData: OutputNodeData = {
+                            output: output.output,
+                            isImage: output.isImage,
+                            outputType: output.outputType,
+                        }
+                        allOutputs.push(newOutputData);
+                    })
+                    // console.log("OUTPUT: ", allOutputs)
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            outputs: allOutputs,
+                        },
+                    };
+                // if nothing matches, return the node without modification
+                } else return node;
+            });
+            return updatedNodes;
         });
-        const newNodes = [...updatedNodes];
-        setNodes(newNodes);
-    }, [latestExecutionOutput, latestExecutionCount]);
+    }, [cellIdToOutputs]);
+
+
+    useEffect(() => {
+        if (execCount === 0) return;
+        // console.log("execCount changed: ", execCount)
+        const msg_id_execCount = latestExecutionCount.msg_id;
+        const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
+
+        setNodes((prevNodes) => {
+            const updatedNodes = prevNodes.map((node) => {
+                // if it matches, update the execution count
+                if (node.id === cell_id_execCount) {
+                    // console.log("EXECUTION COUNT: ", execCount)
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            executionCount: execCount
+                        },
+                    };
+                // if nothing matches, return the node without modification
+                } else return node;
+            });
+            return updatedNodes;
+        });
+    }, [execCount]);
+
 }
 
 export default useUpdateNodesExeCountAndOuput;

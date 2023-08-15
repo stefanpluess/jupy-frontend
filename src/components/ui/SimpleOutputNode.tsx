@@ -20,38 +20,35 @@ import useNodesStore from "../../helpers/nodesStore";
 import { getConnectedNodeId } from "../../helpers/utils";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import { OutputNodeData } from "../../config/types";
 
-function SimpleOutputNode({ id, data }: NodeProps) {
-  const hasParent = useStore(
-    (store) => !!store.nodeInternals.get(id)?.parentNode
-  );
-  const parentNode = useStore(
-    (store) => store.nodeInternals.get(id)?.parentNode
-  );
-  const { deleteElements } = useReactFlow();
+function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>) {
+  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
   const detachNodes = useDetachNodes();
 
   const [output, setOutput] = useState({ __html: "" });
-  const [outputType, setOutputType] = useState(data?.outputType);
 
   useEffect(() => {
     // console.log(id+ " ----- Output Changed ----- now: " + data?.output)
     var formattedOutput = "";
-    if (data?.isImage) {
-      formattedOutput =
-        '<img src="data:image/png;base64,' + data?.output + '">';
-    } else {
-      formattedOutput = data?.output.replace(/\n/g, "<br>");
-    }
+    data?.outputs?.forEach((output) => {
+      if (output?.isImage) {
+        formattedOutput +=
+          '<img src="data:image/png;base64,' + output?.output + '"><br>';
+      } else {
+        formattedOutput += output?.output.replace(/\n/g, "<br>");
+      }
+    });
     const outputHtml = { __html: formattedOutput };
     setOutput(outputHtml);
-  }, [data?.output]);
+  }, [data.outputs]);
 
   //   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
   const copyOutput = () => {
-    if (data?.output === "") {
+    // if data.outputs is empty, then there is no output to copy
+    if (data?.outputs[0]?.output === "") {
       alert(
         "No output to copy yet mate.\nFirst put in some work and execute the cell bro:)"
       );
@@ -60,10 +57,10 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
     //TODO: copy an image to clipboard (currently not working) --> see https://stackoverflow.com/questions/66649604/how-to-copy-an-image-to-the-clipboard-in-react
 
-    if (data?.isImage) {
+    if (data?.outputs[0]?.isImage) {
       // Create an image element and set its source to the base64 data
       const img = new Image();
-      img.src = "data:image/png;base64," + data?.output;
+      img.src = "data:image/png;base64," + data?.outputs[0]?.output;
 
       // When the image is loaded, handle the clipboard copy
       img.onload = () => {
@@ -146,16 +143,16 @@ function SimpleOutputNode({ id, data }: NodeProps) {
 
   const saveOutput = () => {
     // first if clause can be deleted if saveOutput is working
-    if (data?.output === "") {
+    if (data?.outputs[0]?.output === "") {
       alert(
         "No output to save yet mate.\nFirst put in some work and execute the cell bro:)"
       );
       return;
     }
-    if (data?.isImage) {
+    if (data?.outputs[0]?.isImage) {
       // Create a new anchor link
       const link = document.createElement("a");
-      link.href = "data:image/png;base64," + data?.output;
+      link.href = "data:image/png;base64," + data?.outputs[0]?.output;
       link.download = "image.png"; // Set a default filename for the downloaded image
       link.style.display = "none"; // Hide the link
 
@@ -221,15 +218,15 @@ function SimpleOutputNode({ id, data }: NodeProps) {
         )}
       </NodeToolbar>
       <div className="oinputCentered obuttonArea nodrag">
-        <button
+        {data?.outputs?.length === 1 && ( <button
           title="Copy Output"
           className="obuttonArea oUpper"
           onClick={copyOutput}
         >
           <FontAwesomeIcon className="icon" icon={faCopy} />
-        </button>
+        </button>)}
 
-        {data?.isImage && (
+        {(data?.outputs?.length === 1 && data?.outputs[0]?.isImage) && (
           <button
             className="obuttonArea oLower"
             title="Save Output"
@@ -242,19 +239,19 @@ function SimpleOutputNode({ id, data }: NodeProps) {
         )}
       </div>
 
-      {data?.isImage ? (
-        <div
+      {/* {data?.isImage ? ( */}
+        {/* <div
           className="outputNode" //to be deleted???
           dangerouslySetInnerHTML={output}
           style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
-        ></div>
-      ) : (
+        ></div> */}
+      {/* ) : ( */}
         <div
           className="outputNode"
           dangerouslySetInnerHTML={output}
           style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
         ></div>
-      )}
+      {/* )} */}
 
       <Handle type="target" position={Position.Left} />
     </>
