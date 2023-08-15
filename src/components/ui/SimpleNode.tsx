@@ -38,20 +38,25 @@ import {
   faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
 import { v4 as uuidv4 } from "uuid";
-import MonacoEditor from '@uiw/react-monacoeditor';
+import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
 import { useDetachNodes, useDeleteOutput } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
+import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 
 const handleStyle = { height: 4, width: 4 };
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
-  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
-  const parentNode = useStore((store) => store.nodeInternals.get(id)?.parentNode);
+  const hasParent = useStore(
+    (store) => !!store.nodeInternals.get(id)?.parentNode
+  );
+  const parentNode = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
+  );
   const parent = getNode(parentNode!);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
@@ -75,7 +80,7 @@ function SimpleNode({ id, data }: NodeProps) {
       const outputNodeId = getConnectedNodeId(id);
       console.log("run detach for " + id + " and " + outputNodeId + "!");
       detachNodes([id, outputNodeId]);
-    }else{
+    } else {
       // if unlocked then detach just the SimpleNode
       console.log("run detach for " + id + "!");
       detachNodes([id]);
@@ -85,7 +90,11 @@ function SimpleNode({ id, data }: NodeProps) {
   /*AddComments*/
   const addComments = useAddComment();
   const [textComment, setTextComment] = useState("");
-  const onAddComment = () => addComments([id], textComment);
+  const onAddComment = () =>
+    alert(
+      "This feature is currently still under construction. We will let you know when it is ready to use! "
+    );
+  addComments([id], textComment);
 
   /*const [isCommentVisible, setIsCommentVisible] = useState(false);*/
   /*const onAddComment = () => setIsCommentVisible(true);*/
@@ -104,11 +113,14 @@ function SimpleNode({ id, data }: NodeProps) {
     setTextComment(event.target.value);
   };
 
-  const handleEditorChange = useCallback ((value: string, event: any) => {
-    // fetch the node using the store and update the code (needed for the editor to work)
-    const node = getNode(id);
-    node!.data.code = value;
-  }, [data, data.code]);
+  const handleEditorChange = useCallback(
+    (value: string, event: any) => {
+      // fetch the node using the store and update the code (needed for the editor to work)
+      const node = getNode(id);
+      node!.data.code = value;
+    },
+    [data, data.code]
+  );
 
   const runCode = useCallback(() => {
     console.log("run code (" + data.code + ")!");
@@ -126,7 +138,7 @@ function SimpleNode({ id, data }: NodeProps) {
   }, [parent, data.code]);
 
   // BUG: with the new editor, deleting is not always shown
-  const deleteCode = useCallback (() => {
+  const deleteCode = useCallback(() => {
     if (data.code === "") return;
     const confirmed = window.confirm(
       "Are you sure you want clear the cell content?"
@@ -135,7 +147,7 @@ function SimpleNode({ id, data }: NodeProps) {
       const node = getNode(id);
       data.code = "";
       node!.data.code = "";
-    };
+    }
   }, [data, data.code]);
 
   const copyCode = () => {
@@ -145,8 +157,17 @@ function SimpleNode({ id, data }: NodeProps) {
     console.log("Copied code:\n" + data.code);
   };
 
+  const onAdditionalSettings = () => {
+    let text =
+      "This feature is currently still under construction. We will let you know when it is ready to use!";
+    alert(text);
+    console.log(text);
+  };
+
+  // INFO :: DUPLICATE CELL
+  const handleDuplicateCell = useDuplicateCell(id);
   const duplicateCell = () => {
-    //TODO: duplicateCell creates a new SimpleNode and corresponding OutputNode with a new id but the same content
+    handleDuplicateCell();
   };
 
   // INFO :: lock functionality
@@ -164,10 +185,9 @@ function SimpleNode({ id, data }: NodeProps) {
 
   /**
    @todo: 
-   add onClick to duplicate cell, 
    add comment to cell, 
    add onClick to addtional cell settings,
-   add onClick to lock edge**/
+   **/
 
   return (
     <>
@@ -200,7 +220,10 @@ function SimpleNode({ id, data }: NodeProps) {
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
-          <button title="Additonal cell settings">
+          <button
+            title="Additonal cell settings"
+            onClick={onAdditionalSettings}
+          >
             <FontAwesomeIcon className="icon" icon={faEllipsisVertical} />
           </button>
         </div>
@@ -226,10 +249,10 @@ function SimpleNode({ id, data }: NodeProps) {
                 runCode();
               }
             }}
-            style={{textAlign: "left"}}
+            style={{ textAlign: "left" }}
             options={{
               padding: { top: 3, bottom: 3 },
-              theme: 'vs-dark', 
+              theme: "vs-dark",
               selectOnLineNumbers: true,
               roundedSelection: true,
               automaticLayout: true,
@@ -240,13 +263,13 @@ function SimpleNode({ id, data }: NodeProps) {
               scrollBeyondLastLine: false,
               scrollBeyondLastColumn: 0,
               fontSize: 10,
-              wordWrap: 'off',
+              wordWrap: "off",
               // wrappingIndent: 'none',
               minimap: { enabled: false },
               renderLineHighlightOnlyWhenFocus: true,
-              scrollbar: { 
-                vertical: 'auto', 
-                horizontal: 'auto',
+              scrollbar: {
+                vertical: "auto",
+                horizontal: "auto",
                 verticalScrollbarSize: 8,
                 horizontalScrollbarSize: 6,
               },
@@ -312,23 +335,27 @@ function SimpleNode({ id, data }: NodeProps) {
           )}
 
           <div className="rinputCentered cellButton rbottom">
-            [{executionCount != null ? executionCount : " "}]
+            [{executionCount != null ? executionCount : "0"}]
           </div>
           {/* INFO :: lock button */}
-            <button
-              title="Lock Edge"
-              className="rinputCentered cellButton rtop"
-              onClick={runLockUnlock}
-            >
+          <button
+            title="Lock Edge"
+            className="rinputCentered cellButton rtop"
+            onClick={runLockUnlock}
+          >
             <div className={transitioning ? "lock-icon-transition" : ""}>
               {isLocked ? (
                 <FontAwesomeIcon
-                  className={`lock-icon ${isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  className={`lock-icon ${
+                    isLocked && !transitioning ? "lock-icon-visible" : ""
+                  }`}
                   icon={faLock}
                 />
               ) : (
                 <FontAwesomeIcon
-                  className={`lock-icon ${!isLocked && !transitioning ? "lock-icon-visible" : ""}`}
+                  className={`lock-icon ${
+                    !isLocked && !transitioning ? "lock-icon-visible" : ""
+                  }`}
                   icon={faLockOpen}
                 />
               )}
