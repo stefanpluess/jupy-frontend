@@ -47,7 +47,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         await new Promise(resolve => setTimeout(resolve, 200));
         const parentKernel = parentNode.data.session?.kernel.id;
         const childKernel = session?.kernel.id;
-        await passParentState(token, parentKernel, childKernel);
+        const dill_path = path.split('/').slice(0, -1).join('/')
+        await passParentState(token, dill_path, parentKernel, childKernel);
         childNode.data.ws = ws;
         childNode.data.session = session;
 

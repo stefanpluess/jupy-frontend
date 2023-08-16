@@ -30,8 +30,6 @@ import { Sidebar, SelectedNodesToolbar } from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
   createInitialElements,
-  createJSON,
-  updateNotebook,
   sortNodes,
   getId,
   getNodePositionInsideParent,
@@ -78,7 +76,6 @@ import "../../styles/ui/canvas.scss";
 import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import axios from "axios";
-import { NotebookPUT } from "../../config/types";
 import { Alert, Button } from "react-bootstrap";
 import useNodesStore from "../../helpers/nodesStore";
 
@@ -98,6 +95,7 @@ function DynamicGrouping() {
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount,
+    cellIdToOutputs, setCellIdToOutputs,
     token
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -112,7 +110,7 @@ function DynamicGrouping() {
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput(
-    { latestExecutionCount, latestExecutionOutput },
+    { latestExecutionCount, latestExecutionOutput, cellIdToOutputs, setCellIdToOutputs },
     cellIdToMsgId
   );
 
@@ -179,7 +177,7 @@ function DynamicGrouping() {
         newNode.data.ws = ws;
         newNode.data.session = session;
       } else if (type === NORMAL_NODE) {
-        newNode.data.executionCount = null;
+        newNode.data.executionCount = '';
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }

@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
-import { Notebook, NotebookCell, NotebookOutput, NotebookPUT } from '../config/types';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, ID_LENGTH } from '../config/constants';
 
 
@@ -35,18 +35,21 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     // if output is not empty, create an output node
     if (cell.outputs.length > 0) {
       const outputNode: Node = createOutputNode(node)
-      // depending on the output type, set the output data
-      outputNode.data.outputType = cell.outputs[0].output_type;
-      if (cell.outputs[0].output_type === 'execute_result') {
-        outputNode.data.output = cell.outputs[0].data['text/plain'];
-      } else if (cell.outputs[0].output_type === 'stream') {
-        outputNode.data.output = cell.outputs[0].text;
-      } else if (cell.outputs[0].output_type === 'display_data') {
-        outputNode.data.output = cell.outputs[0].data['image/png'];
-        outputNode.data.isImage = true;
-      } else if (cell.outputs[0].output_type === 'error') {
-        outputNode.data.output = cell.outputs[0].traceback?.map(removeEscapeCodes).join('\n');
-      }
+      // for each output (if multiple) set the output data
+      const allOutputs = [] as OutputNodeData[];
+      cell.outputs.forEach((output_cell: NotebookOutput) => {
+        const output = output_cell.output_type === 'execute_result' ? output_cell.data['text/plain'] :
+                       output_cell.output_type === 'stream' ? output_cell.text :
+                       output_cell.output_type === 'display_data' ? output_cell.data['image/png'] :
+                       output_cell.output_type === 'error' ? output_cell.traceback?.map(removeEscapeCodes).join('\n') : '';
+        const newOutputData: OutputNodeData = {
+          output: output,
+          isImage: output_cell.output_type === 'display_data',
+          outputType: output_cell.output_type,
+        };
+        allOutputs.push(newOutputData);
+      });
+      outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
       outputNode.position = cell.outputs[0].position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
       outputNodes.push(outputNode);
@@ -99,26 +102,28 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
       };
       cells.push(cell);
     } else {
-      const output: NotebookOutput = {
-        output_type: node.data.outputType,
-        execution_count: node.data.executionCount,
-        data: {},
-        position: node.position,
-      };
-      // depending on the output type, set the output data
-      if (node.data.outputType === 'execute_result') {
-        output.data['text/plain'] = node.data.output;
-      } else if (node.data.outputType === 'stream') {
-        output.text = node.data.output;
-        output.name = node.data.name;
-      } else if (node.data.outputType === 'display_data') {
-        output.data['image/png'] = node.data.output;
-      } else if (node.data.outputType === 'error') {
-        output.traceback = node.data.output.split('\n');
-      }
-      // find the corresponding cell and add the output to it (id is the same, without the _output)
+      // find the corresponding cell to add the outputs to it
       const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
-      cell?.outputs.push(output);
+      if (cell) {
+        node.data.outputs.forEach((outputData: OutputNodeData) => {
+          const output: NotebookOutput = {
+            output_type: outputData.outputType,
+            data: {},
+            position: node.position,
+          };
+          if (outputData.outputType === 'execute_result') {
+            output.data['text/plain'] = outputData.output;
+          } else if (outputData.outputType === 'stream') {
+            output.text = [outputData.output];
+            // output.name = "stdout"; //TODO: needed?
+          } else if (outputData.outputType === 'display_data') {
+            output.data['image/png'] = outputData.output;
+          } else if (outputData.outputType === 'error') {
+            output.traceback = outputData.output.split('\n');
+          }
+          cell.outputs.push(output);
+        });
+      }
     }
   });
 
@@ -193,13 +198,17 @@ export async function getSessions(token: string) {
   return res.data
 }
 
-export async function passParentState(token: string, parent_kernel_id: string, child_kernel_id: string) {
+export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   await axios.post('http://localhost:8888/canvas_ext/export', { 'kernel_id': parent_kernel_id })
     .catch((err) => console.log(err));
   // wait for 200ms to ensure the state was actually saved
   await new Promise(resolve => setTimeout(resolve, 200));
   await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+    .catch((err) => console.log(err));
+  // delete the dill file that was saved
+  await axios.delete(`http://localhost:8888/api/contents/${dill_path}/${parent_kernel_id}.pkl`)
+    .then((res) => console.log('dill file deleted'))
     .catch((err) => console.log(err));
 }
 
@@ -292,12 +301,13 @@ export function createOutputNode(node: Node) {
     id: node.id+"_output",
     type: OUTPUT_NODE,
     // position it on the right of the given position
-    // TODO: use the position provided in the JSON
     position: {
       x: node.position.x + 255,
       y: node.position.y +22,
     },
-    data: { output: "", isImage: false, outputType: 'stream' },
+    data: {
+      outputs: [] as OutputNodeData[],
+    },
   };
 
   // in case the node has a parent, we want to make sure that the output node has the same parent
