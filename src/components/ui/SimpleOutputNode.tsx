@@ -27,10 +27,11 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
   const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
+  const [selectedOutputIndex, setSelectedOutputIndex] = useState(null as number | null);
 
   useEffect(() => {
     if (!data.outputs) return;
-
+    setSelectedOutputIndex(null);
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
@@ -129,6 +130,15 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
     }
   }
 
+  const handleSelect = (index: number) => {
+    // if index is already selected, deselect it
+    if (selectedOutputIndex === index) {
+      setSelectedOutputIndex(null);
+    } else {
+      setSelectedOutputIndex(index);
+    }
+  }
+
   return (
     <>
       <NodeToolbar className="nodrag">
@@ -160,45 +170,64 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
         )}
       </NodeToolbar>
 
+      {/* ----- Single Output - Always show buttons ----- */}
+      {groupedOutputs.length === 1 && (
+        <div className="oinputCentered obuttonArea nodrag">
+          <button
+            title="Copy Output"
+            className="obuttonArea oUpper"
+            onClick={() => copyOutput(0)}
+          >
+            <FontAwesomeIcon className="icon" icon={faCopy} />
+          </button>
+          {data.outputs[0]?.isImage && (
+            <button
+              className="obuttonArea oLower"
+              title="Save Output"
+              onClick={() => saveOutput(0)}
+            >
+              <FontAwesomeIcon className="icon" icon={faSave} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ----- Multiple Outputs - Only show buttons for selected ones, also highlighting them ----- */}
+      {selectedOutputIndex !== null && (
+        <div className="oinputCentered obuttonArea nodrag">
+          <button
+            title="Copy Selected Output"
+            className="obuttonArea oUpper"
+            onClick={() => copyOutput(selectedOutputIndex)}
+          >
+            <FontAwesomeIcon className="icon" icon={faCopy} />
+          </button>
+
+          {data.outputs[selectedOutputIndex]?.isImage && (
+            <button
+              className="obuttonArea oLower"
+              title="Save Selected Output"
+              onClick={() => saveOutput(selectedOutputIndex)}
+            >
+              <FontAwesomeIcon className="icon" icon={faSave} />
+            </button>
+          )}
+        </div>
+      )}
+
       <div style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}>
         {groupedOutputs.map((groupedOutput, index) => (
-          <>
-            <div className="oinputCentered obuttonArea nodrag">
-              <button
-                title="Copy Output"
-                className="obuttonArea oUpper"
-                onClick={() => copyOutput(index)}
-              >
-                <FontAwesomeIcon className="icon" icon={faCopy} />
-              </button>
-
-              {data.outputs[index]?.isImage && (
-                <button
-                  className="obuttonArea oLower"
-                  title="Save Output"
-                  onClick={() => saveOutput(index)}
-                >
-                  <FontAwesomeIcon className="icon" icon={faSave} />
-                </button>
-              )}
-            </div>
-            
-            <div
-              className="outputNode"
-              dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
-              // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
-            ></div>
-          </>
+          <div
+            className={selectedOutputIndex === index && groupedOutputs.length !== 1 ? "outputNode selected" : "outputNode"}
+            dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
+            onClick={() => handleSelect(index)}
+            // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
+          ></div>
         ))}
       </div>
-      {/* TODO: change this */}
-      {groupedOutputs.length === 0 && (
-        <div
-          className="outputNode"
-          dangerouslySetInnerHTML={{ __html: "" }}
-          style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
-        ></div>
-      )}
+
+      {/* TODO: check whether this is fine? */}
+      {groupedOutputs.length === 0 && <div className="outputNodeEmpty"/>}
       <Handle type="target" position={Position.Left} />
     </>
   );

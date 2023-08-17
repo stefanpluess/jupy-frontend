@@ -111,10 +111,17 @@
     min-width: 40px;
     padding: 4px;
 
-    // TESTME merge - in Home.css was like this:
-    // min-width: 50px;
-    // border-radius: 2px;
-    // padding: 5px;
+    &.selected {
+        background-color: $node-background-selected;
+    }
+}
+
+.rfWrapper .outputNodeEmpty {
+    background-color: $node-background;
+    border: $node-border;
+    border-color: grey;
+    min-width: 5px;
+    min-height: 40px;
 }
 
 .rfWrapper .outputNode:hover {
