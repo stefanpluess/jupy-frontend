@@ -12,6 +12,17 @@ export type ExecutionOutput = {
     isImage: boolean;
 };
 
+export type CellIdToOutputs = {
+    [cellId: string]: OutputNodeData[];
+};
+
+export type OutputNodeData = {
+    output: string;
+    isImage: boolean;
+    outputType: string;
+    timestamp?: Date;
+};
+
 export type CellIdToMsgId = {
     [msgId: string]: string;
 };

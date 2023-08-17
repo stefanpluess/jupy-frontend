@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ExecutionCount, ExecutionOutput, CellIdToMsgId} from '../../config/types';
+import { ExecutionCount, ExecutionOutput, CellIdToMsgId, CellIdToOutputs} from '../../config/types';
 
 export type WebSocketState = {
     latestExecutionCount: ExecutionCount;
@@ -9,6 +9,10 @@ export type WebSocketState = {
     latestExecutionOutput: ExecutionOutput;
     setLatestExecutionOutput: (newObj: ExecutionOutput) => void;
     getLatestExecutionOutput: () => ExecutionOutput;
+
+    cellIdToOutputs: CellIdToOutputs;
+    setCellIdToOutputs: (newObj: CellIdToOutputs) => void;
+    getCellIdToOutputs: () => CellIdToOutputs;
 
     cellIdToMsgId: CellIdToMsgId;
     setCellIdToMsgId: (newObj: CellIdToMsgId) => void;
@@ -21,8 +25,9 @@ export type WebSocketState = {
 const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionCount: {} as ExecutionCount,
     latestExecutionOutput: {} as ExecutionOutput,
+    cellIdToOutputs: {} as CellIdToOutputs,
     cellIdToMsgId: {} as CellIdToMsgId,
-    token : 'e1630c153107a74bebc9bd3115d03742601d561c94c10085',
+    token : '5c595848c4eab69fd7e4aecf43a93a1f91a7d91a0b396da6',
 
     // COMMENT :: setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {
@@ -33,6 +38,11 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     setLatestExecutionOutput: (newObj: ExecutionOutput) => {
         set({
             latestExecutionOutput: newObj,
+        });
+    },
+    setCellIdToOutputs: (newObj: CellIdToOutputs) => {
+        set({
+            cellIdToOutputs: newObj,
         });
     },
     setCellIdToMsgId: (newObj: CellIdToMsgId) => {
@@ -46,6 +56,9 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     },
     getLatestExecutionOutput: () => {
         return get().latestExecutionOutput;
+    },
+    getCellIdToOutputs: () => {
+        return get().cellIdToOutputs;
     },
     getCellIdToMsgId: () => {
         return get().cellIdToMsgId;
@@ -64,12 +77,19 @@ export const selectorHome = (state: WebSocketState) => ({
     setLatestExecutionCount: state.setLatestExecutionCount,
     latestExecutionOutput: state.latestExecutionOutput,
     setLatestExecutionOutput: state.setLatestExecutionOutput,
+    cellIdToOutputs: state.cellIdToOutputs,
+    setCellIdToOutputs: state.setCellIdToOutputs,
     cellIdToMsgId: state.cellIdToMsgId,
     token: state.token,
-  });
+});
 
 export const selectorBubbleBranch = (state: WebSocketState) => ({
     setLatestExecutionOutput: state.setLatestExecutionOutput,
     setLatestExecutionCount: state.setLatestExecutionCount,
     token: state.token,
-  });
+ });
+
+export const selectorDeleteOutput = (state: WebSocketState) => ({
+    cellIdToOutputs: state.cellIdToOutputs,
+    setCellIdToOutputs: state.setCellIdToOutputs,
+});

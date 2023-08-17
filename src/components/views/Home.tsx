@@ -30,8 +30,6 @@ import { Sidebar, SelectedNodesToolbar } from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
   createInitialElements,
-  createJSON,
-  updateNotebook,
   sortNodes,
   getId,
   getNodePositionInsideParent,
@@ -78,7 +76,6 @@ import "../../styles/ui/canvas.scss";
 import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import axios from "axios";
-import { NotebookPUT } from "../../config/types";
 import { Alert, Button } from "react-bootstrap";
 import useNodesStore from "../../helpers/nodesStore";
 
@@ -94,15 +91,16 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
   // other 
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount,
+    cellIdToOutputs, setCellIdToOutputs,
     token
   } = useWebSocketStore(selectorHome, shallow);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
-  const cmdAndSPressed = useKeyPress(['Meta+s', 'Strg+s']); // https://reactflow.dev/docs/api/hooks/use-key-press
   // INFO :: needed for lock functionality and moving nodes together:
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
@@ -112,7 +110,7 @@ function DynamicGrouping() {
 
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput(
-    { latestExecutionCount, latestExecutionOutput },
+    { latestExecutionCount, latestExecutionOutput, cellIdToOutputs, setCellIdToOutputs },
     cellIdToMsgId
   );
 
@@ -140,9 +138,15 @@ function DynamicGrouping() {
 
   /* Saving notebook when pressing Ctrl/Cmd + S */
   useEffect(() => {
-    if (cmdAndSPressed) saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert);
-  }, [cmdAndSPressed]);
-
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "s" && (isMac ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+        saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [nodes, edges]);
 
   //INFO :: functions
   const onDrop = async (event: DragEvent) => {
@@ -179,7 +183,7 @@ function DynamicGrouping() {
         newNode.data.ws = ws;
         newNode.data.session = session;
       } else if (type === NORMAL_NODE) {
-        newNode.data.executionCount = null;
+        newNode.data.executionCount = '';
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }
