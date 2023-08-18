@@ -22,8 +22,13 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { OutputNodeData } from "../../config/types";
 
-function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>) {
-  const hasParent = useStore((store) => !!store.nodeInternals.get(id)?.parentNode);
+function SimpleOutputNode({
+  id,
+  data,
+}: NodeProps<{ outputs: OutputNodeData[] }>) {
+  const hasParent = useStore(
+    (store) => !!store.nodeInternals.get(id)?.parentNode
+  );
   const detachNodes = useDetachNodes();
 
   const [output, setOutput] = useState({ __html: "" });
@@ -218,15 +223,17 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
         )}
       </NodeToolbar>
       <div className="oinputCentered obuttonArea nodrag">
-        {data?.outputs?.length === 1 && ( <button
-          title="Copy Output"
-          className="obuttonArea oUpper"
-          onClick={copyOutput}
-        >
-          <FontAwesomeIcon className="icon" icon={faCopy} />
-        </button>)}
+        {data?.outputs?.length === 1 && (
+          <button
+            title="Copy Output"
+            className="obuttonArea oUpper"
+            onClick={copyOutput}
+          >
+            <FontAwesomeIcon className="icon" icon={faCopy} />
+          </button>
+        )}
 
-        {(data?.outputs?.length === 1 && data?.outputs[0]?.isImage) && (
+        {data?.outputs?.length === 1 && data?.outputs[0]?.isImage && (
           <button
             className="obuttonArea oLower"
             title="Save Output"
@@ -240,17 +247,17 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
       </div>
 
       {/* {data?.isImage ? ( */}
-        {/* <div
+      {/* <div
           className="outputNode" //to be deleted???
           dangerouslySetInnerHTML={output}
           style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
         ></div> */}
       {/* ) : ( */}
-        <div
-          className="outputNode"
-          dangerouslySetInnerHTML={output}
-          style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
-        ></div>
+      <div
+        className="outputNode"
+        dangerouslySetInnerHTML={output}
+        style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
+      ></div>
       {/* )} */}
 
       <Handle type="target" position={Position.Left} />
@@ -259,3 +266,42 @@ function SimpleOutputNode({ id, data }: NodeProps<{ outputs: OutputNodeData[] }>
 }
 
 export default memo(SimpleOutputNode);
+
+{
+  /*}
+{outputType === "error" ? (
+  <div
+    className="outputNode errorMessage"
+    dangerouslySetInnerHTML={output}
+    style={{
+      maxHeight: "200px",
+      maxWidth: "500px",
+      overflow: "auto",
+    }}
+  ></div>
+) : (
+  <div>
+    {data?.isImage ? (
+      <div
+        className="outputNode " //to be deleted???
+        dangerouslySetInnerHTML={output}
+        style={{
+          maxHeight: "400px",
+          maxWidth: "500px",
+          overflow: "auto",
+        }}
+      ></div>
+    ) : (
+      <div
+        className="outputNode "
+        dangerouslySetInnerHTML={output}
+        style={{
+          maxHeight: "200px",
+          maxWidth: "500px",
+          overflow: "auto",
+        }}
+      ></div>
+    )}
+  </div>
+)}*/
+}

@@ -121,6 +121,10 @@
     box-shadow: $node-box-shadow;;
 }
 
+.rfWrapper .errorMessage{
+    color: red;
+}
+
 /* INFO :: canvas area - group node*/
 /*frame around bubble cell*/
 .rfWrapper .react-flow__node-group {
