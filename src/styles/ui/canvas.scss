@@ -129,14 +129,6 @@
     box-shadow: $node-box-shadow;
 }
 
-.rfWrapper .outputNodeEmpty {
-    background-color: $node-background;
-    border: $node-border;
-    border-color: grey;
-    min-width: 5px;
-    min-height: 40px;
-}
-
 .rfWrapper .errorMessage{
     color: red;
 }

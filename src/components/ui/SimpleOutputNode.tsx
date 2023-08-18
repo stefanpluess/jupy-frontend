@@ -247,8 +247,8 @@ function SimpleOutputNode({
         ))}
       </div>
 
-      {/* TODO: check whether this is fine? */}
-      {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />}
+      {/* TODO: add some additional styleClass if node is empty */}
+      {/* {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />} */}
       <Handle type="target" position={Position.Left} />
     </>
   );

@@ -32,8 +32,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
     };
-    // if output is not empty, create an output node
-    if (cell.outputs.length > 0) {
+    // for each code node, create an output node
+    if (cell.cell_type === 'code') {
       const outputNode: Node = createOutputNode(node)
       // for each output (if multiple) set the output data
       const allOutputs = [] as OutputNodeData[];
@@ -51,7 +51,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       });
       outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
-      outputNode.position = cell.outputs[0].position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
+      outputNode.position = cell.outputs[0]?.position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
