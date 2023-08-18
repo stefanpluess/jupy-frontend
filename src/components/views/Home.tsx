@@ -416,7 +416,9 @@ function DynamicGrouping() {
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          minZoom={0.2}
+          minZoom={0.15}
+          maxZoom={3}
+          deleteKeyCode={null}
         >
           <Background gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
