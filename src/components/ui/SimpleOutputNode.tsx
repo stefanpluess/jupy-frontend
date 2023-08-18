@@ -32,7 +32,9 @@ function SimpleOutputNode({
   );
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
-  const [selectedOutputIndex, setSelectedOutputIndex] = useState(null as number | null);
+  const [selectedOutputIndex, setSelectedOutputIndex] = useState(
+    null as number | null
+  );
 
   useEffect(() => {
     if (!data.outputs) return;
@@ -42,18 +44,22 @@ function SimpleOutputNode({
     data.outputs.forEach((output) => {
       if (!currentGroup || currentGroup.isImage || output.isImage) {
         currentGroup = {
-          output: '',
+          output: "",
           isImage: output.isImage,
-          outputType: output.isImage ? 'display_data' : 'stream',
+          outputType: output.isImage ? "display_data" : "stream",
           timestamp: output.timestamp,
         };
         grouped.push(currentGroup);
       }
       // in case of live updates (f.ex. training a model), \b is used to delete the previous output
       // display the output in a way that the \b is respected (removing from prevous output, replacing with '' in current output)
-      const strippedOutput = output.output.split('\b')
+      const strippedOutput = output.output.split("\b");
       const indexOfCorrectOutput = strippedOutput.length - 1;
-      if (indexOfCorrectOutput > 0) currentGroup.output = currentGroup.output.slice(0, -indexOfCorrectOutput);
+      if (indexOfCorrectOutput > 0)
+        currentGroup.output = currentGroup.output.slice(
+          0,
+          -indexOfCorrectOutput
+        );
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
 
@@ -73,26 +79,30 @@ function SimpleOutputNode({
       console.log("Copied Output:\n" + copiedOutput);
     } else {
       const item = new clipboard.ClipboardItem({
-        "image/png": b64toBlob(groupedOutputs[index]?.output, 'image/png', 512)
+        "image/png": b64toBlob(groupedOutputs[index]?.output, "image/png", 512),
       });
       await clipboard.write([item]);
       alert("Copied Image as PNG to Clipboard!");
     }
   };
 
-  function b64toBlob(b64Data: string, contentType = 'image/png', sliceSize = 512) {
-    let byteCharacters = atob(b64Data)
-    let byteArrays = []
+  function b64toBlob(
+    b64Data: string,
+    contentType = "image/png",
+    sliceSize = 512
+  ) {
+    let byteCharacters = atob(b64Data);
+    let byteArrays = [];
     for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      let slice = byteCharacters.slice(offset, offset + sliceSize)
+      let slice = byteCharacters.slice(offset, offset + sliceSize);
       let byteNumbers = new Array(slice.length);
       for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i)
+        byteNumbers[i] = slice.charCodeAt(i);
       }
-      var byteArray = new Uint8Array(byteNumbers)
-      byteArrays.push(byteArray)
+      var byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
     }
-    return new Blob(byteArrays, {type: contentType})
+    return new Blob(byteArrays, { type: contentType });
   }
 
   const saveOutput = (index: number) => {
@@ -116,7 +126,9 @@ function SimpleOutputNode({
   };
 
   // INFO :: lock functionality - observe the lock state of the connected SimpleNode with code
-  const isSimpleNodeLocked = useNodesStore((state) => state.locks[getConnectedNodeId(id)]);
+  const isSimpleNodeLocked = useNodesStore(
+    (state) => state.locks[getConnectedNodeId(id)]
+  );
   const MySwal = withReactContent(Swal);
   const showAlertDetachOff = () => {
     // window.alert('Unlock 🔓 before detaching!');
@@ -142,7 +154,7 @@ function SimpleOutputNode({
     } else {
       setSelectedOutputIndex(index);
     }
-  }
+  };
 
   return (
     <>
@@ -174,25 +186,10 @@ function SimpleOutputNode({
           </button>
         )}
       </NodeToolbar>
-<<<<<<< HEAD
-      <div className="oinputCentered obuttonArea nodrag">
-        {data?.outputs?.length === 1 && (
-          <button
-            title="Copy Output"
-            className="obuttonArea oUpper"
-            onClick={copyOutput}
-          >
-            <FontAwesomeIcon className="icon" icon={faCopy} />
-          </button>
-        )}
-
-        {data?.outputs?.length === 1 && data?.outputs[0]?.isImage && (
-=======
 
       {/* ----- Single Output - Always show buttons ----- */}
       {groupedOutputs.length === 1 && (
         <div className="oinputCentered obuttonArea nodrag">
->>>>>>> 3595ecd935bf1d723a6b1d24cb0893beb5734cc6
           <button
             title="Copy Output"
             className="obuttonArea oUpper"
@@ -223,21 +220,6 @@ function SimpleOutputNode({
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
-<<<<<<< HEAD
-      {/* {data?.isImage ? ( */}
-      {/* <div
-          className="outputNode" //to be deleted???
-          dangerouslySetInnerHTML={output}
-          style={{ maxHeight: "400px", maxWidth: "500px", overflow: "auto" }}
-        ></div> */}
-      {/* ) : ( */}
-      <div
-        className="outputNode"
-        dangerouslySetInnerHTML={output}
-        style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
-      ></div>
-      {/* )} */}
-=======
           {data.outputs[selectedOutputIndex]?.isImage && (
             <button
               className="obuttonArea oLower"
@@ -253,17 +235,20 @@ function SimpleOutputNode({
       <div style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}>
         {groupedOutputs.map((groupedOutput, index) => (
           <div
-            className={selectedOutputIndex === index && groupedOutputs.length !== 1 ? "outputNode selected" : "outputNode"}
+            className={
+              selectedOutputIndex === index && groupedOutputs.length !== 1
+                ? "outputNode selected"
+                : "outputNode"
+            }
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
             // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
           ></div>
         ))}
       </div>
->>>>>>> 3595ecd935bf1d723a6b1d24cb0893beb5734cc6
 
       {/* TODO: check whether this is fine? */}
-      {groupedOutputs.length === 0 && <div className="outputNodeEmpty"/>}
+      {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />}
       <Handle type="target" position={Position.Left} />
     </>
   );
