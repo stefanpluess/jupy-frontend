@@ -15,6 +15,7 @@
     "@uiw/react-textarea-code-editor": "^2.1.6",
     "axios": "^1.4.0",
     "bootstrap": "^5.2.3",
+    "clipboard-polyfill": "^4.0.0",
     "interactjs": "^1.10.17",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.4",

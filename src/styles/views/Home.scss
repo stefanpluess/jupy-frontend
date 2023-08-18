@@ -106,15 +106,18 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   align-items: center;
   margin-left: 100%;
   margin-top: -5px;
-
-
 }
 
 .wrapper .obuttonArea {
   background-color: transparent;
   border-color: transparent;
   color: white;
+}
 
+.wrapper .obuttonArea:hover {
+  background-color: transparent;
+  border-color: transparent;
+  color: grey;
 }
 
  .wrapper .oUpper {
