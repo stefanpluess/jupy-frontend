@@ -123,6 +123,15 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
           }
           cell.outputs.push(output);
         });
+        // in case there are no outputs, just create an empty output
+        if (node.data.outputs.length === 0) {
+          const output: NotebookOutput = {
+            output_type: 'stream',
+            text: [""],
+            position: node.position,
+          };
+          cell.outputs.push(output);
+        }
       }
     }
   });

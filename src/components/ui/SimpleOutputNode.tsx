@@ -42,11 +42,11 @@ function SimpleOutputNode({
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
-      if (!currentGroup || currentGroup.isImage || output.isImage) {
+      if (!currentGroup || currentGroup.isImage || output.isImage || output.outputType === "error") {
         currentGroup = {
           output: "",
           isImage: output.isImage,
-          outputType: output.isImage ? "display_data" : "stream",
+          outputType: output.isImage ? "display_data" : output.outputType === "error" ? "error" : "stream",
           timestamp: output.timestamp,
         };
         grouped.push(currentGroup);
@@ -237,8 +237,8 @@ function SimpleOutputNode({
           <div
             className={
               selectedOutputIndex === index && groupedOutputs.length !== 1
-                ? "outputNode selected"
-                : "outputNode"
+                ? "outputNode selected" + (groupedOutput.outputType === "error" ? " errorMessage" : "")
+                : "outputNode" + (groupedOutput.outputType === "error" ? " errorMessage" : "")
             }
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}

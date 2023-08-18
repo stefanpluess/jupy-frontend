@@ -46,6 +46,7 @@ import CommentNode from "./CommentNode";
 import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
+import { OutputNodeData } from "../../config/types";
 
 const handleStyle = { height: 4, width: 4 };
 
@@ -62,8 +63,13 @@ function SimpleNode({ id, data }: NodeProps) {
   const detachNodes = useDetachNodes();
   const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
-  const outputType = getNode(id + "_output")?.data.outputs[0]?.outputType;
+  const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
+
+  const hasError = useCallback(() => {
+    if (!outputs) return false;
+    return outputs.some((output: OutputNodeData) => output.outputType === "error");
+  }, [outputs]);
 
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
@@ -297,7 +303,7 @@ function SimpleNode({ id, data }: NodeProps) {
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
-          {outputType !== "error" ? (
+          {!hasError() ? (
             <button
               title="Run Code"
               className="rinputCentered playButton rcentral"
