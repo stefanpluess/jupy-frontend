@@ -65,6 +65,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
+  const initialRender = useRef(true);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -121,6 +122,11 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
+      if (initialRender.current) {
+        initialRender.current = false;
+        return;
+      }
+      console.log("editor changed: " + value);
       // fetch the node using the store and update the code (needed for the editor to work)
       const node = getNode(id);
       node!.data.code = value;
