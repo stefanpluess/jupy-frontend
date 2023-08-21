@@ -135,6 +135,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
 
   const runCode = useCallback(() => {
+    if (data.code.trim() === "") return;
     console.log("run code (" + data.code + ")!");
     var msg_id = uuidv4();
     setCellIdToMsgId({ [msg_id]: id });
