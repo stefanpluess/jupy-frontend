@@ -26,6 +26,7 @@ import axios from "axios";
 import { startWebsocket, createSession } from "../../helpers/websocket/websocketUtils";
 import CustomConfirmModal from "./CustomConfirmModal";
 import CustomInformationModal from "./CustomInformationModal";
+import useNodesStore from "../../helpers/nodesStore";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -59,17 +60,37 @@ function GroupNode({ id, data }: NodeProps) {
     };
   }, isEqual);
 
+  // const setCurrentStatus = useNodesStore((state) => state.setCurrentStatus);
+
+  // const statusListener = (status: string) => { 
+  //   console.log(":::: Websocket Status = ", status, "::::");
+  //   setCurrentStatus(status); 
+  // };
+
   useEffect(() => {
     const handleWebSocketOpen = () => setIsRunning(true);
     const handleWebSocketClose = () => setIsRunning(false);
+    // const handleStatusChange = (event: MessageEvent<any>) => {
+    //   const message = JSON.parse(event.data);
+    //   if (message.msg_type === 'status') {
+    //     statusListener(message.content.execution_state);
+    //   }
+    // };
     if (nodeData.ws) {
       // Add event listeners to handle WebSocket state changes
       nodeData.ws.addEventListener('open', handleWebSocketOpen);
-      nodeData.ws.addEventListener('close', handleWebSocketClose)
+      nodeData.ws.addEventListener('close', handleWebSocketClose);
+
+      // Add event listener to handle incoming messages
+      // nodeData.ws.addEventListener('message', handleStatusChange);
+
       // Remove event listeners when the component unmounts
       return () => {
         nodeData.ws.removeEventListener('open', handleWebSocketOpen);
         nodeData.ws.removeEventListener('close', handleWebSocketClose);
+
+        // nodeData.ws.removeEventListener('message', () => {});
+        
       };
     }
   }, [nodeData.ws, data.ws]);

@@ -38,6 +38,7 @@ function SimpleOutputNode({
 
   useEffect(() => {
     if (!data.outputs) return;
+    console.log(`OutputNode ${id}: `, data.outputs);
     setSelectedOutputIndex(null);
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;

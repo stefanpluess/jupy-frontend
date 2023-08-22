@@ -5,6 +5,22 @@ export type NodesStore = {
     locks: { [id: string]: boolean };
     toggleLock: (id: string) => void;
     getIsLockedForId: (id: string) => boolean;
+    
+
+    // INFO :: queue functionality
+    currentStatus: string;
+    setCurrentStatus: (status: string) => void;
+    getCurrentStatus: () => string;
+
+    // queue: Array<string>;
+    // addToQueue: (nodeId: string) => void;
+    // removeFromQueue: () => void;
+    // getCurrentNode: () => string;
+    queues: { [groupId: string]: Array<string> }; // Object to store queues for each ws
+    addToQueue: (groupId: string, nodeId: string) => void;
+    removeFromQueue: (groupId: string) => void;
+    getCurrentNode: (groupId: string) => string;
+    printQueue: () => {}, 
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -34,6 +50,32 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     // console.log("returining current status...")
     return get().locks[id];
   },
+
+  // INFO :: queue functionality
+  currentStatus: 'idle',
+  setCurrentStatus: (status) => set({ currentStatus: status }),
+  getCurrentStatus: () => get().currentStatus,
+
+  // queue: [],
+  // addToQueue: (nodeId) => set((state) => ({ queue: [...state.queue, nodeId] })),
+  // removeFromQueue: () => set((state) => ({ queue: state.queue.slice(1) })),
+  // getCurrentNode: () => get().queue[0],
+  queues: {},
+  addToQueue: (groupId, nodeId) =>
+    set((state) => ({
+      queues: {
+        ...state.queues,
+        [groupId]: [...(state.queues[groupId] || []), nodeId],
+      },
+    })),
+  removeFromQueue: (groupId) =>
+    set((state) => {
+      const [removed, ...rest] = state.queues[groupId] || [];
+      return { queues: { ...state.queues, [groupId]: rest } };
+    }),
+  getCurrentNode: (groupId) => (get().queues[groupId] || [])[0],
+  printQueue: () => get().queues,
+
 }));
 
 export default useNodesStore;

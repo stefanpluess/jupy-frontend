@@ -74,6 +74,14 @@ function SimpleNode({ id, data }: NodeProps) {
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
+
+    // INFO :: queue functionality
+    if(hasParent){
+      const groupId = parent!.id;
+      console.log(`SimpleNode ${id}: Removing from queue...`);
+      console.log(`------------------------------------------------------------`);
+      removeFromQueue(groupId);
+    }
   }, [data?.executionCount]);
 
   // when deleting the node, automatically delete the output node as well
@@ -128,11 +136,71 @@ function SimpleNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
-  const runCode = useCallback(() => {
-    console.log("run code (" + data.code + ")!");
+  // const runCode = useCallback(() => {
+  //   console.log("run code (" + data.code + ")!");
+  //   var msg_id = uuidv4();
+  //   setCellIdToMsgId({ [msg_id]: id });
+  //   setExecutionCount("*");
+  //   const ws = parent?.data.ws;
+  //   const message = generateMessage(msg_id, data.code);
+  //   if (ws.readyState === WebSocket.OPEN) {
+  //     deleteOutput(id + "_output");
+  //     ws.send(JSON.stringify(message));
+  //   } else {
+  //     console.log("websocket is not connected");
+  //   }
+  // }, [parent, data.code]);
+
+  const addToQueue = useNodesStore((state) => state.addToQueue);
+  const getCurrentNode = useNodesStore((state) => state.getCurrentNode);
+  const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
+  const printQueue = useNodesStore((state) => state.printQueue);
+
+  // const runCode = useCallback(async () => {
+  //   // Add itself to the queue
+  //   addToQueue(id);
+  //   setExecutionCount("*");
+  //   // Wait until it's this node's turn
+  //   console.log("Current Node: " + getCurrentNode() + " | id: " + id + "");
+  //   while (getCurrentNode() !== id) {
+  //     console.log("waiting in a queue...");
+  //     await new Promise((resolve) => setTimeout(resolve, 100)); // Adjust the delay as needed
+  //   }
+  //   // Run the code
+  //   console.log(`SimpleNode ${id}: RUN CODE!`);
+  //   // console.log("run code (" + data.code + ")!");
+  //   var msg_id = uuidv4();
+  //   setCellIdToMsgId({ [msg_id]: id });
+  //   const ws = parent?.data.ws;
+  //   const message = generateMessage(msg_id, data.code);
+  //   if (ws.readyState === WebSocket.OPEN) {
+  //     deleteOutput(id + "_output");
+  //     ws.send(JSON.stringify(message));
+  //   } else {
+  //     console.log("websocket is not connected");
+  //   }
+  // }, [parent, data.code]);
+
+  // INFO :: queue functionality
+  const runCode = useCallback(async () => {
+    console.log(`SimpleNode ${id}: START`);
+    const groupId = parent!.id;
+    // print queue 
+    // console.log(`SimpleNode ${id}: `, printQueue());
+    // Add itself to the queue
+    addToQueue(groupId, id);
+    setExecutionCount("*");
+    // Wait until it's this node's turn
+    // console.log("Current Node: " + getCurrentNode(groupId) + " | id: " + id + "");
+    while (getCurrentNode(groupId) !== id) {
+      // console.log(`SimpleNode ${id}: waiting in a queue...`);
+      await new Promise((resolve) => setTimeout(resolve, 200)); // Adjust the delay as needed
+    }
+    // Run the code
+    // console.log(`SimpleNode ${id}: RUN CODE!`);
+    // console.log("run code (" + data.code + ")!");
     var msg_id = uuidv4();
     setCellIdToMsgId({ [msg_id]: id });
-    setExecutionCount("*");
     const ws = parent?.data.ws;
     const message = generateMessage(msg_id, data.code);
     if (ws.readyState === WebSocket.OPEN) {
@@ -141,7 +209,8 @@ function SimpleNode({ id, data }: NodeProps) {
     } else {
       console.log("websocket is not connected");
     }
-  }, [parent, data.code]);
+    console.log(`SimpleNode ${id}: END`);
+  }, [parent, data.code, addToQueue]);
 
   // BUG: with the new editor, deleting is not always shown
   const deleteCode = useCallback(() => {
