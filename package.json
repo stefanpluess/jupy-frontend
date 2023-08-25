@@ -12,7 +12,6 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@uiw/react-monacoeditor": "^3.5.9",
-    "@uiw/react-textarea-code-editor": "^2.1.6",
     "axios": "^1.4.0",
     "bootstrap": "^5.2.3",
     "clipboard-polyfill": "^4.0.0",

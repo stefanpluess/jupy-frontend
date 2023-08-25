@@ -126,10 +126,10 @@ function SimpleNode({ id, data }: NodeProps) {
         initialRender.current = false;
         return;
       }
-      console.log("editor changed: " + value);
       // fetch the node using the store and update the code (needed for the editor to work)
       const node = getNode(id);
       node!.data.code = value;
+      data.code = value;
     },
     [data, data.code]
   );
