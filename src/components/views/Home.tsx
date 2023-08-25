@@ -131,7 +131,8 @@ function DynamicGrouping() {
           node.data.session = session;
         }
       });
-      setNodes(initialNodes);
+      const sortedNodes = initialNodes.sort(sortNodes);
+      setNodes(sortedNodes);
       setEdges(initialEdges);
     });
   }, []);
