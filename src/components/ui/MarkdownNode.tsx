@@ -74,7 +74,7 @@ function MarkdownNode({ id, data }: NodeProps) {
       {toolbar}
       <div className="simpleNodewrapper">
         <div className="inner">
-          <div className="textareaNode" style={{paddingLeft: '4px'}} onDoubleClick={() => setEditMode(true)}>
+          <div className="textareaNode" style={{paddingLeft: '4px', height: '100%', width: '100%'}} onDoubleClick={() => setEditMode(true)}>
             <ReactMarkdown className="markdown" >{data.code}</ReactMarkdown>
           </div>
         </div>
