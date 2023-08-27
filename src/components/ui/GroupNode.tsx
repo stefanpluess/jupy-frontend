@@ -20,13 +20,15 @@ import {
   faCirclePlay,
   faNetworkWired,
 } from "@fortawesome/free-solid-svg-icons";
-import {useDetachNodes, useBubbleBranchClick, usePath} from "../../helpers/hooks";
+import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession } from "../../helpers/websocket/websocketUtils";
 import CustomConfirmModal from "./CustomConfirmModal";
 import CustomInformationModal from "./CustomInformationModal";
 import useNodesStore from "../../helpers/nodesStore";
+import { v4 as uuidv4 } from "uuid";
+import { generateMessage } from "../../helpers/utils";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -60,37 +62,61 @@ function GroupNode({ id, data }: NodeProps) {
     };
   }, isEqual);
 
-  // const setCurrentStatus = useNodesStore((state) => state.setCurrentStatus);
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
+  const isExecuting = useNodesStore((state) => state.groupNodesExecutionStates[id]);
+  const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
+  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
+  const deleteOutput = useDeleteOutput();
 
-  // const statusListener = (status: string) => { 
-  //   console.log(":::: Websocket Status = ", status, "::::");
-  //   setCurrentStatus(status); 
-  // };
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  useEffect(() => {
+    console.log("Queue changed for GROUP: ", id);
+    if (queues){
+      // if the queue is empty, do nothing
+      if (queues && queues.length === 0) {
+        // console.log("Queue is empty for GROUP: ", id);
+        return;
+      }
+      // if the queue is not empty and the current status is running, do nothing
+      else if (isExecuting) {
+        // console.log("Queue is not empty and isExecuting is true for GROUP: ", id);
+        return;
+      // if the queue is not empty and the current status is not running, execute the next item in the queue
+      } else {
+        // console.log("Queue is not empty and isExecuting is false for GROUP: ", id);
+        // execute next item in the queue
+        const [simpleNodeId, code] = queues[0];
+        // set the current status to running
+        setExecutionStateForGroupNode(id, true);
+        // execute the next item
+        const msg_id = uuidv4();
+        const message = generateMessage(msg_id, code);
+        setCellIdToMsgId({ [msg_id]: simpleNodeId });
+        const ws = data.ws;
+        if (ws.readyState === WebSocket.OPEN) {
+          deleteOutput(simpleNodeId + "_output");
+          ws.send(JSON.stringify(message));
+        } else {
+          console.log("websocket is not connected");
+        }
+      }
+    } else {
+      console.error("Queue is undefined for GROUP: ", id);
+    }
+  }, [queues]);
 
   useEffect(() => {
     const handleWebSocketOpen = () => setIsRunning(true);
     const handleWebSocketClose = () => setIsRunning(false);
-    // const handleStatusChange = (event: MessageEvent<any>) => {
-    //   const message = JSON.parse(event.data);
-    //   if (message.msg_type === 'status') {
-    //     statusListener(message.content.execution_state);
-    //   }
-    // };
     if (nodeData.ws) {
       // Add event listeners to handle WebSocket state changes
       nodeData.ws.addEventListener('open', handleWebSocketOpen);
       nodeData.ws.addEventListener('close', handleWebSocketClose);
-
-      // Add event listener to handle incoming messages
-      // nodeData.ws.addEventListener('message', handleStatusChange);
-
       // Remove event listeners when the component unmounts
       return () => {
         nodeData.ws.removeEventListener('open', handleWebSocketOpen);
         nodeData.ws.removeEventListener('close', handleWebSocketClose);
-
-        // nodeData.ws.removeEventListener('message', () => {});
-        
       };
     }
   }, [nodeData.ws, data.ws]);
