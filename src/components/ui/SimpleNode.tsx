@@ -76,7 +76,7 @@ function SimpleNode({ id, data }: NodeProps) {
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
-    // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+    // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality 
     if(hasParent){
       const groupId = parent!.id;
       // console.log(`SimpleNode ${id}: Removing from queue and setting execution to false...`);
@@ -88,11 +88,11 @@ function SimpleNode({ id, data }: NodeProps) {
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const runCode = useCallback(async () => {
-    console.log(`SimpleNode ${id}: runCode`);
+    // console.log(`SimpleNode ${id}: runCode`);
     if(parent){
       const groupId = parent.id;
       setExecutionCount("*");
-      // deleteOutput(id + "_output");
+      deleteOutput(id + "_output");
       addToQueue(groupId, id, data.code);
     }
   }, [parent, data.code, addToQueue]);
