@@ -27,7 +27,7 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
     latestExecutionOutput: {} as ExecutionOutput,
     cellIdToOutputs: {} as CellIdToOutputs,
     cellIdToMsgId: {} as CellIdToMsgId,
-    token : 'ae61040338cc071454457ae9a5929f20783729609718e3b9',
+    token : process.env.REACT_APP_API_TOKEN!,
 
     // COMMENT :: setters
     setLatestExecutionCount: (newObj: ExecutionCount) => {
@@ -46,9 +46,13 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
         });
     },
     setCellIdToMsgId: (newObj: CellIdToMsgId) => {
-        set({
-            cellIdToMsgId: newObj,
-        });
+        // using the previous state, we can update the cellIdToMsgId mapping
+        set((state) => ({
+            cellIdToMsgId: {
+                ...state.cellIdToMsgId,
+                ...newObj,
+            },
+        }));
     },
     // COMMENT :: getters 
     getLatestExecutionCount: () => {

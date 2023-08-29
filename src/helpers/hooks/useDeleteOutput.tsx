@@ -13,6 +13,7 @@ function useDeleteOutput() {
         const nodes = store.getState().getNodes();
         const updatedNodes = nodes.map((node) => {
             if (node.id === output_node_id) {
+                // console.log("deleting output of node: ", output_node_id);
                 return { 
                     ...node, 
                     data: {
