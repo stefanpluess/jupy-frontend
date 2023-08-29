@@ -46,9 +46,13 @@ const useWebSocketStore = create<WebSocketState>((set, get) => ({
         });
     },
     setCellIdToMsgId: (newObj: CellIdToMsgId) => {
-        set({
-            cellIdToMsgId: newObj,
-        });
+        // using the previous state, we can update the cellIdToMsgId mapping
+        set((state) => ({
+            cellIdToMsgId: {
+                ...state.cellIdToMsgId,
+                ...newObj,
+            },
+        }));
     },
     // COMMENT :: getters 
     getLatestExecutionCount: () => {

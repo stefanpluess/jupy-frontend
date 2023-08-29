@@ -37,13 +37,11 @@ import {
   faXmarkCircle,
   faLockOpen,
 } from "@fortawesome/free-solid-svg-icons";
-import { v4 as uuidv4 } from "uuid";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
 import { useDetachNodes, useDeleteOutput } from "../../helpers/hooks";
-import { useWebSocketStore } from "../../helpers/websocket";
 import CommentNode from "./CommentNode";
-import { generateMessage, getConnectedNodeId } from "../../helpers/utils";
+import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 import { OutputNodeData } from "../../config/types";
@@ -59,7 +57,6 @@ function SimpleNode({ id, data }: NodeProps) {
     (store) => store.nodeInternals.get(id)?.parentNode
   );
   const parent = getNode(parentNode!);
-  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const detachNodes = useDetachNodes();
   const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
@@ -71,10 +68,34 @@ function SimpleNode({ id, data }: NodeProps) {
     return outputs.some((output: OutputNodeData) => output.outputType === "error");
   }, [outputs]);
 
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  const addToQueue = useNodesStore((state) => state.addToQueue);
+  const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
+  const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
+
   useEffect(() => {
     // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
     setExecutionCount(data?.executionCount);
+    // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality 
+    if(hasParent){
+      const groupId = parent!.id;
+      // console.log(`SimpleNode ${id}: Removing from queue and setting execution to false...`);
+      // console.log(`------------------------------`);
+      setExecutionStateForGroupNode(groupId, false);
+      removeFromQueue(groupId);
+    }
   }, [data?.executionCount]);
+
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  const runCode = useCallback(async () => {
+    // console.log(`SimpleNode ${id}: runCode`);
+    if(parent){
+      const groupId = parent.id;
+      setExecutionCount("*");
+      deleteOutput(id + "_output");
+      addToQueue(groupId, id, data.code);
+    }
+  }, [parent, data.code, addToQueue]);
 
   // when deleting the node, automatically delete the output node as well
   const onDelete = () =>
@@ -127,21 +148,6 @@ function SimpleNode({ id, data }: NodeProps) {
     },
     [data, data.code]
   );
-
-  const runCode = useCallback(() => {
-    console.log("run code (" + data.code + ")!");
-    var msg_id = uuidv4();
-    setCellIdToMsgId({ [msg_id]: id });
-    setExecutionCount("*");
-    const ws = parent?.data.ws;
-    const message = generateMessage(msg_id, data.code);
-    if (ws.readyState === WebSocket.OPEN) {
-      deleteOutput(id + "_output");
-      ws.send(JSON.stringify(message));
-    } else {
-      console.log("websocket is not connected");
-    }
-  }, [parent, data.code]);
 
   // BUG: with the new editor, deleting is not always shown
   const deleteCode = useCallback(() => {
