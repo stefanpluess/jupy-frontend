@@ -263,7 +263,8 @@ function SimpleNode({ id, data }: NodeProps) {
             value={data.code}
             onChange={handleEditorChange}
             onKeyDown={(e) => {
-              if (e.ctrlKey && e.code === "Enter") {
+              // check if ctrl or shift + enter is pressed
+              if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                 e.preventDefault();
                 runCode();
               }
