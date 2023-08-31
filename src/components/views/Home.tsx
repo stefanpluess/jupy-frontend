@@ -177,6 +177,9 @@ function DynamicGrouping() {
         style: nodeStyle,
       };
 
+      // prevent from dropping a group node on group node
+      if (groupNode && type === GROUP_NODE) return;
+
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
         const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);

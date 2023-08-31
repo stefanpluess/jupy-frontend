@@ -48,7 +48,9 @@ const Sidebar = ( {nodes, edges, setShowSuccessAlert, setShowErrorAlert } : Side
         <div className="label">Markdown</div>
       </div>
 
-      <Button variant="success" style={{ position: 'relative', bottom: -400, }} onClick={() => { saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert) }}>
+      <Button variant="success"
+        className="saveButton"
+        onClick={() => { saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert) }}>
         <FontAwesomeIcon icon={faSave} />
       </Button>
     </aside>

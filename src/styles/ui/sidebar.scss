@@ -8,6 +8,8 @@
     background-color: $shared-bg-color;
     color: $shared-text-color;
     height: 100%;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
   }
 /*cells in navbar */
 .wrapper .sidebar aside div[class^='react-flow__node-'] {

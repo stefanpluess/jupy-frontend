@@ -182,7 +182,7 @@ function SimpleNode({ id, data }: NodeProps) {
     handleDuplicateCell();
   };
 
-  // INFO :: lock functionality
+  // INFO :: 🔒lock functionality
   const [transitioning, setTransitioning] = useState(false);
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
@@ -276,7 +276,7 @@ function SimpleNode({ id, data }: NodeProps) {
               scrollBeyondLastLine: false,
               scrollBeyondLastColumn: 0,
               fontSize: 10,
-              wordWrap: "off",
+              wordWrap: "on",
               // wrappingIndent: 'none',
               minimap: { enabled: false },
               renderLineHighlightOnlyWhenFocus: true,
@@ -352,7 +352,7 @@ function SimpleNode({ id, data }: NodeProps) {
           </div>
           {/* INFO :: lock button */}
           <button
-            title="Lock Edge"
+            title={isLocked ? "Unlock edge 🔓" : "Lock edge 🔒"}
             className="rinputCentered cellButton rtop"
             onClick={runLockUnlock}
           >
