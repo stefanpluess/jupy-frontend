@@ -16,6 +16,13 @@ export type CellIdToOutputs = {
     [cellId: string]: OutputNodeData[];
 };
 
+export type CellIdToExecCount = {
+    [cellId: string]: {
+        execCount: number;
+        timestamp: Date;
+    };
+};
+
 export type OutputNodeData = {
     output: string;
     isImage: boolean;

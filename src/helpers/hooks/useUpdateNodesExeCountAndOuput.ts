@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReactFlow } from 'reactflow';
-import { CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
+import { CellIdToExecCount, CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
 import { WebSocketState } from '../websocket/webSocketStore';
 // access the type from WebSocketState
 type setCITOType = WebSocketState['setCellIdToOutputs'];
@@ -26,8 +26,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     const { setNodes } = useReactFlow();
     const firstRenderExecCount = useRef(true);
     const firstRenderOutput = useRef(true);
-    const [execCount, setExecCount] = useState(0);
-    // create a mapping of cell ids to output objects (CellIdToOutputs)
+    const [execCount, setExecCount] = useState<CellIdToExecCount>({});
     /* 
      Another approach: instead of passing arguments we could use the useWebSocketStore
         import useWebSocketStore from './websocket/useWebSocketStore';
@@ -41,9 +40,18 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
             firstRenderExecCount.current = false;
             return;
         }
-        // console.log("EXECUTION COUNT")
+        // console.log("LATEST EXECUTION COUNT")
         const executionCount = latestExecutionCount.execution_count;
-        setExecCount(executionCount);
+        const msg_id_execCount = latestExecutionCount.msg_id;
+        const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
+        const updatedExecCounts = {
+            ...execCount,
+            [cell_id_execCount]: {
+                execCount: executionCount,
+                timestamp: new Date()
+            },
+        }
+        setExecCount(updatedExecCounts);
     }, [latestExecutionCount]);
 
 
@@ -107,7 +115,6 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
 
 
     useEffect(() => {
-        if (execCount === 0) return;
         // console.log("execCount changed: ", execCount)
         const msg_id_execCount = latestExecutionCount.msg_id;
         const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
@@ -116,12 +123,12 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
             const updatedNodes = prevNodes.map((node) => {
                 // if it matches, update the execution count
                 if (node.id === cell_id_execCount) {
-                    // console.log("EXECUTION COUNT: ", execCount)
+                    // console.log("EXECUTION COUNT MATCHING: ", execCount[cell_id_execCount])
                     return {
                         ...node,
                         data: {
                             ...node.data,
-                            executionCount: execCount
+                            executionCount: execCount[cell_id_execCount]
                         },
                     };
                 // if nothing matches, return the node without modification

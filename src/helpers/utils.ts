@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
-import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
+import { CellIdToExecCount, Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, ID_LENGTH } from '../config/constants';
 
 
@@ -19,7 +19,10 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       type: cell.cell_type === 'code' ? NORMAL_NODE : cell.cell_type === 'group' ? GROUP_NODE : MARKDOWN_NODE,
       data: cell.cell_type  === 'code' ? {
         code: cell.source,
-        executionCount: cell.execution_count
+        executionCount: {
+          execCount: cell.execution_count,
+          timestamp: Date.now()
+        }
       } : cell.cell_type === 'markdown' ? {
         code: cell.source
       } : {},

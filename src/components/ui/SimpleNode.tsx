@@ -59,7 +59,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
   const deleteOutput = useDeleteOutput();
-  const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
+  const [executionCount, setExecutionCount] = useState(data?.executionCount.execCount || '');
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const initialRender = useRef(true);
@@ -75,8 +75,8 @@ function SimpleNode({ id, data }: NodeProps) {
   const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
 
   useEffect(() => {
-    // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount)
-    setExecutionCount(data?.executionCount);
+    // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount.execCount)
+    setExecutionCount(data?.executionCount.execCount);
     // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality 
     if(hasParent){
       const groupId = parent!.id;
