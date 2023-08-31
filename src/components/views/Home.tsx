@@ -131,7 +131,8 @@ function DynamicGrouping() {
           node.data.session = session;
         }
       });
-      setNodes(initialNodes);
+      const sortedNodes = initialNodes.sort(sortNodes);
+      setNodes(sortedNodes);
       setEdges(initialEdges);
     });
   }, []);
@@ -159,7 +160,7 @@ function DynamicGrouping() {
         y: event.clientY - wrapperBounds.top - 20,
       }); // TODO - change to not fixed value / export to constant
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
-                        type === NORMAL_NODE ? { width: 200, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
+                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 200, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
 
       const intersections = getIntersectingNodes({
         x: position.x,
@@ -419,7 +420,9 @@ function DynamicGrouping() {
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          minZoom={0.2}
+          minZoom={0.15}
+          maxZoom={3}
+          deleteKeyCode={null}
         >
           <Background gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />

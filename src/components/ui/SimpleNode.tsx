@@ -62,6 +62,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const [executionCount, setExecutionCount] = useState(data?.executionCount || 0);
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
+  const initialRender = useRef(true);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -88,6 +89,7 @@ function SimpleNode({ id, data }: NodeProps) {
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const runCode = useCallback(async () => {
+    if (data.code.trim() === "") return;
     // console.log(`SimpleNode ${id}: runCode`);
     if(parent){
       const groupId = parent.id;
@@ -142,9 +144,14 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
+      if (initialRender.current) {
+        initialRender.current = false;
+        return;
+      }
       // fetch the node using the store and update the code (needed for the editor to work)
       const node = getNode(id);
       node!.data.code = value;
+      data.code = value;
     },
     [data, data.code]
   );
@@ -256,7 +263,8 @@ function SimpleNode({ id, data }: NodeProps) {
             value={data.code}
             onChange={handleEditorChange}
             onKeyDown={(e) => {
-              if (e.ctrlKey && e.code === "Enter") {
+              // check if ctrl or shift + enter is pressed
+              if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                 e.preventDefault();
                 runCode();
               }

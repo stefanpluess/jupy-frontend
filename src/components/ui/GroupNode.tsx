@@ -46,6 +46,7 @@ function GroupNode({ id, data }: NodeProps) {
   const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
   const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
+  const [showConfirmModalDetach, setShowConfirmModalDetach] = useState(false);
   const [isRunning, setIsRunning] = useState(true); // TODO: - use data.ws.readyState
   const [isBranching, setIsBranching] = useState(false);
   const detachNodes = useDetachNodes();
@@ -133,14 +134,25 @@ function GroupNode({ id, data }: NodeProps) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
+    setShowConfirmModalDelete(false);
   };
 
   /* DETACH */
   const onDetach = () => {
+    setShowConfirmModalDetach(true);
+  };
+
+  const detachGroup = async () => {
     const childNodeIds = Array.from(store.getState().nodeInternals.values())
       .filter((n) => n.parentNode === id)
       .map((n) => n.id);
     detachNodes(childNodeIds, id);
+    if (isRunning) {
+      nodeData.ws.close();
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
+    }
+    setShowConfirmModalDetach(false);
   };
 
   /* BRANCH OUT */
@@ -204,6 +216,7 @@ function GroupNode({ id, data }: NodeProps) {
     if (showConfirmModalRestart) setShowConfirmModalRestart(false);
     if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
     if (showConfirmModalDelete) setShowConfirmModalDelete(false);
+    if (showConfirmModalDetach) setShowConfirmModalDetach(false);
   };
 
   return (
@@ -261,6 +274,14 @@ function GroupNode({ id, data }: NodeProps) {
         show={showConfirmModalDelete} 
         onHide={continueWorking} 
         onConfirm={deleteGroup} 
+        confirmText="Delete"
+      />
+      <CustomConfirmModal 
+        title="Delete Bubble?" 
+        message="Are you sure you want to delete the bubble and shutdown the kernel? The cells will remain, but all variables will be lost!" 
+        show={showConfirmModalDetach} 
+        onHide={continueWorking} 
+        onConfirm={detachGroup} 
         confirmText="Delete"
       />
       <CustomInformationModal show={isBranching} text='Branching Out...' />

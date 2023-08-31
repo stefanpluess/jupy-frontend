@@ -33,13 +33,13 @@ function SimpleOutputNode({
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(
-    null as number | null
+    -1 as number
   );
 
   useEffect(() => {
     if (!data.outputs) return;
     // console.log(`OutputNode ${id}: `, data.outputs);
-    setSelectedOutputIndex(null);
+    setSelectedOutputIndex(-1);
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
@@ -70,14 +70,30 @@ function SimpleOutputNode({
   //   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
-  const copyOutput = async (index: number) => {
-    // return if there is no output yet
+  const copyOutput = async (index: number = -1) => {
+    // if index is -1, copy all outputs to clipboard
+    if (index === -1) {
+      var html = '';
+      groupedOutputs.forEach(output => {
+        if (!output.isImage) {
+          html += output.output + '<br>';
+        } else {
+          html += '<img src="data:image/png;base64,' + output.output + '"><br>';
+        }
+      });
+      const item = new clipboard.ClipboardItem({
+        "text/html": new Blob([html], { type: 'text/html' })
+      });
+      await clipboard.write([item]);
+      alert("Copied all Outputs to Clipboard!");
+      return;
+    }
+
     if (groupedOutputs[index]?.output === "") return;
     if (!groupedOutputs[index]?.isImage) {
-      var copiedOutput = groupedOutputs[index].output;
-      navigator.clipboard.writeText(copiedOutput);
-      alert("Copied Output:\n" + copiedOutput);
-      console.log("Copied Output:\n" + copiedOutput);
+      var copiedOutput = groupedOutputs[index].output
+      clipboard.writeText(copiedOutput);
+      alert("Copied Output to Clipboard!");
     } else {
       const item = new clipboard.ClipboardItem({
         "image/png": b64toBlob(groupedOutputs[index]?.output, "image/png", 512),
@@ -151,7 +167,7 @@ function SimpleOutputNode({
   const handleSelect = (index: number) => {
     // if index is already selected, deselect it
     if (selectedOutputIndex === index) {
-      setSelectedOutputIndex(null);
+      setSelectedOutputIndex(-1);
     } else {
       setSelectedOutputIndex(index);
     }
@@ -221,8 +237,8 @@ function SimpleOutputNode({
         </div>
       )}
 
-      {/* ----- Multiple Outputs - Only show buttons for selected ones, also highlighting them ----- */}
-      {selectedOutputIndex !== null && (
+      {/* ----- Multiple Outputs - Only show buttons for selected ones, also highlighting them (no selection - show copy for all) ----- */}
+      {groupedOutputs.length !== 1 && (
         <div className="oinputCentered obuttonArea nodrag">
           <button
             title="Copy Selected Output"
@@ -247,6 +263,7 @@ function SimpleOutputNode({
       <div ref={divRef} style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }} className={isScrollbarVisible ? "nowheel" : "outputContent"}>
         {groupedOutputs.map((groupedOutput, index) => (
           <div
+            key={index}
             className={
               selectedOutputIndex === index && groupedOutputs.length !== 1
                 ? "outputNode selected" + (groupedOutput.outputType === "error" ? " errorMessage" : "")

@@ -28,6 +28,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       width: cell.width,
       style: { height: cell.height, width: cell.width }, // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
     };
+    node.id = unifyId(cell, node.type);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
@@ -80,6 +81,14 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
   
   return { initialNodes, initialEdges };
     
+}
+
+/* Method used to unify id's when opening normal .ipynb notebooks */
+const unifyId = (cell: NotebookCell, type: string): string => {
+  const id = (cell.id.includes(NORMAL_NODE) || cell.id.includes(GROUP_NODE) || cell.id.includes(MARKDOWN_NODE)) ? 
+              cell.id : 
+              type+"_"+cell.id;
+  return id;
 }
 
 export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {

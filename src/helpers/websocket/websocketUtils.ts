@@ -97,7 +97,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             // TODO - have it in separate function
             const outputText = message.content.data['text/plain'];
             const outputImage = message.content.data['image/png'];
-            // console.log(outputImage)
+            console.log(outputImage)
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
                 output: outputImage,
@@ -116,7 +116,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
                 outputType: 'error',
             }
             setLatestExecutionOutput(outputObj);
-        }  
+        }
     };
 
     ws.onerror = (error) => {
