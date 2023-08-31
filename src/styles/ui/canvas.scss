@@ -227,3 +227,36 @@
 .rfWrapper .icon-detachoff-detach{
     opacity: 0.2;
 }
+
+/* INFO :: canvas area - kernel status🟢🔴*/
+@mixin commonStyles {
+    align-items: center;
+    font-family: "Quicksand";
+    font-weight: bold;
+    font-size: 10px;
+    display: inline-block;
+    height: 100%;
+    white-space: nowrap;
+    width: auto;
+    position: relative;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1rem;
+    word-break: break-word;
+}
+
+.rfWrapper .kernelOn {
+    @include commonStyles;
+    color: rgba(71, 176, 66, 0.416);
+}
+
+.rfWrapper .kernelOff {
+    @include commonStyles;
+    color: rgba(255, 0, 0, 0.416);
+}
+
+.rfWrapper .kernelBusy {
+    @include commonStyles;
+    color: rgba(255, 119, 0, 0.416);
+}
