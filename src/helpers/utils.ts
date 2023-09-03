@@ -104,7 +104,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         id: node.id,
         cell_type: node.type === NORMAL_NODE ? 'code' : node.type === GROUP_NODE ? 'group' : 'markdown',
         source: node.data.code,
-        execution_count: node.data.executionCount,
+        execution_count: node.data.executionCount?.execCount,
         outputs: [],
         position: node.position,
         parentNode: node?.parentNode,

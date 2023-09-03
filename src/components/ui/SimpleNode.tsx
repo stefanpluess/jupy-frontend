@@ -63,6 +63,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const initialRender = useRef(true);
+  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[parentNode!] ?? true);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -266,7 +267,7 @@ function SimpleNode({ id, data }: NodeProps) {
               // check if ctrl or shift + enter is pressed
               if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                 e.preventDefault();
-                runCode();
+                if (hasParent && wsRunning)runCode();
               }
             }}
             style={{textAlign: "left"}}
@@ -322,7 +323,7 @@ function SimpleNode({ id, data }: NodeProps) {
               title="Run Code"
               className="rinputCentered playButton rcentral"
               onClick={runCode}
-              disabled={!hasParent}
+              disabled={!hasParent || !wsRunning}
             >
               <FontAwesomeIcon className="icon" icon={faPlayCircle} />
             </button>
@@ -333,7 +334,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Error: Fix your Code and then let's try it again mate"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || isHovered}
+                  disabled={!hasParent || !wsRunning}
                   onMouseEnter={() => setIsHovered(false)}
                   onMouseLeave={() => setIsHovered(true)}
                 >
@@ -345,7 +346,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Error: Fix your Code and then let's try it again mate"
                   className="rinputCentered playErrorButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || !isHovered}
+                  disabled={!hasParent || !wsRunning}
                   onMouseEnter={() => setIsHovered(false)}
                 >
                   <FontAwesomeIcon className="icon" icon={faXmarkCircle} />

@@ -47,7 +47,6 @@ function GroupNode({ id, data }: NodeProps) {
   const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
   const [showConfirmModalDetach, setShowConfirmModalDetach] = useState(false);
-  const [isRunning, setIsRunning] = useState(true); // TODO: - use data.ws.readyState
   const [isBranching, setIsBranching] = useState(false);
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
@@ -62,6 +61,9 @@ function GroupNode({ id, data }: NodeProps) {
       hasChildNodes: childNodes.length > 0,
     };
   }, isEqual);
+
+  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id] ?? true);
+  const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
@@ -108,8 +110,8 @@ function GroupNode({ id, data }: NodeProps) {
   }, [queues]);
 
   useEffect(() => {
-    const handleWebSocketOpen = () => setIsRunning(true);
-    const handleWebSocketClose = () => setIsRunning(false);
+    const handleWebSocketOpen = () => setWsStateForGroupNode(id, true);
+    const handleWebSocketClose = () => setWsStateForGroupNode(id, false);
     if (nodeData.ws) {
       // Add event listeners to handle WebSocket state changes
       nodeData.ws.addEventListener('open', handleWebSocketOpen);
@@ -120,7 +122,7 @@ function GroupNode({ id, data }: NodeProps) {
         nodeData.ws.removeEventListener('close', handleWebSocketClose);
       };
     }
-  }, [nodeData.ws, data.ws]);
+  }, [nodeData.ws?.readyState]);
 
   /* DELETE */
   const onDelete = async () => {
@@ -129,7 +131,7 @@ function GroupNode({ id, data }: NodeProps) {
 
   const deleteGroup = async () => {
     deleteElements({ nodes: [{ id }] });
-    if (isRunning) {
+    if (wsRunning) {
       nodeData.ws.close();
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
@@ -147,8 +149,9 @@ function GroupNode({ id, data }: NodeProps) {
       .filter((n) => n.parentNode === id)
       .map((n) => n.id);
     detachNodes(childNodeIds, id);
-    if (isRunning) {
+    if (wsRunning) {
       nodeData.ws.close();
+      data.ws.close();
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
@@ -173,7 +176,7 @@ function GroupNode({ id, data }: NodeProps) {
 
   /* RESTART */
   const onRestart = () => {
-    if (isRunning) setShowConfirmModalRestart(true);
+    if (wsRunning) setShowConfirmModalRestart(true);
     else startNewSession();
   };
 
@@ -184,6 +187,7 @@ function GroupNode({ id, data }: NodeProps) {
     await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/restart`)
     // and also restart the websocket connection
     nodeData.ws.close();
+    data.ws.close();
     const ws = await startWebsocket(nodeData.session.id, nodeData.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
@@ -200,12 +204,13 @@ function GroupNode({ id, data }: NodeProps) {
 
   /* SHUTDOWN */
   const onShutdown = async () => {
-    if (isRunning) setShowConfirmModalShutdown(true);
+    if (wsRunning) setShowConfirmModalShutdown(true);
   };
 
   const shutdownKernel = async () => {
     console.log('Shutting kernel down')
     nodeData.ws.close();
+    data.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     setShowConfirmModalShutdown(false);
@@ -221,8 +226,8 @@ function GroupNode({ id, data }: NodeProps) {
 
   return (
     <div style={{ minWidth, minHeight }}>
-      {isRunning && <div style={{color:'green', fontWeight:'bold'}}>Running...</div>}
-      {!isRunning && <div style={{color:'red', fontWeight:'bold'}}>Not running...</div>}
+      {wsRunning && <div style={{color:'green', fontWeight:'bold'}}>Running...</div>}
+      {!wsRunning && <div style={{color:'red', fontWeight:'bold'}}>Not running...</div>}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}
@@ -240,11 +245,11 @@ function GroupNode({ id, data }: NodeProps) {
         <button onClick={onInterrupt} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>
-        {isRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
+        {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
         </button>}
-        <button onClick={isRunning ? onShutdown : onRestart} title={isRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"}> 
-          <FontAwesomeIcon className="icon" icon={isRunning ? faPowerOff : faCirclePlay} />
+        <button onClick={wsRunning ? onShutdown : onRestart} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"}> 
+          <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
           <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
