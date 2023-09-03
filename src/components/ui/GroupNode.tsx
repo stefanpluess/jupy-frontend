@@ -65,6 +65,7 @@ function GroupNode({ id, data }: NodeProps) {
   }, isEqual);
 
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id] ?? true);
+  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? true);
   const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -198,14 +199,14 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const startNewSession = async () => {
-    if (predecessor) setIsStarting(true);
+    if (predecessor && predecessorRunning) setIsStarting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
     await fetchParentState();
-    if (predecessor) setIsStarting(false);
+    if (predecessor && predecessorRunning) setIsStarting(false);
   };
 
   /* SHUTDOWN */
@@ -231,7 +232,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const fetchParentState = async () => {
-    if (predecessor) {
+    if (predecessor && predecessorRunning) {
       await new Promise(resolve => setTimeout(resolve, 200));
       const parentKernel = predecessor.data.session?.kernel.id;
       const childKernel = data.session?.kernel.id;
