@@ -28,7 +28,7 @@ import CustomConfirmModal from "./CustomConfirmModal";
 import CustomInformationModal from "./CustomInformationModal";
 import useNodesStore from "../../helpers/nodesStore";
 import { v4 as uuidv4 } from "uuid";
-import { generateMessage } from "../../helpers/utils";
+import { generateMessage, passParentState } from "../../helpers/utils";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -42,12 +42,14 @@ function GroupNode({ id, data }: NodeProps) {
   const path = usePath();
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
-  const { deleteElements } = useReactFlow();
+  const { deleteElements, getNode } = useReactFlow();
+  const predecessor = getNode(data.predecessor);
   const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
   const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
   const [showConfirmModalDetach, setShowConfirmModalDetach] = useState(false);
   const [isBranching, setIsBranching] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const detachNodes = useDetachNodes();
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -191,15 +193,19 @@ function GroupNode({ id, data }: NodeProps) {
     const ws = await startWebsocket(nodeData.session.id, nodeData.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
+    await fetchParentState();
     setShowConfirmModalRestart(false);
   };
 
   const startNewSession = async () => {
+    setIsStarting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
+    await fetchParentState();
+    setIsStarting(false);
   };
 
   /* SHUTDOWN */
@@ -222,6 +228,16 @@ function GroupNode({ id, data }: NodeProps) {
     if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
     if (showConfirmModalDelete) setShowConfirmModalDelete(false);
     if (showConfirmModalDetach) setShowConfirmModalDetach(false);
+  };
+
+  const fetchParentState = async () => {
+    if (predecessor) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const parentKernel = predecessor.data.session?.kernel.id;
+      const childKernel = data.session?.kernel.id;
+      const dill_path = path.split('/').slice(0, -1).join('/')
+      await passParentState(token, dill_path, parentKernel, childKernel);
+    }
   };
 
   return (
@@ -248,7 +264,7 @@ function GroupNode({ id, data }: NodeProps) {
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
         </button>}
-        <button onClick={wsRunning ? onShutdown : onRestart} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"}> 
+        <button onClick={wsRunning ? onShutdown : onRestart} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isStarting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
