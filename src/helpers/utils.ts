@@ -25,7 +25,10 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         }
       } : cell.cell_type === 'markdown' ? {
         code: cell.source
-      } : {},
+      } : {
+        successors: cell.successors,
+        predecessor: cell.predecessor
+      },
       position: position,
       height: cell.height,
       width: cell.width,
@@ -111,6 +114,8 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         metadata: {},
         height: node.height,
         width: node.width,
+        successors: node.data.successors,
+        predecessor: node.data.predecessor
       };
       cells.push(cell);
     } else {
@@ -145,19 +150,6 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
           cell.outputs.push(output);
         }
       }
-    }
-  });
-
-  // loop through all edges. For all edges from group node to group node, add them as predecessor/successor to the related cell
-  edges.forEach((edge: Edge) => {
-    const sourceNode = nodes.find((node: Node) => node.id === edge.source);
-    const targetNode = nodes.find((node: Node) => node.id === edge.target);
-    if (sourceNode?.type === GROUP_NODE && targetNode?.type === GROUP_NODE) {
-      const sourceCell = cells.find((cell: NotebookCell) => cell.id === sourceNode.id);
-      if (sourceCell?.successors) sourceCell.successors.push(targetNode.id);
-      else if (sourceCell) sourceCell.successors = [targetNode.id];
-      const targetCell = cells.find((cell: NotebookCell) => cell.id === targetNode.id);
-      if (targetCell) targetCell.predecessor = sourceNode.id;
     }
   });
 
