@@ -19,7 +19,7 @@ function CustomConfirmModal({ title, message, show, onHide, onConfirm, confirmTe
     setConfirmDisabled(true);
     await onConfirm();
     // wait for 100ms to prevent double click
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 300));
     setConfirmDisabled(false);
   };
 

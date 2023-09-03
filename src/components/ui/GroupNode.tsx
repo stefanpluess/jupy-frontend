@@ -198,14 +198,14 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const startNewSession = async () => {
-    setIsStarting(true);
+    if (predecessor) setIsStarting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
     await fetchParentState();
-    setIsStarting(false);
+    if (predecessor) setIsStarting(false);
   };
 
   /* SHUTDOWN */
@@ -306,6 +306,7 @@ function GroupNode({ id, data }: NodeProps) {
         confirmText="Delete"
       />
       <CustomInformationModal show={isBranching} text='Branching Out...' />
+      <CustomInformationModal show={isStarting} text='Reconnecting Kernel...' />
     </div>
   );
 }
