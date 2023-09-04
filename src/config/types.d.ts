@@ -8,6 +8,7 @@ export type ExecutionCount = {
 export type ExecutionOutput = {
     msg_id: string;
     output: string;
+    outputHTML?: string;
     outputType: string;
     isImage: boolean;
 };
@@ -25,6 +26,7 @@ export type CellIdToExecCount = {
 
 export type OutputNodeData = {
     output: string;
+    outputHTML?: string;
     isImage: boolean;
     outputType: string;
     timestamp?: Date;
@@ -111,6 +113,7 @@ export type NotebookOutput = {
     ename?: string;
     evalue?: string;
     position?: XYPosition;
+    isImage?: boolean;
 };
 
 export type Kernel = {

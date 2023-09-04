@@ -47,11 +47,12 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       cell.outputs?.forEach((output_cell: NotebookOutput) => {
         const output = output_cell.output_type === 'execute_result' ? output_cell.data['text/plain'] :
                        output_cell.output_type === 'stream' ? output_cell.text :
-                       output_cell.output_type === 'display_data' ? output_cell.data['image/png'] :
+                       output_cell.output_type === 'display_data' ? output_cell.data['image/png'] ?? output_cell.data['text/plain'] :
                        output_cell.output_type === 'error' ? output_cell.traceback?.map(removeEscapeCodes).join('\n') : '';
         const newOutputData: OutputNodeData = {
           output: output,
-          isImage: output_cell.output_type === 'display_data',
+          outputHTML: output_cell.data['text/html'],
+          isImage: output_cell.isImage!,
           outputType: output_cell.output_type,
         };
         allOutputs.push(newOutputData);
@@ -127,14 +128,21 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
             output_type: outputData.outputType,
             data: {},
             position: node.position,
+            isImage: outputData.isImage,
           };
           if (output.output_type === 'execute_result') {
             output.data['text/plain'] = outputData.output;
+            output.data['text/html'] = outputData.outputHTML;
           } else if (output.output_type === 'stream') {
             output.text = [outputData.output];
             // output.name = "stdout"; //TODO: needed?
           } else if (output.output_type === 'display_data') {
-            output.data['image/png'] = outputData.output;
+            if (outputData.isImage) {
+              output.data['image/png'] = outputData.output;
+            } else {
+              output.data['text/plain'] = outputData.output;
+              output.data['text/html'] = outputData.outputHTML;
+            }
           } else if (output.output_type === 'error') {
             output.traceback = outputData.output.split('\n');
           }

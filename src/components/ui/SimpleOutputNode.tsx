@@ -43,11 +43,15 @@ function SimpleOutputNode({
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
-      if (!currentGroup || currentGroup.isImage || output.isImage || output.outputType === "error") {
+      // group execute_result and stream outputs together. Images, display_data and errors are always in their own group.
+      if (!currentGroup || currentGroup.isImage || output.isImage || 
+          currentGroup.outputType === 'display_data' || output.outputType === 'display_data' || 
+          output.outputType === "error") {
         currentGroup = {
           output: "",
+          outputHTML: output.outputHTML,
           isImage: output.isImage,
-          outputType: output.isImage ? "display_data" : output.outputType === "error" ? "error" : "stream",
+          outputType: output.outputType === 'display_data' ? "display_data" : output.outputType === "error" ? "error" : "stream",
           timestamp: output.timestamp,
         };
         grouped.push(currentGroup);
@@ -159,6 +163,8 @@ function SimpleOutputNode({
   function getHtmlOutput(output: OutputNodeData) {
     if (output.isImage) {
       return '<img src="data:image/png;base64,' + output.output + '">';
+    } else if (output.outputHTML) {
+      return output.outputHTML;
     } else {
       return output.output.replace(/\n/g, "<br>");
     }

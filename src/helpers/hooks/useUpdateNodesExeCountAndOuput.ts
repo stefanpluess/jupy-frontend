@@ -69,6 +69,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
             [cell_id_output]: [
                 ...(cellIdToOutputs[cell_id_output] || []), {
                     output: latestExecutionOutput.output,
+                    outputHTML: latestExecutionOutput.outputHTML,
                     isImage: latestExecutionOutput.isImage,
                     outputType: latestExecutionOutput.outputType,
                 } as OutputNodeData,
@@ -93,6 +94,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
                     cellIdToOutputs[cell_id_output].forEach((output) => {
                         const newOutputData: OutputNodeData = {
                             output: output.output,
+                            outputHTML: output.outputHTML,
                             isImage: output.isImage,
                             outputType: output.outputType,
                         }

@@ -78,6 +78,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
                 output: message.content.data['text/plain'],
+                outputHTML: message.content.data['text/html'],
                 isImage: false,
                 outputType: 'execute_result',
             }
@@ -95,14 +96,23 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
 
         } else if (msg_type === 'display_data') {
             // TODO - have it in separate function
-            const outputText = message.content.data['text/plain'];
             const outputImage = message.content.data['image/png'];
-            console.log(outputImage)
-            const outputObj = {
-                msg_id: message.parent_header.msg_id,
-                output: outputImage,
-                isImage: true,
-                outputType: 'display_data',
+            var outputObj;
+            if (outputImage !== undefined) {
+                outputObj = {
+                    msg_id: message.parent_header.msg_id,
+                    output: outputImage,
+                    isImage: true,
+                    outputType: 'display_data',
+                }
+            } else {
+                outputObj = {
+                    msg_id: message.parent_header.msg_id,
+                    output: message.content.data['text/plain'],
+                    outputHTML: message.content.data['text/html'],
+                    isImage: false,
+                    outputType: 'display_data',
+                }
             }
             setLatestExecutionOutput(outputObj);
 
