@@ -90,9 +90,9 @@ export type NotebookCell = {
     execution_count: number;
     id: string;
     metadata?: {};
-    outputs: NotebookOutput[];
+    outputs?: NotebookOutput[];
     source: string[];
-    position: XYPosition;
+    position?: XYPosition;
     height?: number | null;
     width?: number | null;
     parentNode?: string;
@@ -108,7 +108,9 @@ export type NotebookOutput = {
     name?: string;
     text?: string[];
     traceback?: string[];
-    position: XYPosition;
+    ename?: string;
+    evalue?: string;
+    position?: XYPosition;
 };
 
 export type Kernel = {

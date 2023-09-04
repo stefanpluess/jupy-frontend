@@ -19,6 +19,7 @@ import {
   faPowerOff,
   faCirclePlay,
   faNetworkWired,
+  faFileExport,
 } from "@fortawesome/free-solid-svg-icons";
 import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -28,7 +29,7 @@ import CustomConfirmModal from "./CustomConfirmModal";
 import CustomInformationModal from "./CustomInformationModal";
 import useNodesStore from "../../helpers/nodesStore";
 import { v4 as uuidv4 } from "uuid";
-import { generateMessage, passParentState } from "../../helpers/utils";
+import { exportToJupyterNotebook, generateMessage, passParentState } from "../../helpers/utils";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -42,7 +43,7 @@ function GroupNode({ id, data }: NodeProps) {
   const path = usePath();
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, getNodes } = useReactFlow();
   const predecessor = getNode(data.predecessor);
   const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
   const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
@@ -223,6 +224,12 @@ function GroupNode({ id, data }: NodeProps) {
     setShowConfirmModalShutdown(false);
   };
 
+  /* EXPORT */
+  const onExporting = async () => {
+    const fileName = path.split('/').pop()!;
+    await exportToJupyterNotebook(getNodes(), id, fileName);
+  };
+
   /* Cancel method for all modals (restart, shutdown and delete) */
   const continueWorking = () => {
     if (showConfirmModalRestart) setShowConfirmModalRestart(false);
@@ -270,6 +277,9 @@ function GroupNode({ id, data }: NodeProps) {
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
           <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
+        </button>
+        <button onClick={onExporting} title="Export to Jupyter Notebook 📩"> 
+          <FontAwesomeIcon className="icon" icon={faFileExport}/>
         </button>
       </NodeToolbar>
       <Handle className="handle-group-top" type="target" position={Position.Top} isConnectable={false} />

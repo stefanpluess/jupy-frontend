@@ -34,7 +34,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       width: cell.width,
       style: { height: cell.height, width: cell.width }, // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
     };
-    node.id = unifyId(cell, node.type);
+    node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
@@ -44,7 +44,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       const outputNode: Node = createOutputNode(node)
       // for each output (if multiple) set the output data
       const allOutputs = [] as OutputNodeData[];
-      cell.outputs.forEach((output_cell: NotebookOutput) => {
+      cell.outputs?.forEach((output_cell: NotebookOutput) => {
         const output = output_cell.output_type === 'execute_result' ? output_cell.data['text/plain'] :
                        output_cell.output_type === 'stream' ? output_cell.text :
                        output_cell.output_type === 'display_data' ? output_cell.data['image/png'] :
@@ -128,17 +128,17 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
             data: {},
             position: node.position,
           };
-          if (outputData.outputType === 'execute_result') {
+          if (output.output_type === 'execute_result') {
             output.data['text/plain'] = outputData.output;
-          } else if (outputData.outputType === 'stream') {
+          } else if (output.output_type === 'stream') {
             output.text = [outputData.output];
             // output.name = "stdout"; //TODO: needed?
-          } else if (outputData.outputType === 'display_data') {
+          } else if (output.output_type === 'display_data') {
             output.data['image/png'] = outputData.output;
-          } else if (outputData.outputType === 'error') {
+          } else if (output.output_type === 'error') {
             output.traceback = outputData.output.split('\n');
           }
-          cell.outputs.push(output);
+          cell.outputs?.push(output);
         });
         // in case there are no outputs, just create an empty output
         if (node.data.outputs.length === 0) {
@@ -147,11 +147,73 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
             text: [""],
             position: node.position,
           };
-          cell.outputs.push(output);
+          cell.outputs?.push(output);
         }
       }
     }
   });
+  const notebook: Notebook = createNotebookJSON(cells);
+  const notebookPUT: NotebookPUT = {
+    content: notebook,
+    type: 'notebook'
+  }
+  return notebookPUT;
+}
+
+export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string) {
+
+  const cells: NotebookCell[] = [];
+  nodes.forEach((node: Node) => {
+    if (node.parentNode !== groupNodeId) return;
+    if (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) {
+      const cell: NotebookCell = {
+        id: node.id,
+        cell_type: node.type === NORMAL_NODE ? 'code' : 'markdown',
+        source: node.data.code,
+        execution_count: node.data.executionCount?.execCount !== "" ? node.data.executionCount?.execCount : null,
+        metadata: {}
+      };
+      cells.push(cell);
+    } else if (node.type === OUTPUT_NODE) {
+      const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
+      if (cell) {
+        if (!cell.outputs) cell.outputs = [];
+        node.data.outputs.forEach((outputData: OutputNodeData) => {
+          const output: NotebookOutput = {
+            output_type: outputData.outputType
+          };
+          if (output.output_type === 'execute_result') {
+            output.data = { 'text/plain': outputData.output };
+            output.execution_count = cell.execution_count
+          } else if (output.output_type === 'stream') {
+            output.text = [outputData.output];
+            output.name = "stdout";
+          } else if (output.output_type === 'display_data') {
+            output.data = { 'image/png': outputData.output };
+          } else if (output.output_type === 'error') {
+            output.traceback = outputData.output.split('\n');
+            output.ename = "";
+            output.evalue = "";
+          }
+          if (output.output_type !== 'stream' && output.output_type !== 'error') output.metadata = {};
+          cell.outputs?.push(output);
+        });
+      }
+    }
+  });
+
+  const notebook: Notebook = createNotebookJSON(cells);
+  const jsonString = JSON.stringify(notebook, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+function createNotebookJSON(cells: NotebookCell[]): Notebook {
 
   const notebook: Notebook = {
     cells: cells,
@@ -178,12 +240,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
     nbformat_minor: 5
   }
 
-  const notebookPut: NotebookPUT = {
-    content: notebook,
-    type: 'notebook'
-  }
-
-  return notebookPut;
+  return notebook;
 }
 
 export async function saveNotebook(nodes: Node[], edges: Edge[], token: string, 
