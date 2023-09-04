@@ -191,13 +191,23 @@ export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string
             output_type: outputData.outputType
           };
           if (output.output_type === 'execute_result') {
-            output.data = { 'text/plain': outputData.output };
+            output.data = { 
+              'text/plain': outputData.output,
+              'text/html': outputData.outputHTML
+            };
             output.execution_count = cell.execution_count
           } else if (output.output_type === 'stream') {
             output.text = [outputData.output];
             output.name = "stdout";
           } else if (output.output_type === 'display_data') {
-            output.data = { 'image/png': outputData.output };
+            if (outputData.isImage) {
+              output.data = { 'image/png': outputData.output };
+            } else {
+              output.data = {
+                'text/plain': outputData.output,
+                'text/html': outputData.outputHTML
+              };
+            }
           } else if (output.output_type === 'error') {
             output.traceback = outputData.output.split('\n');
             output.ename = "";
