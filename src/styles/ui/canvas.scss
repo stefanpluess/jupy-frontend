@@ -227,3 +227,35 @@
 .rfWrapper .icon-detachoff-detach{
     opacity: 0.2;
 }
+
+
+/* --- Styles for HTML tables (like pd DataFrames) --- */
+.rendered_html table {
+    // margin-left: auto;
+    // margin-right: auto;
+    border: none;
+    border-collapse: collapse;
+    border-spacing: 0;
+    // color: black;
+    // font-size: 12px;
+    table-layout: fixed;
+}
+.rendered_html tr, .rendered_html th, .rendered_html td {
+    text-align: right;
+    vertical-align: middle;
+    padding: 0.45em 0.45em;
+    line-height: normal;
+    white-space: normal;
+    max-width: none;
+    border: none;
+}
+.rendered_html tbody tr:nth-child(odd) {
+    background: rgb(151, 96, 151);
+}
+.rendered_html tbody tr:hover {
+    background: rgba(66, 165, 245, 0.3);
+}
+.rendered_html thead {
+    border-bottom: 1px solid white;
+    vertical-align: bottom;
+}

@@ -51,10 +51,10 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
                        output_cell.output_type === 'error' ? output_cell.traceback?.map(removeEscapeCodes).join('\n') : '';
         const newOutputData: OutputNodeData = {
           output: output,
-          outputHTML: output_cell.data['text/html'],
           isImage: output_cell.isImage!,
           outputType: output_cell.output_type,
         };
+        if (output_cell.data && output_cell.data['text/html']) newOutputData.outputHTML = output_cell.data['text/html'];
         allOutputs.push(newOutputData);
       });
       outputNode.data.outputs = allOutputs;

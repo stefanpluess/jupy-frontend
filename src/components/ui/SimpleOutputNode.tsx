@@ -164,7 +164,7 @@ function SimpleOutputNode({
     if (output.isImage) {
       return '<img src="data:image/png;base64,' + output.output + '">';
     } else if (output.outputHTML) {
-      return output.outputHTML;
+      return '<div class="rendered_html">'+output.outputHTML+'</div>';
     } else {
       return output.output.replace(/\n/g, "<br>");
     }
