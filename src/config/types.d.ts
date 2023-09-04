@@ -30,6 +30,7 @@ export type OutputNodeData = {
     isImage: boolean;
     outputType: string;
     timestamp?: Date;
+    // containsBackslashB?: boolean; 
 };
 
 export type CellIdToMsgId = {

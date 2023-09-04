@@ -13,8 +13,8 @@ export async function createSession(node_id: string,
                                     setLatestExecutionCount: setLECType): Promise<{ws: WebSocket, session: Session}> {
     const adjustedPath = path + '_' + node_id;
     const session = await startSession(token, adjustedPath);
-    const ws = await startWebsocket(session.id,
-                                    session.kernel.id,
+    const ws = await startWebsocket(session.id!,
+                                    session.kernel.id!,
                                     token,
                                     setLatestExecutionOutput,
                                     setLatestExecutionCount);
@@ -88,7 +88,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             // TODO - have it in separate function
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
-                output: message.content.text,
+                output: removeEscapeCodes(message.content.text),
                 isImage: false,
                 outputType: 'stream',
             }

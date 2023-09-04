@@ -53,18 +53,31 @@ function SimpleOutputNode({
           isImage: output.isImage,
           outputType: output.outputType === 'display_data' ? "display_data" : output.outputType === "error" ? "error" : "stream",
           timestamp: output.timestamp,
+          // containsBackslashB: false,
         };
         grouped.push(currentGroup);
       }
+      // if (output.output.includes("\b")) currentGroup.containsBackslashB = true;
       // in case of live updates (f.ex. training a model), \b is used to delete the previous output
       // display the output in a way that the \b is respected (removing from prevous output, replacing with '' in current output)
       const strippedOutput = output.output.split("\b");
       const indexOfCorrectOutput = strippedOutput.length - 1;
-      if (indexOfCorrectOutput > 0)
+      if (indexOfCorrectOutput > 0) {
         currentGroup.output = currentGroup.output.slice(
           0,
           -indexOfCorrectOutput
         );
+      }
+
+      // before adding to the output, if a \r is present, remove everything before it from the end of currentGroup.output
+      // const indexOfCarriageReturn = strippedOutput[indexOfCorrectOutput].indexOf("\r");
+      // if (indexOfCarriageReturn >= 0) {
+      //   console.log("found carriage return")
+      //   currentGroup.output = currentGroup.output.slice(
+      //     0,
+      //     -indexOfCarriageReturn
+      //   );
+      // }
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
 
