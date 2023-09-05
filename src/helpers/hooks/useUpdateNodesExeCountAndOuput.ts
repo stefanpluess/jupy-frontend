@@ -89,8 +89,18 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         // go through all the nodes and set the outputs of the changed node
         setNodes((prevNodes) => {
             const updatedNodes = prevNodes.map((node) => {
-                if (node.id === cell_id_output ) {
+                // if the node.id has empty outputs, return the node while setting output to be empty (to fix edge case with long waiting outputs)
+                if (cellIdToOutputs[node.id] && cellIdToOutputs[node.id].length === 0) {
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            outputs: [],
+                        },
+                    };
+                } else if (node.id === cell_id_output) {
                     const allOutputs = [] as OutputNodeData[];
+                    // console.log("OUTPUT OF MATCHING NODE: ", cellIdToOutputs[cell_id_output])
                     cellIdToOutputs[cell_id_output].forEach((output) => {
                         const newOutputData: OutputNodeData = {
                             output: output.output,

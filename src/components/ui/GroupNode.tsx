@@ -86,7 +86,7 @@ function GroupNode({ id, data }: NodeProps) {
   const isExecuting = useNodesStore((state) => state.groupNodesExecutionStates[id]);
   const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
-  // const deleteOutput = useDeleteOutput();
+  const deleteOutput = useDeleteOutput();
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   useEffect(() => {
@@ -114,7 +114,7 @@ function GroupNode({ id, data }: NodeProps) {
         setCellIdToMsgId({ [msg_id]: simpleNodeId });
         const ws = data.ws;
         if (ws.readyState === WebSocket.OPEN) {
-          // deleteOutput(simpleNodeId + "_output");
+          deleteOutput(simpleNodeId + "_output");
           ws.send(JSON.stringify(message));
         } else {
           console.log("websocket is not connected");

@@ -58,7 +58,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
-  const deleteOutput = useDeleteOutput();
+  // const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(data?.executionCount.execCount || '');
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
@@ -95,7 +95,7 @@ function SimpleNode({ id, data }: NodeProps) {
     if(parent){
       const groupId = parent.id;
       setExecutionCount("*");
-      deleteOutput(id + "_output");
+      // deleteOutput(id + "_output");
       addToQueue(groupId, id, data.code);
     }
   }, [parent, data.code, addToQueue]);
