@@ -20,6 +20,9 @@ import {
   faCirclePlay,
   faNetworkWired,
   faFileExport,
+  faCircleChevronDown,
+  faCircleXmark,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -58,11 +61,20 @@ function GroupNode({ id, data }: NodeProps) {
     );
     const rect = getRectOfNodes(childNodes);
 
-    return {
-      minWidth: rect.width + padding * 2,
-      minHeight: rect.height + padding * 2,
-      hasChildNodes: childNodes.length > 0,
-    };
+    if (childNodes.length === 0) {
+      // if there are no child nodes, return the default width and height
+      return {
+        minWidth: 50 + padding * 2,
+        minHeight: 50 + padding * 2,
+        hasChildNodes: childNodes.length > 0,
+      };
+    }else{
+      return {
+        minWidth: rect.width + padding * 2,
+        minHeight: rect.height + padding * 2,
+        hasChildNodes: childNodes.length > 0,
+      };
+    }
   }, isEqual);
 
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id] ?? true);
@@ -249,9 +261,11 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   return (
-    <div style={{ minWidth, minHeight }}>
-      {wsRunning && <div style={{color:'green', fontWeight:'bold'}}>Running...</div>}
-      {!wsRunning && <div style={{color:'red', fontWeight:'bold'}}>Not running...</div>}
+    // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>
+     <div>
+      {wsRunning && !isExecuting && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
+      {wsRunning && isExecuting && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
+      {!wsRunning && !isExecuting && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}

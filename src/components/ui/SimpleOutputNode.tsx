@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { memo } from "react";
 import {
   Handle,
@@ -192,6 +192,17 @@ function SimpleOutputNode({
     }
   };
 
+  // INFO :: 🖱️ making the output node scrollable with mouse wheel if the content is bigger than max height
+  const divRef = useRef<HTMLDivElement | null>(null);
+  const [isScrollbarVisible, setIsScrollbarVisible] = useState(false);
+  useEffect(() => {
+    const divElement = divRef.current;
+    if (divElement) {
+      // if (divElement.scrollHeight !=  divElement.clientHeight) it means that the scrollbar is visible
+      setIsScrollbarVisible(divElement.scrollHeight !=  divElement.clientHeight);
+    }
+  }, [groupedOutputs]);
+
   return (
     <>
       <NodeToolbar className="nodrag">
@@ -268,7 +279,7 @@ function SimpleOutputNode({
         </div>
       )}
 
-      <div style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}>
+      <div ref={divRef} style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }} className={isScrollbarVisible ? "nowheel" : "outputContent"}>
         {groupedOutputs.map((groupedOutput, index) => (
           <div
             key={index}
@@ -286,7 +297,7 @@ function SimpleOutputNode({
 
       {/* TODO: add some additional styleClass if node is empty */}
       {/* {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />} */}
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} isConnectableStart={false} />
     </>
   );
 }
