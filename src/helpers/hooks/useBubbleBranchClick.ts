@@ -51,6 +51,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         await passParentState(token, dill_path, parentKernel, childKernel);
         childNode.data.ws = ws;
         childNode.data.session = session;
+        childNode.data.predecessor = parentNode.id;
+        parentNode.data.successors = parentNode.data.successors ? parentNode.data.successors.concat([childNodeId]) : [childNodeId];
 
         // add the new nodes
         const sortedNodes = store

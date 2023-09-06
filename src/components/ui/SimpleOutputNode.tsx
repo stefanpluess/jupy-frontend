@@ -43,24 +43,41 @@ function SimpleOutputNode({
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
-      if (!currentGroup || currentGroup.isImage || output.isImage || output.outputType === "error") {
+      // group execute_result and stream outputs together. Images, display_data and errors are always in their own group.
+      if (!currentGroup || currentGroup.isImage || output.isImage || 
+          currentGroup.outputType === 'display_data' || output.outputType === 'display_data' || 
+          output.outputType === "error") {
         currentGroup = {
           output: "",
+          outputHTML: output.outputHTML,
           isImage: output.isImage,
-          outputType: output.isImage ? "display_data" : output.outputType === "error" ? "error" : "stream",
+          outputType: output.outputType === 'display_data' ? "display_data" : output.outputType === "error" ? "error" : "stream",
           timestamp: output.timestamp,
+          // containsBackslashB: false,
         };
         grouped.push(currentGroup);
       }
+      // if (output.output.includes("\b")) currentGroup.containsBackslashB = true;
       // in case of live updates (f.ex. training a model), \b is used to delete the previous output
       // display the output in a way that the \b is respected (removing from prevous output, replacing with '' in current output)
       const strippedOutput = output.output.split("\b");
       const indexOfCorrectOutput = strippedOutput.length - 1;
-      if (indexOfCorrectOutput > 0)
+      if (indexOfCorrectOutput > 0) {
         currentGroup.output = currentGroup.output.slice(
           0,
           -indexOfCorrectOutput
         );
+      }
+
+      // before adding to the output, if a \r is present, remove everything before it from the end of currentGroup.output
+      // const indexOfCarriageReturn = strippedOutput[indexOfCorrectOutput].indexOf("\r");
+      // if (indexOfCarriageReturn >= 0) {
+      //   console.log("found carriage return")
+      //   currentGroup.output = currentGroup.output.slice(
+      //     0,
+      //     -indexOfCarriageReturn
+      //   );
+      // }
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
 
@@ -159,6 +176,8 @@ function SimpleOutputNode({
   function getHtmlOutput(output: OutputNodeData) {
     if (output.isImage) {
       return '<img src="data:image/png;base64,' + output.output + '">';
+    } else if (output.outputHTML) {
+      return '<div class="rendered_html">'+output.outputHTML+'</div>';
     } else {
       return output.output.replace(/\n/g, "<br>");
     }

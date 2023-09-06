@@ -16,6 +16,11 @@ export type NodesStore = {
     groupNodesExecutionStates: { [groupId: string]: boolean };
     setExecutionStateForGroupNode: (groupId: string, new_state: boolean) => void;
     getExecutionStateForGroupNode: (groupId: string) => boolean;
+
+    // INFO :: ws state functionality
+    groupNodesWsStates: { [groupId: string]: boolean };
+    setWsStateForGroupNode: (groupId: string, new_state: boolean) => void;
+    getWsStateForGroupNode: (groupId: string) => boolean;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -86,6 +91,33 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     }
     console.log("returining current status...")
     return get().groupNodesExecutionStates[groupId];
+  },
+
+  // INFO :: ws state functionality
+  groupNodesWsStates: {},
+  setWsStateForGroupNode: (groupId: string, new_state: boolean) => {
+    set((state) => ({
+        groupNodesWsStates: {
+          ...state.groupNodesWsStates,
+          [groupId]: new_state
+        }
+    })) 
+  },
+  getWsStateForGroupNode: (groupId: string): boolean => {
+    const state = get().groupNodesWsStates[groupId]
+    // check if state is undefined
+    if (state === undefined) {
+        set((state) => ({
+            groupNodesWsStates: {
+              ...state.groupNodesWsStates,
+              [groupId]: false
+            }
+        }))
+        console.log("returining default status...")
+        return false;
+    }
+    console.log("returining current status...")
+    return get().groupNodesWsStates[groupId];
   },
 }));
 
