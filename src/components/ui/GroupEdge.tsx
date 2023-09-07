@@ -7,6 +7,7 @@ import { faScissors, faLink } from "@fortawesome/free-solid-svg-icons";
 
 export default function GroupEdge({
   id,
+  source,
   target,
   sourceX,
   sourceY,
@@ -30,6 +31,7 @@ export default function GroupEdge({
   const influenceState = useNodesStore((state) => state.groupNodesInfluenceStates[target]);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[target]);
+  const parentWsRunning = useNodesStore((state) => state.groupNodesWsStates[source]);
 
   useEffect(() => {
     // set the influence state of the target to true initially
@@ -45,8 +47,9 @@ export default function GroupEdge({
 
   /* If the websocket is shut down, we want the influence to be off by default! */
   useEffect(() => {
-    if (!wsRunning) setInfluenceStateForGroupNode(target, false);
-  }, [wsRunning]);
+    if (wsRunning && parentWsRunning) setInfluenceStateForGroupNode(target, true);
+    else setInfluenceStateForGroupNode(target, false);
+  }, [wsRunning, parentWsRunning]);
 
   /* on click, we switch the influence state to be opposite. */
   const onEdgeClick = (event: any, id: string) => {
@@ -73,7 +76,7 @@ export default function GroupEdge({
           }}
           className="nodrag nopan"
         >
-          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)}>
+          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!wsRunning || !parentWsRunning}>
             {influenceState ? 
               <FontAwesomeIcon icon={faScissors} rotation={180} style={{ marginLeft: -3, marginTop: 1 }}/> : 
               <FontAwesomeIcon icon={faLink} style={{ marginLeft: -4, marginTop: 1 }}/>

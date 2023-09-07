@@ -84,19 +84,19 @@ function GroupNode({ id, data }: NodeProps) {
   const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
 
   const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
-  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id] ?? false);
-  const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
+  // const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id] ?? false);
+  // const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
 
 
   const influencedSuccessors = useCallback((): string[] => {
     const influencedSuccs = [] as string[];
     (data.successors ?? []).forEach((successor: string) => {
-      if ((groupNodesInfluenceStates[successor] ?? false) && (groupNodesWsStates[successor] ?? false)) {
+      if (groupNodesInfluenceStates[successor] ?? false) {
         influencedSuccs.push(successor);
       }
     });
     return influencedSuccs;
-  }, [data.successors, groupNodesInfluenceStates, groupNodesWsStates]);
+  }, [data.successors, groupNodesInfluenceStates]);
 
   // const 
 
@@ -205,9 +205,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   /* DETACH */
-  const onDetach = () => {
-    setShowConfirmModalDetach(true);
-  };
+  const onDetach = async () => setShowConfirmModalDetach(true);
 
   const detachGroup = async () => {
     const childNodeIds = Array.from(store.getState().nodeInternals.values())
@@ -241,10 +239,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   /* RESTART */
-  const onRestart = () => {
-    if (wsRunning) setShowConfirmModalRestart(true);
-    else startNewSession();
-  };
+  const onRestart = async () => setShowConfirmModalRestart(true);
 
   /* restarts the kernel (call to /restart) and creates a new websocket connection */
   const restartKernel = async () => {
@@ -262,14 +257,14 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const startNewSession = async () => {
-    if (predecessor && predecessorRunning && isInfluenced) setIsStarting(true);
+    if (predecessor && predecessorRunning) setIsStarting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
     await fetchParentState();
-    if (predecessor && predecessorRunning && isInfluenced) setIsStarting(false);
+    if (predecessor && predecessorRunning) setIsStarting(false);
   };
 
   /* SHUTDOWN */
@@ -286,6 +281,9 @@ function GroupNode({ id, data }: NodeProps) {
     setShowConfirmModalShutdown(false);
   };
 
+  /* RECONNECT */
+  const onReconnect = async () => startNewSession();
+
   /* EXPORT */
   const onExporting = async () => {
     const fileName = path.split('/').pop()!;
@@ -301,13 +299,14 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const fetchParentState = async () => {
-    if (predecessor && predecessorRunning && isInfluenced) {
+    if (predecessor && predecessorRunning) {
+      // TODO: ask user whether he/she wants to load the parent state or not?
       await new Promise(resolve => setTimeout(resolve, 200));
       const parentKernel = predecessor.data.session?.kernel.id;
       const childKernel = data.session?.kernel.id;
       const dill_path = path.split('/').slice(0, -1).join('/')
       await passParentState(token, dill_path, parentKernel, childKernel);
-      setInfluenceStateForGroupNode(id, true);
+      // setInfluenceStateForGroupNode(id, true);
     }
   };
 
@@ -337,7 +336,7 @@ function GroupNode({ id, data }: NodeProps) {
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
         </button>}
-        <button onClick={wsRunning ? onShutdown : onRestart} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isStarting}> 
+        <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isStarting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
         <button onClick={onBranchOut} title="Branch out 🍃"> 
