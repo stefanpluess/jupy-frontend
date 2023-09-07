@@ -56,6 +56,7 @@ import {
   DEFAULT_LOCK_STATUS,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
+import edgeTypes from "../../config/EdgeTypes";
 import {
   proOptions,
   defaultEdgeOptions,
@@ -421,6 +422,7 @@ function DynamicGrouping() {
           fitView
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
           minZoom={0.15}
           maxZoom={3}

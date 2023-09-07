@@ -5,5 +5,7 @@ export const OUTPUT_NODE = 'outputNode';
 export const MARKDOWN_NODE = 'mdNode'
 export const COMMENT_NODE = 'comment';
 
+export const GROUP_EDGE = 'groupEdge';
+
 export const ID_LENGTH = 8;
 export const DEFAULT_LOCK_STATUS = false;

@@ -2,7 +2,7 @@ import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
 import { getId, passParentState, sortNodes } from '../utils';
-import { GROUP_NODE } from '../../config/constants';
+import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorBubbleBranch } from '../websocket';
 import usePath from './usePath';
 
@@ -40,6 +40,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
             id: `${parentNode.id}-${childNodeId}`,
             source: parentNode.id,
             target: childNodeId,
+            type: GROUP_EDGE,
         };
 
         // create a websocket connection and pass the parent state to the child

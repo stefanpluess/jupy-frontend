@@ -21,6 +21,11 @@ export type NodesStore = {
     groupNodesWsStates: { [groupId: string]: boolean };
     setWsStateForGroupNode: (groupId: string, new_state: boolean) => void;
     getWsStateForGroupNode: (groupId: string) => boolean;
+
+    // INFO :: influence state functionality
+    groupNodesInfluenceStates: { [groupId: string]: boolean };
+    setInfluenceStateForGroupNode: (groupId: string, new_state: boolean) => void;
+    getInfluenceStateForGroupNode: (groupId: string) => boolean;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -119,6 +124,33 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     console.log("returining current status...")
     return get().groupNodesWsStates[groupId];
   },
+
+  // INFO :: influence state functionality
+  groupNodesInfluenceStates: {},
+  setInfluenceStateForGroupNode: (groupId: string, new_state: boolean) => {
+    set((state) => ({
+        groupNodesInfluenceStates: {
+          ...state.groupNodesInfluenceStates,
+          [groupId]: new_state
+        }
+    })) 
+  },
+  getInfluenceStateForGroupNode: (groupId: string): boolean => {
+    const state = get().groupNodesInfluenceStates[groupId]
+    // check if state is undefined
+    if (state === undefined) {
+        set((state) => ({
+            groupNodesInfluenceStates: {
+              ...state.groupNodesInfluenceStates,
+              [groupId]: false
+            }
+        }))
+        console.log("returining default status...")
+        return false;
+    }
+    console.log("returining current status...")
+    return get().groupNodesInfluenceStates[groupId];
+  }
 }));
 
 export default useNodesStore;

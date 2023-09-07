@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import {
   getRectOfNodes,
   Handle,
@@ -77,9 +77,28 @@ function GroupNode({ id, data }: NodeProps) {
     }
   }, isEqual);
 
-  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id] ?? true);
-  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? true);
+  // INFO :: running ws and parents influence children functionality
+  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id]);
+  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? false);
+  const groupNodesWsStates = useNodesStore((state) => state.groupNodesWsStates);
   const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
+
+  const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
+  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id] ?? false);
+  const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
+
+
+  const influencedSuccessors = useCallback((): string[] => {
+    const influencedSuccs = [] as string[];
+    (data.successors ?? []).forEach((successor: string) => {
+      if ((groupNodesInfluenceStates[successor] ?? false) && (groupNodesWsStates[successor] ?? false)) {
+        influencedSuccs.push(successor);
+      }
+    });
+    return influencedSuccs;
+  }, [data.successors, groupNodesInfluenceStates, groupNodesWsStates]);
+
+  // const 
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
@@ -87,6 +106,11 @@ function GroupNode({ id, data }: NodeProps) {
   const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const deleteOutput = useDeleteOutput();
+
+  // initially, set the ws state to true (only needed bc sometimes, it's not immediately set)
+  useEffect(() => {
+    setWsStateForGroupNode(id, true);
+  }, []);
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   useEffect(() => {
@@ -116,6 +140,7 @@ function GroupNode({ id, data }: NodeProps) {
         if (ws.readyState === WebSocket.OPEN) {
           deleteOutput(simpleNodeId + "_output");
           ws.send(JSON.stringify(message));
+          executeOnSuccessors(code);
         } else {
           console.log("websocket is not connected");
         }
@@ -124,6 +149,21 @@ function GroupNode({ id, data }: NodeProps) {
       console.error("Queue is undefined for GROUP: ", id);
     }
   }, [queues]);
+
+  // Method to implement the "Parents influence children" functionality
+  const executeOnSuccessors = useCallback(async (code: string) => {
+    const influencedSuccs = influencedSuccessors();
+    influencedSuccs.forEach(async (succ) => {
+      console.log("run code "+code+" on successor: "+ succ);
+      const succNode = getNode(succ);
+      const requestBody = {
+        "code": code,
+        'kernel_id': succNode?.data.session?.kernel.id
+      }
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      // axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
+    });
+  }, [influencedSuccessors]);
 
   useEffect(() => {
     const handleWebSocketOpen = () => setWsStateForGroupNode(id, true);
@@ -140,6 +180,14 @@ function GroupNode({ id, data }: NodeProps) {
     }
   }, [nodeData.ws?.readyState]);
 
+  // from the predecessor, remove the current node from its successors
+  const removeFromPredecessor = () => {
+    if (predecessor) {
+      const updatedSuccessors = predecessor.data.successors.filter((successor: string) => successor !== id);
+      predecessor.data.successors = updatedSuccessors;
+    }
+  };
+
   /* DELETE */
   const onDelete = async () => {
     setShowConfirmModalDelete(true);
@@ -152,6 +200,7 @@ function GroupNode({ id, data }: NodeProps) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
+    removeFromPredecessor();
     setShowConfirmModalDelete(false);
   };
 
@@ -171,6 +220,7 @@ function GroupNode({ id, data }: NodeProps) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
+    removeFromPredecessor();
     setShowConfirmModalDetach(false);
   };
 
@@ -212,14 +262,14 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const startNewSession = async () => {
-    if (predecessor && predecessorRunning) setIsStarting(true);
+    if (predecessor && predecessorRunning && isInfluenced) setIsStarting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
     await fetchParentState();
-    if (predecessor && predecessorRunning) setIsStarting(false);
+    if (predecessor && predecessorRunning && isInfluenced) setIsStarting(false);
   };
 
   /* SHUTDOWN */
@@ -251,12 +301,13 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const fetchParentState = async () => {
-    if (predecessor && predecessorRunning) {
+    if (predecessor && predecessorRunning && isInfluenced) {
       await new Promise(resolve => setTimeout(resolve, 200));
       const parentKernel = predecessor.data.session?.kernel.id;
       const childKernel = data.session?.kernel.id;
       const dill_path = path.split('/').slice(0, -1).join('/')
       await passParentState(token, dill_path, parentKernel, childKernel);
+      setInfluenceStateForGroupNode(id, true);
     }
   };
 
