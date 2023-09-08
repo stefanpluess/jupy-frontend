@@ -26,6 +26,9 @@ export type NodesStore = {
     groupNodesInfluenceStates: { [groupId: string]: boolean };
     setInfluenceStateForGroupNode: (groupId: string, new_state: boolean) => void;
     getInfluenceStateForGroupNode: (groupId: string) => boolean;
+    groupNodePassStateDecisions: { [groupId: string]: boolean };
+    setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => void;
+    getPassStateDecisionForGroupNode: (groupId: string) => boolean;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -150,7 +153,33 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     }
     console.log("returining current status...")
     return get().groupNodesInfluenceStates[groupId];
-  }
+  },
+  //TODO: handle
+  groupNodePassStateDecisions: {},
+  setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => {
+    set((state) => ({
+        groupNodePassStateDecisions: {
+          ...state.groupNodePassStateDecisions,
+          [groupId]: new_state
+        }
+    })) 
+  },
+  getPassStateDecisionForGroupNode: (groupId: string): boolean => {
+    const state = get().groupNodePassStateDecisions[groupId]
+    // check if state is undefined
+    if (state === undefined) {
+        set((state) => ({
+            groupNodePassStateDecisions: {
+              ...state.groupNodePassStateDecisions,
+              [groupId]: false
+            }
+        }))
+        console.log("returining default status...")
+        return false;
+    }
+    console.log("returining current status...")
+    return get().groupNodePassStateDecisions[groupId];
+  },
 }));
 
 export default useNodesStore;

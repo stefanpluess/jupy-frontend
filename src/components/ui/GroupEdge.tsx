@@ -28,6 +28,8 @@ export default function GroupEdge({
   });
   
   const [dashOffset, setDashOffset] = useState(0);
+  const passStateDecision = useNodesStore((state) => state.groupNodePassStateDecisions[target] ?? true);
+  const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
   const influenceState = useNodesStore((state) => state.groupNodesInfluenceStates[target]);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[target]);
@@ -45,16 +47,19 @@ export default function GroupEdge({
     return () => clearInterval(flowInterval);
   }, []);
 
-  /* If the websocket is shut down, we want the influence to be off by default! */
+  /* If the ws or parentWs is shut down, we want the edge to be off!
+  Also, edge state should reflect pass parent state after restarting/reconnecting child kernel */
   useEffect(() => {
-    if (wsRunning && parentWsRunning) setInfluenceStateForGroupNode(target, true);
+    if (wsRunning && parentWsRunning && passStateDecision) setInfluenceStateForGroupNode(target, true);
     else setInfluenceStateForGroupNode(target, false);
-  }, [wsRunning, parentWsRunning]);
+  }, [wsRunning, parentWsRunning, passStateDecision]);
 
   /* on click, we switch the influence state to be opposite. */
   const onEdgeClick = (event: any, id: string) => {
     event.stopPropagation();
-    setInfluenceStateForGroupNode(target, !influenceState);
+    const newState = !influenceState;
+    setInfluenceStateForGroupNode(target, newState);
+    setPassStateDecisionForGroupNode(target, newState); // "remembers" state decision (not really needed, but nice to have fot shutting parent scenario)
   };
 
   return (
