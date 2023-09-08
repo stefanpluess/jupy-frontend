@@ -179,6 +179,14 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   cursor: not-allowed;
 }
 
+.wrapper .playInterruptButton{
+  background-color: transparent;
+  border-color: transparent;
+  color: rgb(210, 112, 0);
+  height: 100%;
+  font-size: 20px;
+}
+
  /*color of the play button icons in code cell*/
  .wrapper .playErrorButton {
   background-color: transparent;

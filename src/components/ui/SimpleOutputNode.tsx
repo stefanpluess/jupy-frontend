@@ -63,7 +63,7 @@ function SimpleOutputNode({
         );
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
-
+    // grouped = grouped.filter(output => output.timestamp !== undefined);
     setGroupedOutputs(grouped);
   }, [data.outputs]);
 

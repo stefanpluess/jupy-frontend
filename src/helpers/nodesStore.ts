@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { DEFAULT_LOCK_STATUS } from '../config/constants';
+import { 
+  DEFAULT_LOCK_STATUS,   
+  KERNEL_IDLE
+ } from '../config/constants';
 
 export type NodesStore = {
     locks: { [id: string]: boolean };
@@ -11,11 +14,10 @@ export type NodesStore = {
     queues: { [groupId: string]: Array<[string, string]> }; // Update the type for queue
     addToQueue: (groupId: string, nodeId: string, code: string) => void; // Include 'code' parameter
     removeFromQueue: (groupId: string) => void;
-    getCurrentNode: (groupId: string) => [string, string] | undefined; // Return a tuple or undefined
-    printQueue: () => { [groupId: string]: Array<[string, string]> };
-    groupNodesExecutionStates: { [groupId: string]: boolean };
-    setExecutionStateForGroupNode: (groupId: string, new_state: boolean) => void;
-    getExecutionStateForGroupNode: (groupId: string) => boolean;
+    clearQueue: (groupId: string) => void;
+    groupNodesExecutionStates: { [groupId: string]: {nodeId: string, state: string} };
+    setExecutionStateForGroupNode: (groupId: string, newState: {nodeId: string, state: string}) => void;
+    getExecutionStateForGroupNode: (groupId: string) => {nodeId: string, state: string};
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -60,31 +62,30 @@ const useNodesStore = create<NodesStore>((set, get) => ({
       const [, ...rest] = state.queues[groupId] || [];
       return { queues: { ...state.queues, [groupId]: rest } };
     }),
-  getCurrentNode: (groupId) => (get().queues[groupId] || [])[0],
-  printQueue: () => get().queues,
+  clearQueue: (groupId) => set((state) => ({ queues: { ...state.queues, [groupId]: [] } })),
   groupNodesExecutionStates: {},
-  setExecutionStateForGroupNode: (groupId: string, new_state: boolean) => {
+  setExecutionStateForGroupNode: (groupId: string, newState: {nodeId: string, state: string}) => {
     set((state) => ({
         groupNodesExecutionStates: {
           ...state.groupNodesExecutionStates,
-          [groupId]: new_state
+          [groupId]: newState
         }
-    })) 
+    }))
   },
-  getExecutionStateForGroupNode: (groupId: string): boolean => {
+  getExecutionStateForGroupNode: (groupId: string): {nodeId: string, state: string} => {
     const state = get().groupNodesExecutionStates[groupId]
     // check if state is undefined
     if (state === undefined) {
         set((state) => ({
             groupNodesExecutionStates: {
               ...state.groupNodesExecutionStates,
-              [groupId]: false
+              [groupId]: {nodeId: "", state: KERNEL_IDLE}
             }
         }))
-        console.log("returining default status...")
-        return false;
+        // console.log("returining default status...")
+        return {nodeId: "", state: KERNEL_IDLE};
     }
-    console.log("returining current status...")
+    // console.log("returining current status...")
     return get().groupNodesExecutionStates[groupId];
   },
 }));

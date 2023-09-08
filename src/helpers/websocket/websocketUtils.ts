@@ -130,3 +130,9 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
     return ws;
 }
 
+/* INTERRUPT */
+export const onInterrupt = async (token: string, kernelId: string) => {
+    console.log("Interrupting kernel...");
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    await axios.post(`http://localhost:8888/api/kernels/${kernelId}/interrupt`)
+};
