@@ -8,6 +8,7 @@ export type ExecutionCount = {
 export type ExecutionOutput = {
     msg_id: string;
     output: string;
+    outputHTML?: string;
     outputType: string;
     isImage: boolean;
 };
@@ -16,11 +17,20 @@ export type CellIdToOutputs = {
     [cellId: string]: OutputNodeData[];
 };
 
+export type CellIdToExecCount = {
+    [cellId: string]: {
+        execCount: number;
+        timestamp: Date;
+    };
+};
+
 export type OutputNodeData = {
     output: string;
+    outputHTML?: string;
     isImage: boolean;
     outputType: string;
     timestamp?: Date;
+    // containsBackslashB?: boolean; 
 };
 
 export type CellIdToMsgId = {
@@ -83,9 +93,9 @@ export type NotebookCell = {
     execution_count: number;
     id: string;
     metadata?: {};
-    outputs: NotebookOutput[];
+    outputs?: NotebookOutput[];
     source: string[];
-    position: XYPosition;
+    position?: XYPosition;
     height?: number | null;
     width?: number | null;
     parentNode?: string;
@@ -101,7 +111,10 @@ export type NotebookOutput = {
     name?: string;
     text?: string[];
     traceback?: string[];
-    position: XYPosition;
+    ename?: string;
+    evalue?: string;
+    position?: XYPosition;
+    isImage?: boolean;
 };
 
 export type Kernel = {

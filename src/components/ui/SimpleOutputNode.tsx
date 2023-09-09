@@ -32,9 +32,10 @@ function SimpleOutputNode({
   );
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
-  const [selectedOutputIndex, setSelectedOutputIndex] = useState(
-    -1 as number
-  );
+  const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
+
+  const [isCopyClicked, setIsCopyClicked] = useState(false);
+  const [isSaveClicked, setIsSaveClicked] = useState(false);
 
   useEffect(() => {
     if (!data.outputs) return;
@@ -43,24 +44,51 @@ function SimpleOutputNode({
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
     data.outputs.forEach((output) => {
-      if (!currentGroup || currentGroup.isImage || output.isImage || output.outputType === "error") {
+      // group execute_result and stream outputs together. Images, display_data and errors are always in their own group.
+      if (
+        !currentGroup ||
+        currentGroup.isImage ||
+        output.isImage ||
+        currentGroup.outputType === "display_data" ||
+        output.outputType === "display_data" ||
+        output.outputType === "error"
+      ) {
         currentGroup = {
           output: "",
+          outputHTML: output.outputHTML,
           isImage: output.isImage,
-          outputType: output.isImage ? "display_data" : output.outputType === "error" ? "error" : "stream",
+          outputType:
+            output.outputType === "display_data"
+              ? "display_data"
+              : output.outputType === "error"
+              ? "error"
+              : "stream",
           timestamp: output.timestamp,
+          // containsBackslashB: false,
         };
         grouped.push(currentGroup);
       }
+      // if (output.output.includes("\b")) currentGroup.containsBackslashB = true;
       // in case of live updates (f.ex. training a model), \b is used to delete the previous output
       // display the output in a way that the \b is respected (removing from prevous output, replacing with '' in current output)
       const strippedOutput = output.output.split("\b");
       const indexOfCorrectOutput = strippedOutput.length - 1;
-      if (indexOfCorrectOutput > 0)
+      if (indexOfCorrectOutput > 0) {
         currentGroup.output = currentGroup.output.slice(
           0,
           -indexOfCorrectOutput
         );
+      }
+
+      // before adding to the output, if a \r is present, remove everything before it from the end of currentGroup.output
+      // const indexOfCarriageReturn = strippedOutput[indexOfCorrectOutput].indexOf("\r");
+      // if (indexOfCarriageReturn >= 0) {
+      //   console.log("found carriage return")
+      //   currentGroup.output = currentGroup.output.slice(
+      //     0,
+      //     -indexOfCarriageReturn
+      //   );
+      // }
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
     // grouped = grouped.filter(output => output.timestamp !== undefined);
@@ -73,33 +101,33 @@ function SimpleOutputNode({
   const copyOutput = async (index: number = -1) => {
     // if index is -1, copy all outputs to clipboard
     if (index === -1) {
-      var html = '';
-      groupedOutputs.forEach(output => {
+      var html = "";
+      groupedOutputs.forEach((output) => {
         if (!output.isImage) {
-          html += output.output + '<br>';
+          html += output.output + "<br>";
         } else {
           html += '<img src="data:image/png;base64,' + output.output + '"><br>';
         }
       });
       const item = new clipboard.ClipboardItem({
-        "text/html": new Blob([html], { type: 'text/html' })
+        "text/html": new Blob([html], { type: "text/html" }),
       });
       await clipboard.write([item]);
-      alert("Copied all Outputs to Clipboard!");
+      //alert("Copied all Outputs to Clipboard!");
       return;
     }
 
     if (groupedOutputs[index]?.output === "") return;
     if (!groupedOutputs[index]?.isImage) {
-      var copiedOutput = groupedOutputs[index].output
+      var copiedOutput = groupedOutputs[index].output;
       clipboard.writeText(copiedOutput);
-      alert("Copied Output to Clipboard!");
+      // alert("Copied Output to Clipboard!");
     } else {
       const item = new clipboard.ClipboardItem({
         "image/png": b64toBlob(groupedOutputs[index]?.output, "image/png", 512),
       });
       await clipboard.write([item]);
-      alert("Copied Image as PNG to Clipboard!");
+      // alert("Copied Image as PNG to Clipboard!");
     }
   };
 
@@ -159,6 +187,8 @@ function SimpleOutputNode({
   function getHtmlOutput(output: OutputNodeData) {
     if (output.isImage) {
       return '<img src="data:image/png;base64,' + output.output + '">';
+    } else if (output.outputHTML) {
+      return '<div class="rendered_html">' + output.outputHTML + "</div>";
     } else {
       return output.output.replace(/\n/g, "<br>");
     }
@@ -180,7 +210,7 @@ function SimpleOutputNode({
     const divElement = divRef.current;
     if (divElement) {
       // if (divElement.scrollHeight !=  divElement.clientHeight) it means that the scrollbar is visible
-      setIsScrollbarVisible(divElement.scrollHeight !=  divElement.clientHeight);
+      setIsScrollbarVisible(divElement.scrollHeight != divElement.clientHeight);
     }
   }, [groupedOutputs]);
 
@@ -220,16 +250,22 @@ function SimpleOutputNode({
         <div className="oinputCentered obuttonArea nodrag">
           <button
             title="Copy Output"
-            className="obuttonArea oUpper"
+            className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
             onClick={() => copyOutput(0)}
+            onMouseDown={() => setIsCopyClicked(true)}
+            onMouseUp={() => setIsCopyClicked(false)}
           >
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
           {data.outputs[0]?.isImage && (
             <button
-              className="obuttonArea oLower"
+              className={`obuttonArea oLower ${
+                isSaveClicked ? "oClickedSave" : ""
+              }`}
               title="Save Output"
               onClick={() => saveOutput(0)}
+              onMouseDown={() => setIsSaveClicked(true)}
+              onMouseUp={() => setIsSaveClicked(false)}
             >
               <FontAwesomeIcon className="icon" icon={faSave} />
             </button>
@@ -242,17 +278,23 @@ function SimpleOutputNode({
         <div className="oinputCentered obuttonArea nodrag">
           <button
             title="Copy Selected Output"
-            className="obuttonArea oUpper"
-            onClick={() => copyOutput(selectedOutputIndex)}
+            className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
+            onClick={() => copyOutput(0)}
+            onMouseDown={() => setIsCopyClicked(true)}
+            onMouseUp={() => setIsCopyClicked(false)}
           >
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
           {data.outputs[selectedOutputIndex]?.isImage && (
             <button
-              className="obuttonArea oLower"
+              className={`obuttonArea oLower ${
+                isSaveClicked ? "oClickedSave" : ""
+              }`}
               title="Save Selected Output"
               onClick={() => saveOutput(selectedOutputIndex)}
+              onMouseDown={() => setIsSaveClicked(true)}
+              onMouseUp={() => setIsSaveClicked(false)}
             >
               <FontAwesomeIcon className="icon" icon={faSave} />
             </button>
@@ -260,14 +302,20 @@ function SimpleOutputNode({
         </div>
       )}
 
-      <div ref={divRef} style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }} className={isScrollbarVisible ? "nowheel" : "outputContent"}>
+      <div
+        ref={divRef}
+        style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
+        className={isScrollbarVisible ? "nowheel" : "outputContent"}
+      >
         {groupedOutputs.map((groupedOutput, index) => (
           <div
             key={index}
             className={
               selectedOutputIndex === index && groupedOutputs.length !== 1
-                ? "outputNode selected" + (groupedOutput.outputType === "error" ? " errorMessage" : "")
-                : "outputNode" + (groupedOutput.outputType === "error" ? " errorMessage" : "")
+                ? "outputNode selected" +
+                  (groupedOutput.outputType === "error" ? " errorMessage" : "")
+                : "outputNode" +
+                  (groupedOutput.outputType === "error" ? " errorMessage" : "")
             }
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
@@ -278,7 +326,11 @@ function SimpleOutputNode({
 
       {/* TODO: add some additional styleClass if node is empty */}
       {/* {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />} */}
-      <Handle type="target" position={Position.Left} isConnectableStart={false} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectableStart={false}
+      />
     </>
   );
 }

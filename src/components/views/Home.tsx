@@ -22,7 +22,6 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Panel,
-  useKeyPress,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules UI
@@ -187,7 +186,10 @@ function DynamicGrouping() {
         newNode.data.ws = ws;
         newNode.data.session = session;
       } else if (type === NORMAL_NODE) {
-        newNode.data.executionCount = '';
+        newNode.data.executionCount = {
+          execCount: '',
+          timestamp: new Date()
+        };
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }
