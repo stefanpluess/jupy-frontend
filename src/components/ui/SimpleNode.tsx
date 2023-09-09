@@ -1,5 +1,4 @@
 import React, {
-  ChangeEvent,
   useState,
   useEffect,
   useCallback,
@@ -32,7 +31,6 @@ import {
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
 import { useDetachNodes } from "../../helpers/hooks";
-import CommentNode from "./CommentNode";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -84,7 +82,6 @@ function SimpleNode({ id, data }: NodeProps) {
   );
 
   useEffect(() => {
-    // console.log(id + " ----- Execution Count Changed ----- now: " + data?.executionCount.execCount)
     setExecutionCount(data?.executionCount.execCount);
     // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     if (hasParent) {
@@ -157,24 +154,6 @@ function SimpleNode({ id, data }: NodeProps) {
       "This feature is currently still under construction. We will let you know when it is ready to use! "
     );
   addComments([id], textComment);
-  /*
-  const [isCommentVisible, setIsCommentVisible] = useState(false);
-  const onAddComment = () => setIsCommentVisible(true);
-  const [showCommentNode, setShowCommentNode] = useState(false);
-
-  const onCloseCommentNode = () => {
-    setShowCommentNode(false);
-  };
-
-  const onSaveComment = (comment: string) => {
-    // Call the addComments function to add the comment to the SimpleNode
-    addComments([id], comment);
-  };
-
-  const handleCommentChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    setTextComment(event.target.value);
-  };
-  */
 
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
@@ -189,19 +168,6 @@ function SimpleNode({ id, data }: NodeProps) {
     },
     [data, data.code]
   );
-
-  // BUG: with the new editor, deleting is not always shown --> currently not used
-  const deleteCode = useCallback(() => {
-    if (data.code === "") return;
-    const confirmed = window.confirm(
-      "Are you sure you want clear the cell content?"
-    );
-    if (confirmed) {
-      const node = getNode(id);
-      data.code = "";
-      node!.data.code = "";
-    }
-  }, [data, data.code]);
 
   const copyCode = () => {
     let copyText = data.code;
@@ -325,13 +291,6 @@ function SimpleNode({ id, data }: NodeProps) {
       </div>
 
       <div className="inputCentered buttonArea nodrag">
-        {/* <button
-          className="inputCentered cellButton bLeft"
-          title="Delete Code in Cell"
-          onClick={deleteCode}
-        >
-          <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
-        </button> */}
         <button
           title="Copy Text from Cell"
           className={`inputCentered cellButton bRight ${
@@ -444,28 +403,6 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
         </div>
       </Handle>
-
-      {/*to be deleted of code above works*/}
-
-      {/* {isCommentVisible && (
-            <CommentField
-              onClose={() => setIsCommentVisible(false)}
-              onSubmit={(comment) => {
-                console.log("Submitted Comment:", comment);
-                // Handle submitting the comment as required.
-                // You can use this comment in your application logic.
-              }}
-            />
-          )} */}
-
-      {/* CommentNode may be deleted if we dont use it*/}
-      {/*showCommentNode && (
-        <CommentNode
-          nodeId={id}
-          onClose={onCloseCommentNode}
-          onSaveComment={onSaveComment}
-        />
-      )*/}
     </>
   );
 }
