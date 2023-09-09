@@ -22,21 +22,27 @@ import {
   faTrashAlt,
   faObjectUngroup,
   faEllipsisVertical,
-  faDeleteLeft,
   faPlayCircle,
   faCirclePlay,
   faLock,
   faXmarkCircle,
   faLockOpen,
+  faStopCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useDeleteOutput } from "../../helpers/hooks";
+import { useDetachNodes } from "../../helpers/hooks";
 import CommentNode from "./CommentNode";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 import { OutputNodeData } from "../../config/types";
+import { useWebSocketStore } from "../../helpers/websocket";
+import { onInterrupt } from "../../helpers/websocket/websocketUtils";
+import {
+  KERNEL_IDLE,
+  KERNEL_INTERRUPTED
+} from "../../config/constants";
 
 const handleStyle = { height: 4, width: 4 };
 
@@ -50,7 +56,6 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
-  // const deleteOutput = useDeleteOutput();
   const [executionCount, setExecutionCount] = useState(
     data?.executionCount.execCount || ""
   );
@@ -62,6 +67,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const wsRunning = useNodesStore(
     (state) => state.groupNodesWsStates[parentNode!] ?? true
   );
+  const token = useWebSocketStore((state) => state.token);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -83,25 +89,49 @@ function SimpleNode({ id, data }: NodeProps) {
     // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     if (hasParent) {
       const groupId = parent!.id;
-      // console.log(`SimpleNode ${id}: Removing from queue and setting execution to false...`);
-      // console.log(`------------------------------`);
-      setExecutionStateForGroupNode(groupId, false);
+      setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId);
     }
   }, [data?.executionCount]);
 
-  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
     if (data.code.trim() === "") return;
-    // console.log(`SimpleNode ${id}: runCode`);
-    if (parent) {
+    if(parent){
       const groupId = parent.id;
       setExecutionCount("*");
-      // deleteOutput(id + "_output");
-      addToQueue(groupId, id, data.code);
+      addToQueue(groupId, id, data.code);  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
   }, [parent, data.code, addToQueue, data?.executionCount]);
 
+  // INFO :: 🛑INTERRUPT KERNEL
+  const clearQueue = useNodesStore((state) => state.clearQueue);
+  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+  const interruptKernel = useCallback(() => {
+    if(parent){
+      onInterrupt(token, parent.data.session.kernel.id);
+      // OPTIMIZE - should it behave differently for group node and simple node?
+      clearQueue(parent.id);
+      // always put the node that is currently at the top of the queue
+      const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
+      setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
+    } else{
+      console.warn("interruptKernel: parent is undefined");
+    }
+  }, [parentNode]);
+
+  const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
+  const parentExecutionState = parentNode
+    ? (groupNodesExecutionStates[parentNode])
+    : undefined;
+  useEffect(() => {
+    if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
+      // update the nodes that were in the queue and some other one interrupted
+      setExecutionCount(data?.executionCount.execCount);
+    }
+  }, [parentExecutionState]); 
+
+  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
   const deleteNode = () =>
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
@@ -127,9 +157,9 @@ function SimpleNode({ id, data }: NodeProps) {
       "This feature is currently still under construction. We will let you know when it is ready to use! "
     );
   addComments([id], textComment);
-
-  /*const [isCommentVisible, setIsCommentVisible] = useState(false);*/
-  /*const onAddComment = () => setIsCommentVisible(true);*/
+  /*
+  const [isCommentVisible, setIsCommentVisible] = useState(false);
+  const onAddComment = () => setIsCommentVisible(true);
   const [showCommentNode, setShowCommentNode] = useState(false);
 
   const onCloseCommentNode = () => {
@@ -144,6 +174,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const handleCommentChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setTextComment(event.target.value);
   };
+  */
 
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
@@ -173,10 +204,8 @@ function SimpleNode({ id, data }: NodeProps) {
   }, [data, data.code]);
 
   const copyCode = () => {
-    var copyText = data.code;
+    let copyText = data.code;
     navigator.clipboard.writeText(copyText);
-    //alert("Copied Code:\n" + data.code);
-    console.log("Copied code:\n" + data.code);
   };
 
   const onAdditionalSettings = () => {
@@ -197,19 +226,12 @@ function SimpleNode({ id, data }: NodeProps) {
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
   const runLockUnlock = () => {
-    // console.log("run lock/unlock!");
     setTransitioning(true);
     toggleLock(id);
     setTimeout(() => {
       setTransitioning(false);
     }, 300);
   };
-
-  /**
-   @todo: 
-   add comment to cell, 
-   add onClick to addtional cell settings,
-   **/
 
   return (
     <>
@@ -325,43 +347,74 @@ function SimpleNode({ id, data }: NodeProps) {
       <Handle type="source" position={Position.Right}>
         <div>
           {!hasError() ? (
-            <button
-              title="Run Code"
-              className="rinputCentered playButton rcentral"
-              onClick={runCode}
-              disabled={!hasParent || !wsRunning}
-            >
-              <FontAwesomeIcon className="icon" icon={faPlayCircle} />
-            </button>
-          ) : (
+            // INFO :: ▶️ run button when there is no error
             <div>
-              {!isHovered ? (
+              {(executionCount !== "*") ? (
+                // allowing to run code only if there is no error & we are not running the code
+                <button
+                  title="Run Code"
+                  className="rinputCentered playButton rcentral"
+                  onClick={runCode}
+                  disabled={!hasParent || !wsRunning}
+                >
+                  <FontAwesomeIcon className="icon" icon={faPlayCircle} />
+                </button>
+              ) : (
+                // when we are running the code allow to interrupt kernel
+                <button
+                  title="Interrupt Kernel ⛔"
+                  className="rinputCentered playInterruptButton rcentral"
+                  onClick={interruptKernel}
+                  disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                >
+                  <FontAwesomeIcon className="icon" icon={faStopCircle} />
+                </button>
+              )}
+            </div>
+          ) : (
+            // INFO :: ▶️ run button when we have error ❌
+            <div>
+              {isHovered ? (
+                // show the run button when we hover over it
                 <button
                   title="Error: Fix your Code and then let's try it again mate"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!hasParent || !wsRunning}
-                  onMouseEnter={() => setIsHovered(false)}
-                  onMouseLeave={() => setIsHovered(true)}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
                 >
                   <FontAwesomeIcon className="icon" icon={faCirclePlay} />
-                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
                 </button>
               ) : (
-                <button
-                  title="Error: Fix your Code and then let's try it again mate"
-                  className="rinputCentered playErrorButton rcentral"
-                  onClick={runCode}
-                  disabled={!hasParent || !wsRunning}
-                  onMouseEnter={() => setIsHovered(false)}
-                >
-                  <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
-                  {/*<FontAwesomeIcon className="icon" icon={faSkullCrossbones} />*/}
-                </button>
+                <div>
+                  {(executionCount !== "*") ? (
+                    // show the error button when we don't hover over it and nothing is running
+                    <button
+                      title="Error: Fix your Code and then let's try it again mate"
+                      className="rinputCentered playErrorButton rcentral"
+                      onClick={runCode}
+                      disabled={!hasParent || !wsRunning}
+                      onMouseEnter={() => setIsHovered(true)}
+                     >
+                      <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
+                    </button>
+                  ) : (
+                    // show the interrupt button when we don't hover over it and something is running
+                    <button
+                      title="Interrupt Kernel ⛔"
+                      className="rinputCentered playInterruptButton rcentral"
+                      onClick={interruptKernel}
+                      disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                    >
+                      <FontAwesomeIcon className="icon" icon={faStopCircle} />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
-
+          {/* INFO :: 🔢 execution count */}
           <div className="rinputCentered cellButton rbottom">
             [{executionCount != null ? executionCount : "0"}]
           </div>
