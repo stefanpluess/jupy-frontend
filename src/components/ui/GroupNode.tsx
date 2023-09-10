@@ -27,12 +27,17 @@ import {
 import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
-import { startWebsocket, createSession } from "../../helpers/websocket/websocketUtils";
+import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
 import CustomConfirmModal from "./CustomConfirmModal";
 import CustomInformationModal from "./CustomInformationModal";
 import useNodesStore from "../../helpers/nodesStore";
 import { v4 as uuidv4 } from "uuid";
 import { exportToJupyterNotebook, generateMessage, passParentState } from "../../helpers/utils";
+import {
+  KERNEL_IDLE,
+  KERNEL_INTERRUPTED,
+  KERNEL_BUSY
+} from "../../config/constants";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -87,7 +92,7 @@ function GroupNode({ id, data }: NodeProps) {
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
-  const isExecuting = useNodesStore((state) => state.groupNodesExecutionStates[id]);
+  const executionState = useNodesStore((state) => state.groupNodesExecutionStates[id]); // can be undefined
   const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const deleteOutput = useDeleteOutput();
@@ -99,24 +104,20 @@ function GroupNode({ id, data }: NodeProps) {
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   useEffect(() => {
-    // console.log("Queue changed for GROUP: ", id);
     if (queues){
       // if the queue is empty, do nothing
       if (queues && queues.length === 0) {
-        // console.log("Queue is empty for GROUP: ", id);
         return;
       }
-      // if the queue is not empty and the current status is running, do nothing
-      else if (isExecuting) {
-        // console.log("Queue is not empty and isExecuting is true for GROUP: ", id);
+      // if the queue is not empty and the current status is busy, do nothing
+      else if (executionState && executionState.state === KERNEL_BUSY) {
         return;
-      // if the queue is not empty and the current status is not running, execute the next item in the queue
+      // if the queue is not empty and the current status is not busy, execute the next item in the queue
       } else {
-        // console.log("Queue is not empty and isExecuting is false for GROUP: ", id);
         // execute next item in the queue
         const [simpleNodeId, code] = queues[0];
-        // set the current status to running
-        setExecutionStateForGroupNode(id, true);
+        // set the current status to busy
+        setExecutionStateForGroupNode(id, {nodeId: simpleNodeId, state: KERNEL_BUSY});
         // execute the next item
         const msg_id = uuidv4();
         const message = generateMessage(msg_id, code);
@@ -201,13 +202,6 @@ function GroupNode({ id, data }: NodeProps) {
     setIsBranching(true);
     await handleBranchOut();
     setIsBranching(false);
-  };
-
-  /* INTERRUPT */
-  const onInterrupt = async () => {
-    console.log('Interrupting kernel')
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/interrupt`)
   };
 
   /* RESTART */
@@ -298,12 +292,26 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
+  // INFO :: 🛑INTERRUPT KERNEL
+  const clearQueue = useNodesStore((state) => state.clearQueue);
+  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+  const interruptKernel = () => {
+    if (wsRunning && executionState && executionState.state !== KERNEL_IDLE) {
+      onInterrupt(token, data.session.kernel.id);
+      clearQueue(id);
+      setExecutionStateForGroupNode(id, {nodeId: getExecutionStateForGroupNode(id).nodeId, state: KERNEL_INTERRUPTED});
+    } else{
+      console.log("executionState.state: ", executionState.state)
+    }
+  };
+
   return (
     // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>
      <div>
-      {wsRunning && !isExecuting && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
-      {wsRunning && isExecuting && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
-      {!wsRunning && !isExecuting && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
+      {wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
+      {wsRunning && (executionState && executionState.state === KERNEL_BUSY) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
+      {wsRunning && (executionState && executionState.state === KERNEL_INTERRUPTED) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>} 
+      {!wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}
@@ -318,7 +326,7 @@ function GroupNode({ id, data }: NodeProps) {
           <button onClick={onDetach} title="Delete Bubble 🫧">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
           </button>}
-        <button onClick={onInterrupt} title="Interrupt Kernel ⛔"> 
+        <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
