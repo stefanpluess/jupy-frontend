@@ -38,7 +38,7 @@ import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 import { OutputNodeData } from "../../config/types";
 
-const handleStyle = { height: 4, width: 4 };
+const handleStyle = { height: 6, width: 6 };
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();

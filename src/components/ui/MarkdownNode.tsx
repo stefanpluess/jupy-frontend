@@ -22,7 +22,7 @@ import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
 
 function MarkdownNode({ id, data }: NodeProps) {
-  const handleStyle = { height: 4, width: 4 };
+  const handleStyle = { height: 6, width: 6 };
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );

@@ -7,6 +7,7 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
+  NodeResizer,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -23,6 +24,8 @@ import withReactContent from "sweetalert2-react-content";
 import { OutputNodeData } from "../../config/types";
 import * as clipboard from "clipboard-polyfill";
 
+const handleStyle = { height: 6, width: 6 };
+
 function SimpleOutputNode({
   id,
   data,
@@ -30,6 +33,20 @@ function SimpleOutputNode({
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
+
+  const { minWidth, minHeight, maxHeight, maxWidth } = useStore((store) => {
+    const nodes = Array.from(store.nodeInternals.values()).filter(
+      (n) => n.id === id
+    );
+
+    return {
+      minWidth: 50,
+      minHeight: 50,
+      maxHeight: 300, //alex
+      maxWidth: 600,
+    };
+  });
+
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
@@ -203,6 +220,9 @@ function SimpleOutputNode({
     }
   };
 
+  const [outputNodeWidth, setOutputNodeWidth] = useState(minWidth);
+  const [outputNodeHeight, setOutputNodeHeight] = useState(minHeight);
+
   // INFO :: 🖱️ making the output node scrollable with mouse wheel if the content is bigger than max height
   const divRef = useRef<HTMLDivElement | null>(null);
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false);
@@ -210,12 +230,26 @@ function SimpleOutputNode({
     const divElement = divRef.current;
     if (divElement) {
       // if (divElement.scrollHeight !=  divElement.clientHeight) it means that the scrollbar is visible
+
+      setOutputNodeWidth(divElement.offsetWidth);
+      setOutputNodeHeight(divElement.offsetHeight);
+      console.log(`Width: ${outputNodeWidth}px, Height: ${outputNodeHeight}px`);
+
       setIsScrollbarVisible(divElement.scrollHeight != divElement.clientHeight);
     }
   }, [groupedOutputs]);
 
   return (
     <>
+      <NodeResizer
+        lineStyle={{ borderColor: "transparent" }}
+        handleStyle={handleStyle}
+        minWidth={minWidth + 10}
+        //minHeight={outputNodeHeight + 10} //alex
+        minHeight={minHeight + 10}
+        maxHeight={maxHeight + 10}
+        maxWidth={maxWidth + 10}
+      />
       <NodeToolbar className="nodrag">
         {/* <button onClick={onDelete}>Delete</button> */}
         {!isSimpleNodeLocked ? (
@@ -304,7 +338,17 @@ function SimpleOutputNode({
 
       <div
         ref={divRef}
-        style={{ maxHeight: "200px", maxWidth: "500px", overflow: "auto" }}
+        style={{
+          //display: "flow-root",
+          minHeight: minHeight,
+          minWidth: minWidth,
+          maxHeight: maxHeight, //alex
+          maxWidth: maxWidth,
+          //overflow: "scroll",
+          //overflow: "hidden",
+
+          overflow: "auto",
+        }}
         className={isScrollbarVisible ? "nowheel" : "outputContent"}
       >
         {groupedOutputs.map((groupedOutput, index) => (
@@ -336,42 +380,3 @@ function SimpleOutputNode({
 }
 
 export default memo(SimpleOutputNode);
-
-{
-  /*}
-{outputType === "error" ? (
-  <div
-    className="outputNode errorMessage"
-    dangerouslySetInnerHTML={output}
-    style={{
-      maxHeight: "200px",
-      maxWidth: "500px",
-      overflow: "auto",
-    }}
-  ></div>
-) : (
-  <div>
-    {data?.isImage ? (
-      <div
-        className="outputNode " //to be deleted???
-        dangerouslySetInnerHTML={output}
-        style={{
-          maxHeight: "400px",
-          maxWidth: "500px",
-          overflow: "auto",
-        }}
-      ></div>
-    ) : (
-      <div
-        className="outputNode "
-        dangerouslySetInnerHTML={output}
-        style={{
-          maxHeight: "200px",
-          maxWidth: "500px",
-          overflow: "auto",
-        }}
-      ></div>
-    )}
-  </div>
-)}*/
-}
