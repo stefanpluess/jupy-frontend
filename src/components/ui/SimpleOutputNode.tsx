@@ -42,8 +42,8 @@ function SimpleOutputNode({
     return {
       minWidth: 50,
       minHeight: 50,
-      maxHeight: 300, //alex
-      maxWidth: 600,
+      maxHeight: 300, //TODO --> TobeDefined
+      maxWidth: 600, //TODO --> TobeDefined
     };
   });
 
@@ -245,7 +245,7 @@ function SimpleOutputNode({
         lineStyle={{ borderColor: "transparent" }}
         handleStyle={handleStyle}
         minWidth={minWidth + 10}
-        //minHeight={outputNodeHeight + 10} //alex
+        //minHeight={outputNodeHeight + 10} //BUG --> Alex
         minHeight={minHeight + 10}
         maxHeight={maxHeight + 10}
         maxWidth={maxWidth + 10}
@@ -342,7 +342,8 @@ function SimpleOutputNode({
           //display: "flow-root",
           minHeight: minHeight,
           minWidth: minWidth,
-          maxHeight: maxHeight, //alex
+          //maxHeight: outputNodeHeight, //BUG --> Alex
+          maxHeight: maxHeight,
           maxWidth: maxWidth,
           //overflow: "scroll",
           //overflow: "hidden",
