@@ -7,3 +7,7 @@ export const COMMENT_NODE = 'comment';
 
 export const ID_LENGTH = 8;
 export const DEFAULT_LOCK_STATUS = false;
+
+export const KERNEL_IDLE = 'IDLE';
+export const KERNEL_BUSY = 'BUSY';
+export const KERNEL_INTERRUPTED = 'INTERRUPTED';
