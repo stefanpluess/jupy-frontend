@@ -39,9 +39,9 @@ export default function GroupEdge({
     // set the influence state of the target to true initially
     setInfluenceStateForGroupNode(target, true);
 
-    setDashOffset((prevDashOffset) => prevDashOffset - 30);
+    setDashOffset((prevDashOffset) => prevDashOffset - 24);
     const flowInterval = setInterval(() => {
-      setDashOffset((prevDashOffset) => prevDashOffset - 30); // Adjust the increment as needed
+      setDashOffset((prevDashOffset) => prevDashOffset - 24); // Adjust the increment as needed
     }, 1000);
 
     return () => clearInterval(flowInterval);
@@ -66,8 +66,8 @@ export default function GroupEdge({
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={
         influenceState ?
-        {strokeDasharray: '5, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'} :
-        {strokeDasharray: '5, 5', strokeDashoffset: dashOffset}
+        {stroke: 'lightgrey', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'} :
+        {stroke: 'grey', opacity: 0.6, strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset}
         } />
       <EdgeLabelRenderer>
         <div

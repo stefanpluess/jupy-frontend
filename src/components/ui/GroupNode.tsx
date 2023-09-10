@@ -85,16 +85,6 @@ function GroupNode({ id, data }: NodeProps) {
   const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
 
-  const influencedSuccessors = useCallback((): string[] => {
-    const influencedSuccs = [] as string[];
-    (data.successors ?? []).forEach((successor: string) => {
-      if (groupNodesInfluenceStates[successor] ?? false) {
-        influencedSuccs.push(successor);
-      }
-    });
-    return influencedSuccs;
-  }, [data.successors, groupNodesInfluenceStates]);
-
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
   const isExecuting = useNodesStore((state) => state.groupNodesExecutionStates[id]);
@@ -135,7 +125,6 @@ function GroupNode({ id, data }: NodeProps) {
         if (ws.readyState === WebSocket.OPEN) {
           deleteOutput(simpleNodeId + "_output");
           ws.send(JSON.stringify(message));
-          executeOnSuccessors(code);
         } else {
           console.log("websocket is not connected");
         }
@@ -144,21 +133,6 @@ function GroupNode({ id, data }: NodeProps) {
       console.error("Queue is undefined for GROUP: ", id);
     }
   }, [queues]);
-
-  // Method to implement the "Parents influence children" functionality
-  const executeOnSuccessors = useCallback(async (code: string) => {
-    const influencedSuccs = influencedSuccessors();
-    influencedSuccs.forEach(async (succ) => {
-      console.log("run code "+code+" on successor: "+ succ);
-      const succNode = getNode(succ);
-      const requestBody = {
-        "code": code,
-        'kernel_id': succNode?.data.session?.kernel.id
-      }
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
-    });
-  }, [influencedSuccessors]);
 
   useEffect(() => {
     const handleWebSocketOpen = () => {

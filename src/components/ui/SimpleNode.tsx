@@ -39,7 +39,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useDeleteOutput } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useDeleteOutput } from "../../helpers/hooks";
 import CommentNode from "./CommentNode";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
@@ -64,6 +64,7 @@ function SimpleNode({ id, data }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const initialRender = useRef(true);
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[parentNode!] ?? true);
+  const executeOnSuccessors = useExecuteOnSuccessors();
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -83,6 +84,7 @@ function SimpleNode({ id, data }: NodeProps) {
       const groupId = parent!.id;
       // console.log(`SimpleNode ${id}: Removing from queue and setting execution to false...`);
       // console.log(`------------------------------`);
+      executeOnSuccessors(parent!.id);
       setExecutionStateForGroupNode(groupId, false);
       removeFromQueue(groupId);
     }

@@ -7,7 +7,7 @@ export const proOptions = {
   
 export const defaultEdgeOptions = {
     style: {
-        strokeWidth: 2,
+        strokeWidth: 1.5,
     },
     markerEnd: {
         type: MarkerType.ArrowClosed,
