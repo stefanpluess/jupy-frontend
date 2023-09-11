@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -206,15 +206,17 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parent?.data.predecessor]); // can be undefined
   const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[parent?.id!]); // can be undefined
+  const hasBusySucc = useHasBusySuccessors();
 
   const canBeRun = useCallback(() => {
     return (
       hasParent &&
       wsRunning &&
       parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT &&
-      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) // something is soon to be executed -> prevent running
+      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && // something is soon to be executed on this child -> prevent running
+      !hasBusySucc(parentNode!) // something is currently executed on an influenced child -> prevent running
     );
-  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced]);
+  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced, hasBusySucc]);
 
   return (
     <>

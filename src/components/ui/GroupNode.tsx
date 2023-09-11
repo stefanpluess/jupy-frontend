@@ -24,7 +24,7 @@ import {
   faCircleXmark,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
-import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput} from "../../helpers/hooks";
+import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors} from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
@@ -99,10 +99,12 @@ function GroupNode({ id, data }: NodeProps) {
 
   const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[data.predecessor]); // can be undefined
   const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id]); // can be undefined
+  const hasBusySucc = useHasBusySuccessors();
 
-  // initially, set the ws state to true (only needed bc sometimes, it's not immediately set)
+  // initially, set the ws state to true and execution state to IDLE (only needed bc sometimes, it's not immediately set)
   useEffect(() => {
     setWsStateForGroupNode(id, true);
+    setExecutionStateForGroupNode(id, {nodeId: "", state: KERNEL_IDLE});
   }, []);
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -308,15 +310,34 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
+  const displayExecutionState = () => {
+    if (wsRunning) {
+      if (executionState?.state === KERNEL_IDLE) {
+        if (hasBusySucc(id)) {
+          return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influenced child busy...</div>
+        } else if (predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) {
+          return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influence happening...</div>
+        } else {
+          return <div className="kernelOn"><FontAwesomeIcon icon={faCircleChevronDown} /> Idle</div>
+        }
+      } else if (executionState?.state === KERNEL_BUSY) {
+        return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>
+      } else if (executionState?.state === KERNEL_BUSY_FROM_PARENT) {
+        return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy from Parent...</div>
+      } else if (executionState?.state === KERNEL_INTERRUPTED) {
+        return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>
+      }
+    } else if (!wsRunning && executionState?.state === KERNEL_IDLE) {
+      return <div className="kernelOff"><FontAwesomeIcon icon={faCircleXmark} /> Shutdown</div>
+    }
+    // Return null if none of the conditions are met
+    return null;
+  }
+
   return (
     // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>
      <div> 
-      {wsRunning && executionState?.state === KERNEL_IDLE && (predecessorExecutionState?.state !== KERNEL_BUSY || !isInfluenced) && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
-      {wsRunning && executionState?.state === KERNEL_IDLE && (predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influence happening...</div>}
-      {wsRunning && executionState?.state === KERNEL_BUSY && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
-      {wsRunning && executionState?.state === KERNEL_BUSY_FROM_PARENT && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy from Parent...</div>} 
-      {wsRunning && executionState?.state === KERNEL_INTERRUPTED && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>} 
-      {!wsRunning && executionState?.state === KERNEL_IDLE && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
+      {displayExecutionState()}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}
