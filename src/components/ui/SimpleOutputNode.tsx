@@ -357,7 +357,7 @@ function SimpleOutputNode({
           <button
             title="Copy Selected Output"
             className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
-            onClick={() => copyOutput(0)}
+            onClick={() => copyOutput(selectedOutputIndex)}
             onMouseDown={() => setIsCopyClicked(true)}
             onMouseUp={() => setIsCopyClicked(false)}
           >
