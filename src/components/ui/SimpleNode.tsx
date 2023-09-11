@@ -204,13 +204,17 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parent?.data.predecessor]); // can be undefined
+  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[parent?.id!]); // can be undefined
+
   const canBeRun = useCallback(() => {
     return (
       hasParent &&
       wsRunning &&
-      parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT
+      parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT &&
+      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) // something is soon to be executed -> prevent running
     );
-  }, [hasParent, wsRunning, parentExecutionState]);
+  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced]);
 
   return (
     <>

@@ -97,6 +97,9 @@ function GroupNode({ id, data }: NodeProps) {
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const deleteOutput = useDeleteOutput();
 
+  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[data.predecessor]); // can be undefined
+  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id]); // can be undefined
+
   // initially, set the ws state to true (only needed bc sometimes, it's not immediately set)
   useEffect(() => {
     setWsStateForGroupNode(id, true);
@@ -307,12 +310,13 @@ function GroupNode({ id, data }: NodeProps) {
 
   return (
     // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>
-     <div>
-      {wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
-      {wsRunning && (executionState && executionState.state === KERNEL_BUSY) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
-      {wsRunning && (executionState && executionState.state === KERNEL_BUSY_FROM_PARENT) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy from Parent...</div>} 
-      {wsRunning && (executionState && executionState.state === KERNEL_INTERRUPTED) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>} 
-      {!wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
+     <div> 
+      {wsRunning && executionState?.state === KERNEL_IDLE && (predecessorExecutionState?.state !== KERNEL_BUSY || !isInfluenced) && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
+      {wsRunning && executionState?.state === KERNEL_IDLE && (predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influence happening...</div>}
+      {wsRunning && executionState?.state === KERNEL_BUSY && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
+      {wsRunning && executionState?.state === KERNEL_BUSY_FROM_PARENT && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy from Parent...</div>} 
+      {wsRunning && executionState?.state === KERNEL_INTERRUPTED && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>} 
+      {!wsRunning && executionState?.state === KERNEL_IDLE && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
       <NodeResizer
         lineStyle={lineStyle}
         handleStyle={handleStyle}

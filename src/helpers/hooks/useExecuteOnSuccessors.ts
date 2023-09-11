@@ -27,6 +27,7 @@ function useExecuteOnSuccessors() {
       return influencedSuccs;
     }, [groupNodesInfluenceStates, getNode]);
 
+    // INFO :: version1 -> each child is run and awaited separately
     const executeOnSuccessors = useCallback(async (node_id: string) => {
       const influencedSuccs = influencedSuccessors(node_id);
       const queue = allQueues[node_id];
@@ -52,6 +53,38 @@ function useExecuteOnSuccessors() {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
+
+
+    // INFO :: version2 -> children are awaited all together
+    // const executeOnSuccessors = useCallback(async (node_id: string) => {
+    //   const influencedSuccs = influencedSuccessors(node_id);
+    //   const queue = allQueues[node_id];
+    //   if (!queue || queue.length === 0) return;
+    //   const [simpleNodeId, code] = queue[0];
+    //   const axiosRequests = [] as Promise<any>[];
+    //   for (const succ of influencedSuccs) {
+    //     console.log("run code " + code + " on successor: " + succ);
+    //     const succNode = getNode(succ);
+    //     const requestBody = {
+    //       "code": code,
+    //       'kernel_id': succNode?.data.session?.kernel.id
+    //     }
+    //     setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
+    //     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    //     axiosRequests.push(
+    //       axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
+    //         .then((res) => {
+    //           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
+    //         })
+    //         .catch((err) => {
+    //           console.error(err);
+    //           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
+    //           // TODO: show to the user that there was an error
+    //         })
+    //     );
+    //   }
+    //   await Promise.all(axiosRequests);
+    // }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
 
     return executeOnSuccessors;
 }

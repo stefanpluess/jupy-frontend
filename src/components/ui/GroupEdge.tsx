@@ -88,7 +88,7 @@ export default function GroupEdge({
           }}
           className="nodrag nopan"
         >
-          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || childExecutionState.state === KERNEL_BUSY_FROM_PARENT}>
+          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || childExecutionState?.state === KERNEL_BUSY_FROM_PARENT}>
             {influenceState ? 
               <FontAwesomeIcon icon={faScissors} rotation={180} style={{ marginLeft: -3, marginTop: 1 }}/> : 
               <FontAwesomeIcon icon={faLink} style={{ marginLeft: -4, marginTop: 1 }}/>
