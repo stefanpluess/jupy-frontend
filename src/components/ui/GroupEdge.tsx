@@ -4,7 +4,10 @@ import useNodesStore from '../../helpers/nodesStore';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScissors, faLink } from "@fortawesome/free-solid-svg-icons";
-import { KERNEL_BUSY_FROM_PARENT } from '../../config/constants';
+import { 
+  KERNEL_BUSY,
+  KERNEL_BUSY_FROM_PARENT 
+} from '../../config/constants';
 
 export default function GroupEdge({
   id,
@@ -37,6 +40,7 @@ export default function GroupEdge({
   const parentWsRunning = useNodesStore((state) => state.groupNodesWsStates[source]);
 
   const childExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[target]);
+  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[source]);
 
   useEffect(() => {
     // set the influence state of the target to true initially
@@ -88,7 +92,7 @@ export default function GroupEdge({
           }}
           className="nodrag nopan"
         >
-          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || childExecutionState?.state === KERNEL_BUSY_FROM_PARENT}>
+          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || parentExecutionState?.state === KERNEL_BUSY}>
             {influenceState ? 
               <FontAwesomeIcon icon={faScissors} rotation={180} style={{ marginLeft: -3, marginTop: 1 }}/> : 
               <FontAwesomeIcon icon={faLink} style={{ marginLeft: -4, marginTop: 1 }}/>
