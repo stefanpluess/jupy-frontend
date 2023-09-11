@@ -32,7 +32,6 @@ import {
   sortNodes,
   getId,
   getNodePositionInsideParent,
-  createOutputNode,
   canRunOnNodeDrag,
   keepPositionInsideParent,
   getConnectedNodeId,
