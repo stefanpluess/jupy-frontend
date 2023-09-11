@@ -90,6 +90,9 @@ function GroupNode({ id, data }: NodeProps) {
   const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
 
+// INFO :: 0️⃣ empty output type functionality
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
   const executionState = useNodesStore((state) => state.groupNodesExecutionStates[id]); // can be undefined
@@ -129,8 +132,21 @@ function GroupNode({ id, data }: NodeProps) {
         setCellIdToMsgId({ [msg_id]: simpleNodeId });
         const ws = data.ws;
         if (ws.readyState === WebSocket.OPEN) {
-          deleteOutput(simpleNodeId + "_output");
-          ws.send(JSON.stringify(message));
+          const outputNodeId= simpleNodeId + "_output";
+          deleteOutput(outputNodeId);
+          const outputNode = getNode(outputNodeId);
+          if (outputNode === undefined) {
+            console.log("outputNode is undefined");
+            setTimeout(() => {
+              // INFO :: 0️⃣ empty output type functionality
+              setOutputTypeEmpty(outputNodeId, false);
+              ws.send(JSON.stringify(message));
+            }, 25);
+          }else{
+            // INFO :: 0️⃣ empty output type functionality
+            setOutputTypeEmpty(outputNodeId, false); 
+            ws.send(JSON.stringify(message));
+          }
         } else {
           console.log("websocket is not connected");
         }

@@ -21,7 +21,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         code: cell.source,
         executionCount: {
           execCount: cell.execution_count,
-          timestamp: Date.now()
+          timestamp: new Date()
         }
       } : cell.cell_type === 'markdown' ? {
         code: cell.source
@@ -32,15 +32,15 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       position: position,
       height: cell.height,
       width: cell.width,
-      style: { height: cell.height, width: cell.width }, // BUG - Type 'number | null | undefined' is not assignable to type 'Height<string | number> | undefined'. Type 'null' is not assignable to type 'Height<string | number> | undefined'.
+      style: { height: cell.height!, width: cell.width! },
     };
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
       node.extent = 'parent';
     };
-    // for each code node, create an output node
-    if (cell.cell_type === 'code') {
+    // for each code node, create an output node (if it has been executed before)
+    if (cell.cell_type === 'code' && node.data.executionCount.execCount !== "") {
       const outputNode: Node = createOutputNode(node)
       // for each output (if multiple) set the output data
       const allOutputs = [] as OutputNodeData[];
@@ -59,7 +59,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       });
       outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
-      outputNode.position = cell.outputs[0]?.position ? { x: cell.outputs[0].position.x, y: cell.outputs[0].position.y } : outputNode.position;
+      outputNode.position = cell.outputs![0]?.position ? { x: cell.outputs![0].position.x, y: cell.outputs![0].position.y } : outputNode.position;
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
@@ -149,15 +149,6 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
           }
           cell.outputs?.push(output);
         });
-        // in case there are no outputs, just create an empty output
-        if (node.data.outputs.length === 0) {
-          const output: NotebookOutput = {
-            output_type: 'stream',
-            text: [""],
-            position: node.position,
-          };
-          cell.outputs?.push(output);
-        }
       }
     }
   });

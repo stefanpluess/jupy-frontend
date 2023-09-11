@@ -14,3 +14,6 @@ export const KERNEL_IDLE = 'IDLE';
 export const KERNEL_BUSY = 'BUSY';
 export const KERNEL_INTERRUPTED = 'INTERRUPTED';
 export const KERNEL_BUSY_FROM_PARENT = 'BUSY_FROM_PARENT';
+
+export const EXEC_CELL_NOT_YET_RUN = '';
+export const EXEC_CELL_RUNNING = '*';

@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors, useInsertOutput } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -41,7 +41,8 @@ import {
   KERNEL_BUSY,
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
-  KERNEL_INTERRUPTED
+  KERNEL_INTERRUPTED,
+  EXEC_CELL_NOT_YET_RUN
 } from "../../config/constants";
 
 const handleStyle = { height: 6, width: 6 };
@@ -56,9 +57,8 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
-  const [executionCount, setExecutionCount] = useState(
-    data?.executionCount.execCount || ""
-  );
+  const insertOutput = useInsertOutput();
+  const [executionCount, setExecutionCount] = useState(data?.executionCount.execCount || '');
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -77,6 +77,9 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
+  // INFO :: 0️⃣ empty output type functionality
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const addToQueue = useNodesStore((state) => state.addToQueue);
   const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
@@ -94,35 +97,39 @@ function SimpleNode({ id, data }: NodeProps) {
         setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
         removeFromQueue(groupId);
       }
+      if (outputs && outputs.length === 0) {
+        setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
+      }
     };
     updateExecCount();
   }, [data?.executionCount]);
 
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
-    if (!data.code || data.code.trim() === "") return;
+    if (!data.code || data.code.trim() === '') return;
+    if (executionCount === "") insertOutput(id); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
       setExecutionCount("*");
-      addToQueue(groupId, id, data.code);  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+      addToQueue(groupId, id, data.code); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
-  }, [parent, data.code, addToQueue, data?.executionCount]);
+  }, [parent, data.code, addToQueue, insertOutput]);
 
-  // INFO :: 🛑INTERRUPT KERNEL
-  const clearQueue = useNodesStore((state) => state.clearQueue);
-  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
-  const interruptKernel = useCallback(() => {
-    if(parent){
-      onInterrupt(token, parent.data.session.kernel.id);
-      // OPTIMIZE - should it behave differently for group node and simple node?
-      clearQueue(parent.id);
-      // always put the node that is currently at the top of the queue
-      const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
-      setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
-    } else{
-      console.warn("interruptKernel: parent is undefined");
-    }
-  }, [parentNode]);
+ // INFO :: 🛑INTERRUPT KERNEL
+ const clearQueue = useNodesStore((state) => state.clearQueue);
+ const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+ const interruptKernel = useCallback(() => {
+   if(parent){
+     onInterrupt(token, parent.data.session.kernel.id);
+     // OPTIMIZE - should it behave differently for group node and simple node?
+     clearQueue(parent.id);
+     // always put the node that is currently at the top of the queue
+     const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
+     setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
+   } else{
+     console.warn("interruptKernel: parent is undefined");
+   }
+ }, [parentNode]);
 
   const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
 
@@ -133,7 +140,7 @@ function SimpleNode({ id, data }: NodeProps) {
     }
   }, [parentExecutionState]); 
 
-  // INFO :: 🗑️DELETE CELL
+ // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
   const deleteNode = () =>
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
@@ -392,34 +399,39 @@ function SimpleNode({ id, data }: NodeProps) {
               )}
             </div>
           )}
-          {/* INFO :: 🔢 execution count */}
-          <div className="rinputCentered cellButton rbottom">
-            [{executionCount != null ? executionCount : "0"}]
-          </div>
-          {/* INFO :: lock button */}
-          <button
-            title={isLocked ? "Unlock edge 🔓" : "Lock edge 🔒"}
-            className="rinputCentered cellButton rtop"
-            onClick={runLockUnlock}
-          >
-            <div className={transitioning ? "lock-icon-transition" : ""}>
-              {isLocked ? (
-                <FontAwesomeIcon
-                  className={`lock-icon ${
-                    isLocked && !transitioning ? "lock-icon-visible" : ""
-                  }`}
-                  icon={faLock}
-                />
-              ) : (
-                <FontAwesomeIcon
-                  className={`lock-icon ${
-                    !isLocked && !transitioning ? "lock-icon-visible" : ""
-                  }`}
-                  icon={faLockOpen}
-                />
-              )}
-            </div>
-          </button>
+          {/* COMMENT - show execution count and lock only if the cell has been run for the first time */}
+          {executionCount !== EXEC_CELL_NOT_YET_RUN && (
+            <>
+              {/* INFO :: 🔢 execution count */}
+              <div className="rinputCentered cellButton rbottom">
+                [{executionCount != null ? executionCount : "0"}]
+              </div>
+              {/* INFO :: lock button */}
+              <button
+                title={isLocked ? "Unlock edge 🔓" : "Lock edge 🔒"}
+                className="rinputCentered cellButton rtop"
+                onClick={runLockUnlock}
+              >
+                <div className={transitioning ? "lock-icon-transition" : ""}>
+                  {isLocked ? (
+                    <FontAwesomeIcon
+                      className={`lock-icon ${
+                        isLocked && !transitioning ? "lock-icon-visible" : ""
+                      }`}
+                      icon={faLock}
+                    />
+                  ) : (
+                    <FontAwesomeIcon
+                      className={`lock-icon ${
+                        !isLocked && !transitioning ? "lock-icon-visible" : ""
+                      }`}
+                      icon={faLockOpen}
+                    />
+                  )}
+                </div>
+              </button>
+            </>
+          )}
         </div>
       </Handle>
     </>

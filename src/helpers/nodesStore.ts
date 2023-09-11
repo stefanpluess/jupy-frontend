@@ -8,8 +8,11 @@ export type NodesStore = {
     locks: { [id: string]: boolean };
     toggleLock: (id: string) => void;
     getIsLockedForId: (id: string) => boolean;
-    
 
+    // INFO :: 0️⃣ empty output type functionality
+    outputNodesOutputType: { [id: string]: boolean };
+    setOutputTypeEmpty: (id: string, type: boolean) => void;
+  
     // INFO :: queue functionality
     queues: { [groupId: string]: Array<[string, string]> }; // Update the type for queue
     addToQueue: (groupId: string, nodeId: string, code: string) => void; // Include 'code' parameter
@@ -59,6 +62,17 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     }
     // console.log("returining current status...")
     return get().locks[id];
+  },
+
+  // INFO :: 0️⃣ empty output type functionality
+  outputNodesOutputType: {},
+  setOutputTypeEmpty: (id: string, type: boolean) => {
+    set((state) => ({
+        outputNodesOutputType: {
+          ...state.outputNodesOutputType,
+          [id]: type
+        }
+    }))
   },
 
   // INFO :: queue functionality
@@ -155,7 +169,6 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     console.log("returining current status...")
     return get().groupNodesInfluenceStates[groupId];
   },
-  //TODO: handle
   groupNodePassStateDecisions: {},
   setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => {
     set((state) => ({
