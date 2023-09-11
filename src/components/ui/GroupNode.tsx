@@ -36,7 +36,8 @@ import { exportToJupyterNotebook, generateMessage, passParentState } from "../..
 import {
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
-  KERNEL_BUSY
+  KERNEL_BUSY,
+  KERNEL_BUSY_FROM_PARENT
 } from "../../config/constants";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
@@ -87,7 +88,6 @@ function GroupNode({ id, data }: NodeProps) {
   const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id]);
   const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? false);
   const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
-  const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -310,6 +310,7 @@ function GroupNode({ id, data }: NodeProps) {
      <div>
       {wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOn"><FontAwesomeIcon icon={faCircleChevronDown}/> Idle</div>} 
       {wsRunning && (executionState && executionState.state === KERNEL_BUSY) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy...</div>} 
+      {wsRunning && (executionState && executionState.state === KERNEL_BUSY_FROM_PARENT) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Busy from Parent...</div>} 
       {wsRunning && (executionState && executionState.state === KERNEL_INTERRUPTED) && <div className = "kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>} 
       {!wsRunning && (executionState && executionState.state === KERNEL_IDLE) && <div className = "kernelOff"><FontAwesomeIcon icon={faCircleXmark}/> Shutdown</div>}
       <NodeResizer

@@ -3,12 +3,17 @@ import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
 import { useWebSocketStore } from "../websocket";
 import axios from "axios";
+import { 
+  KERNEL_IDLE,
+  KERNEL_BUSY_FROM_PARENT 
+} from '../../config/constants';
 
 function useExecuteOnSuccessors() {
     const { getNode } = useReactFlow();
     const allQueues = useNodesStore((state) => state.queues);
     const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
     const token = useWebSocketStore((state) => state.token);
+    const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
 
     const influencedSuccessors = useCallback((node_id: string): string[] => {
       const influencedSuccs = [] as string[];
@@ -26,23 +31,27 @@ function useExecuteOnSuccessors() {
       const influencedSuccs = influencedSuccessors(node_id);
       const queue = allQueues[node_id];
       if (!queue || queue.length === 0) return;
-      const code = queue[0][1];
-      influencedSuccs.forEach(async (succ) => {
-        console.log("run code "+code+" on successor: "+ succ);
+      const [simpleNodeId, code] = queue[0];
+      for (const succ of influencedSuccs) {
+        console.log("run code " + code + " on successor: " + succ);
         const succNode = getNode(succ);
         const requestBody = {
           "code": code,
           'kernel_id': succNode?.data.session?.kernel.id
         }
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
+        setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        await axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
         .then((res) => {
-          console.log(res);
+          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
         }).catch((err) => {
           console.error(err);
+          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
+          //TODO: show to the user that there was an error
         });
-      });
-    }, [influencedSuccessors, getNode, token, allQueues]);
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
 
     return executeOnSuccessors;
 }

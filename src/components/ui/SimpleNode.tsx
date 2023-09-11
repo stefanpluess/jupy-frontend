@@ -38,6 +38,8 @@ import { OutputNodeData } from "../../config/types";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { onInterrupt } from "../../helpers/websocket/websocketUtils";
 import {
+  KERNEL_BUSY,
+  KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED
 } from "../../config/constants";
@@ -83,14 +85,17 @@ function SimpleNode({ id, data }: NodeProps) {
   );
 
   useEffect(() => {
-    setExecutionCount(data?.executionCount.execCount);
-    // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
-    if (hasParent) {
-      const groupId = parent!.id;
-      executeOnSuccessors(parent!.id);
-      setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
-      removeFromQueue(groupId);
-    }
+    const updateExecCount = async () => {
+      setExecutionCount(data?.executionCount.execCount);
+      // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+      if (hasParent) {
+        const groupId = parent!.id;
+        await executeOnSuccessors(parent!.id);
+        setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
+        removeFromQueue(groupId);
+      }
+    };
+    updateExecCount();
   }, [data?.executionCount]);
 
   // INFO :: 🟢 RUN CODE
@@ -119,10 +124,8 @@ function SimpleNode({ id, data }: NodeProps) {
     }
   }, [parentNode]);
 
-  const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
-  const parentExecutionState = parentNode
-    ? (groupNodesExecutionStates[parentNode])
-    : undefined;
+  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
+
   useEffect(() => {
     if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
       // update the nodes that were in the queue and some other one interrupted
@@ -201,6 +204,14 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  const canBeRun = useCallback(() => {
+    return (
+      hasParent &&
+      wsRunning &&
+      parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT
+    );
+  }, [hasParent, wsRunning, parentExecutionState]);
+
   return (
     <>
       <NodeResizer
@@ -259,7 +270,7 @@ function SimpleNode({ id, data }: NodeProps) {
               // check if ctrl or shift + enter is pressed
               if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                 e.preventDefault();
-                if (hasParent && wsRunning) runCode();
+                if (canBeRun()) runCode();
               }
             }}
             style={{ textAlign: "left" }}
@@ -316,7 +327,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Run Code"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || !wsRunning}
+                  disabled={!canBeRun()}
                 >
                   <FontAwesomeIcon className="icon" icon={faPlayCircle} />
                 </button>
@@ -326,7 +337,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Interrupt Kernel ⛔"
                   className="rinputCentered playInterruptButton rcentral"
                   onClick={interruptKernel}
-                  disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                  disabled={!canBeRun()}
                 >
                   <FontAwesomeIcon className="icon" icon={faStopCircle} />
                 </button>
@@ -341,7 +352,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Error: Fix your Code and then let's try it again mate"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || !wsRunning}
+                  disabled={!canBeRun()}
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                 >
@@ -355,7 +366,7 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Error: Fix your Code and then let's try it again mate"
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!hasParent || !wsRunning}
+                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
@@ -366,7 +377,7 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Interrupt Kernel ⛔"
                       className="rinputCentered playInterruptButton rcentral"
                       onClick={interruptKernel}
-                      disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                      disabled={!canBeRun()}
                     >
                       <FontAwesomeIcon className="icon" icon={faStopCircle} />
                     </button>

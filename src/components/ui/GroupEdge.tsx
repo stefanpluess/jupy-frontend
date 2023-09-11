@@ -4,6 +4,7 @@ import useNodesStore from '../../helpers/nodesStore';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScissors, faLink } from "@fortawesome/free-solid-svg-icons";
+import { KERNEL_BUSY_FROM_PARENT } from '../../config/constants';
 
 export default function GroupEdge({
   id,
@@ -32,8 +33,10 @@ export default function GroupEdge({
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
   const influenceState = useNodesStore((state) => state.groupNodesInfluenceStates[target]);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
-  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[target]);
+  const childWsRunning = useNodesStore((state) => state.groupNodesWsStates[target]);
   const parentWsRunning = useNodesStore((state) => state.groupNodesWsStates[source]);
+
+  const childExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[target]);
 
   useEffect(() => {
     // set the influence state of the target to true initially
@@ -50,9 +53,9 @@ export default function GroupEdge({
   /* If the ws or parentWs is shut down, we want the edge to be off!
   Also, edge state should reflect pass parent state after restarting/reconnecting child kernel */
   useEffect(() => {
-    if (wsRunning && parentWsRunning && passStateDecision) setInfluenceStateForGroupNode(target, true);
+    if (childWsRunning && parentWsRunning && passStateDecision) setInfluenceStateForGroupNode(target, true);
     else setInfluenceStateForGroupNode(target, false);
-  }, [wsRunning, parentWsRunning, passStateDecision]);
+  }, [childWsRunning, parentWsRunning, passStateDecision]);
 
   /* on click, we switch the influence state to be opposite. */
   const onEdgeClick = (event: any, id: string) => {
@@ -66,9 +69,13 @@ export default function GroupEdge({
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={
         influenceState ?
-        {stroke: 'lightgrey', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'} :
+        ( childExecutionState?.state === KERNEL_BUSY_FROM_PARENT ? 
+          {stroke: 'rgba(255, 119, 0, 0.7)', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'} :
+          {stroke: 'lightgrey', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'}
+        ) :
         {stroke: 'grey', opacity: 0.6, strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset}
-        } />
+        }
+         />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -81,7 +88,7 @@ export default function GroupEdge({
           }}
           className="nodrag nopan"
         >
-          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!wsRunning || !parentWsRunning}>
+          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || childExecutionState.state === KERNEL_BUSY_FROM_PARENT}>
             {influenceState ? 
               <FontAwesomeIcon icon={faScissors} rotation={180} style={{ marginLeft: -3, marginTop: 1 }}/> : 
               <FontAwesomeIcon icon={faLink} style={{ marginLeft: -4, marginTop: 1 }}/>
