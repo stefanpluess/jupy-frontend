@@ -103,24 +103,6 @@
 /* INFO :: canvas area - ouput node*/
 // react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
-.rfWrapper .react-flow__node-outputNode {
-    background-color: $node-background;
-    color: $shared-text-color;
-    text-align: left;
-    resize: none;
-    outline: none;
-    font-size: 10px;
-    min-height: 40px;
-    border: $node-border;
-    border-radius: $code-and-output-border-radius;
-    min-width: 40px;
-    padding: 4px;
-  
-    .selected {
-        background-color: $node-background-selected;
-    }
-}
-
 .rfWrapper .react-flow__node-outputNode.selected {
     box-shadow: $node-box-shadow-selected;
 }
@@ -132,7 +114,47 @@
 .rfWrapper .errorMessage{
     color: red;
 }
+/* 
+    ".rfWrapper .react-flow__node-outputNod" is the general class from reactflow,
+    ".OutputNode" or ".OutputNodeEmpty" is the class from the output 
+    node component and it is a first div that is a child of ".react-flow__node-outputNode"
 
+    OutputNode and OutputNodeEmpty refer to the same div but, 
+    but OutputNodeEmpty is applied when the output node is empty
+*/ 
+.rfWrapper .react-flow__node-outputNode{
+    background-color: $node-background;
+    color: $shared-text-color;
+    resize: none;
+    outline: none;
+    border: $node-border;
+    border-radius: $code-and-output-border-radius;
+    padding: 4px;
+    font-size: 10px;
+}
+
+.rfWrapper .react-flow__node-outputNode .OutputNode{
+    text-align: left;
+  
+    .selected {
+        background-color: $node-background-selected;
+    }
+}
+
+.rfWrapper .react-flow__node-outputNode .OutputNodeEmpty {
+    min-height: 25px;
+    max-height: 25px;
+    min-width: 25px;
+    max-width: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  
+    .selected {
+        background-color: $node-background-selected;
+    }
+  }
 /* INFO :: canvas area - group node*/
 /*frame around bubble cell*/
 .rfWrapper .react-flow__node-group {

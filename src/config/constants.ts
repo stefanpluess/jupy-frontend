@@ -11,3 +11,6 @@ export const DEFAULT_LOCK_STATUS = false;
 export const KERNEL_IDLE = 'IDLE';
 export const KERNEL_BUSY = 'BUSY';
 export const KERNEL_INTERRUPTED = 'INTERRUPTED';
+
+export const EXEC_CELL_NOT_YET_RUN = '';
+export const EXEC_CELL_RUNNING = '*';

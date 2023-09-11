@@ -15,6 +15,7 @@ import {
   faObjectUngroup,
   faSave,
   faTriangleExclamation,
+  faCheck
 } from "@fortawesome/free-solid-svg-icons";
 import { useDetachNodes } from "../../helpers/hooks";
 import useNodesStore from "../../helpers/nodesStore";
@@ -32,6 +33,9 @@ function SimpleOutputNode({
 }: NodeProps<{ outputs: OutputNodeData[] }>) {
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
+  );
+  const parentNode = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
   );
 
   const { minWidth, minHeight, maxHeight, maxWidth } = useStore((store) => {
@@ -239,17 +243,57 @@ function SimpleOutputNode({
     }
   }, [groupedOutputs]);
 
+  // INFO :: 0️⃣ change class when no output
+  const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
+  // TODO - for now keep the other commented out option below ⬇️ that governs canRenderEmpty
+  // const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
+  // const parentExecutionState = parentNode
+  //   ? (groupNodesExecutionStates[parentNode])
+  //   : undefined;
+  // const [canRenderEmpty, setCanRenderEmpty] = useState(false);
+  // useEffect(() => {
+  //   if (parentExecutionState && data.outputs.length === 0){
+  //     const executionState = parentExecutionState.state;
+  //     // assign class OutputNodeEmpty when no output and kernel idle
+  //     if (executionState === "IDLE"){
+  //       setCanRenderEmpty(true);
+  //     }
+  //     // assign class OutputNodeEmpty when no output and kernel busy/interrupted but with other cell
+  //     else if ((executionState === "BUSY" ||  executionState === "INTERRUPTED") && parentExecutionState.nodeId !== getConnectedNodeId(id)){
+  //       setCanRenderEmpty(true);
+  //     }
+  //     else{
+  //       setCanRenderEmpty(false);
+  //     }
+  //   }
+  // }, [groupedOutputs, parentExecutionState]);
+
+  const styleWhenThereIsOutput = {
+      //display: "flow-root",
+      minHeight: minHeight,
+      minWidth: minWidth,
+      //maxHeight: outputNodeHeight, //BUG --> Alex
+      maxHeight: maxHeight,
+      maxWidth: maxWidth,
+      //overflow: "scroll",
+      //overflow: "hidden",
+
+      overflow: "auto",
+  };
+
   return (
-    <>
-      <NodeResizer
-        lineStyle={{ borderColor: "transparent" }}
-        handleStyle={handleStyle}
-        minWidth={minWidth + 10}
-        //minHeight={outputNodeHeight + 10} //BUG --> Alex
-        minHeight={minHeight + 10}
-        maxHeight={maxHeight + 10}
-        maxWidth={maxWidth + 10}
-      />
+    <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
+      {!canRenderEmpty &&
+        <NodeResizer
+          lineStyle={{ borderColor: "transparent" }}
+          handleStyle={handleStyle}
+          minWidth={minWidth + 10}
+          //minHeight={outputNodeHeight + 10} //BUG --> Alex
+          minHeight={minHeight + 10}
+          maxHeight={maxHeight + 10}
+          maxWidth={maxWidth + 10}
+        />
+      }
       <NodeToolbar className="nodrag">
         {/* <button onClick={onDelete}>Delete</button> */}
         {!isSimpleNodeLocked ? (
@@ -308,7 +352,7 @@ function SimpleOutputNode({
       )}
 
       {/* ----- Multiple Outputs - Only show buttons for selected ones, also highlighting them (no selection - show copy for all) ----- */}
-      {groupedOutputs.length !== 1 && (
+      {groupedOutputs.length !== 1 && !canRenderEmpty &&(
         <div className="oinputCentered obuttonArea nodrag">
           <button
             title="Copy Selected Output"
@@ -338,18 +382,7 @@ function SimpleOutputNode({
 
       <div
         ref={divRef}
-        style={{
-          //display: "flow-root",
-          minHeight: minHeight,
-          minWidth: minWidth,
-          //maxHeight: outputNodeHeight, //BUG --> Alex
-          maxHeight: maxHeight,
-          maxWidth: maxWidth,
-          //overflow: "scroll",
-          //overflow: "hidden",
-
-          overflow: "auto",
-        }}
+        style={canRenderEmpty ? {} : styleWhenThereIsOutput}
         className={isScrollbarVisible ? "nowheel" : "outputContent"}
       >
         {groupedOutputs.map((groupedOutput, index) => (
@@ -367,16 +400,17 @@ function SimpleOutputNode({
             // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
           ></div>
         ))}
+        {/* COMMENT: Display when already run and no output*/}
+        {(canRenderEmpty) && (
+          <FontAwesomeIcon className="icon" icon={faCheck} />
+        )}
       </div>
-
-      {/* TODO: add some additional styleClass if node is empty */}
-      {/* {groupedOutputs.length === 0 && <div className="outputNodeEmpty" />} */}
       <Handle
         type="target"
         position={Position.Left}
         isConnectableStart={false}
       />
-    </>
+    </div>
   );
 }
 

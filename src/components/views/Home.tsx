@@ -208,32 +208,14 @@ function DynamicGrouping() {
         newNode.extent = groupNode ? EXTENT_PARENT : undefined;
       }
 
-      if (type === NORMAL_NODE) {
-        // for normal nodes, we also need to create an output node
-        const newOutputNode: Node = createOutputNode(newNode);
-        const sortedNodes = store
-          .getState()
-          .getNodes()
-          .concat(newNode)
-          .concat(newOutputNode)
-          .sort(sortNodes);
-        setNodes(sortedNodes);
-        const newEdge: Edge = {
-          id: getId("edge"),
-          source: newNode.id,
-          target: newOutputNode.id,
-        };
-        setEdges([...edges, newEdge]);
-      } else {
-        // we need to make sure that the parents are sorted before the children
-        // to make sure that the children are rendered on top of the parents
-        const sortedNodes = store
-          .getState()
-          .getNodes()
-          .concat(newNode)
-          .sort(sortNodes);
-        setNodes(sortedNodes);
-      }
+      // we need to make sure that the parents are sorted before the children
+      // to make sure that the children are rendered on top of the parents
+      const sortedNodes = store
+        .getState()
+        .getNodes()
+        .concat(newNode)
+        .sort(sortNodes);
+      setNodes(sortedNodes);
     }
   };
 
