@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { memo } from "react";
 import {
   NodeToolbar,
@@ -11,7 +11,6 @@ import {
 } from "reactflow";
 import {
   faCopy,
-  faDeleteLeft,
   faObjectUngroup,
   faPlayCircle,
   faTrashAlt,
@@ -43,7 +42,7 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
 
   const createMarkdown = () => setEditMode(false);
-  const deleteCode = () => (data.code = "");
+  // const deleteCode = () => (data.code = "");
   const copyCode = () => navigator.clipboard.writeText(data.code);
 
   const toolbar = (
@@ -123,7 +122,7 @@ function MarkdownNode({ id, data }: NodeProps) {
               value={data.code}
               onChange={handleEditorChange}
               onKeyDown={(e) => {
-                if (e.ctrlKey && e.code === "Enter") {
+                if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                   e.preventDefault();
                   createMarkdown();
                 }

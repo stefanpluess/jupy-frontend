@@ -24,7 +24,6 @@ export default function FileExplorer() {
   const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
   const token = useWebSocketStore((state) => state.token);
 
-
   const getContentsFromPath = async () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     await axios.get(`http://localhost:8888/api/contents/${path}`)

@@ -6,7 +6,6 @@ import {
   NodeToolbar,
   NodeProps,
   useStore,
-  useReactFlow,
   NodeResizer,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -34,15 +33,8 @@ function SimpleOutputNode({
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
-  const parentNode = useStore(
-    (store) => store.nodeInternals.get(id)?.parentNode
-  );
 
   const { minWidth, minHeight, maxHeight, maxWidth } = useStore((store) => {
-    const nodes = Array.from(store.nodeInternals.values()).filter(
-      (n) => n.id === id
-    );
-
     return {
       minWidth: 50,
       minHeight: 50,
@@ -357,7 +349,7 @@ function SimpleOutputNode({
           <button
             title="Copy Selected Output"
             className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
-            onClick={() => copyOutput(0)}
+            onClick={() => copyOutput(selectedOutputIndex)}
             onMouseDown={() => setIsCopyClicked(true)}
             onMouseUp={() => setIsCopyClicked(false)}
           >

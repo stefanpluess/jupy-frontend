@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
-import { CellIdToExecCount, Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, ID_LENGTH } from '../config/constants';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
+import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
 
 
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
@@ -65,7 +65,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       initialEdges.push({
         id: `${node.id}-${outputNode.id}`,
         source: node.id,
-        target: outputNode.id
+        target: outputNode.id,
       });
     }
     initialNodes.push(node);
@@ -80,7 +80,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         initialEdges.push({
           id: `${cell.id}-${successor}`,
           source: cell.id,
-          target: successor
+          target: successor,
+          type: GROUP_EDGE,
         });
       });
     }

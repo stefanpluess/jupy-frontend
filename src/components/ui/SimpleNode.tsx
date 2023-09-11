@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useInsertOutput } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors, useInsertOutput } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -38,6 +38,8 @@ import { OutputNodeData } from "../../config/types";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { onInterrupt } from "../../helpers/websocket/websocketUtils";
 import {
+  KERNEL_BUSY,
+  KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
   EXEC_CELL_NOT_YET_RUN
@@ -66,6 +68,7 @@ function SimpleNode({ id, data }: NodeProps) {
     (state) => state.groupNodesWsStates[parentNode!] ?? true
   );
   const token = useWebSocketStore((state) => state.token);
+  const executeOnSuccessors = useExecuteOnSuccessors();
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -85,16 +88,20 @@ function SimpleNode({ id, data }: NodeProps) {
   );
 
   useEffect(() => {
-    setExecutionCount(data?.executionCount.execCount);
-    // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
-    if (hasParent) {
-      const groupId = parent!.id;
-      setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
-      removeFromQueue(groupId);
-    }
-    if (outputs && outputs.length === 0) {
-      setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
-    }
+    const updateExecCount = async () => {
+      setExecutionCount(data?.executionCount.execCount);
+      // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+      if (hasParent) {
+        const groupId = parent!.id;
+        await executeOnSuccessors(parent!.id);
+        setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
+        removeFromQueue(groupId);
+      }
+      if (outputs && outputs.length === 0) {
+        setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
+      }
+    };
+    updateExecCount();
   }, [data?.executionCount]);
 
   // INFO :: 🟢 RUN CODE
@@ -124,16 +131,14 @@ function SimpleNode({ id, data }: NodeProps) {
    }
  }, [parentNode]);
 
- const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
- const parentExecutionState = parentNode
-   ? (groupNodesExecutionStates[parentNode])
-   : undefined;
- useEffect(() => {
-   if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
-     // update the nodes that were in the queue and some other one interrupted
-     setExecutionCount(data?.executionCount.execCount);
-   }
- }, [parentExecutionState]); 
+  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
+
+  useEffect(() => {
+    if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
+      // update the nodes that were in the queue and some other one interrupted
+      setExecutionCount(data?.executionCount.execCount);
+    }
+  }, [parentExecutionState]); 
 
  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
@@ -206,6 +211,20 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parent?.data.predecessor]); // can be undefined
+  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[parent?.id!]); // can be undefined
+  const hasBusySucc = useHasBusySuccessors();
+
+  const canBeRun = useCallback(() => {
+    return (
+      hasParent &&
+      wsRunning &&
+      parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT &&
+      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && // something is soon to be executed on this child -> prevent running
+      !hasBusySucc(parentNode!) // something is currently executed on an influenced child -> prevent running
+    );
+  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced, hasBusySucc]);
+
   return (
     <>
       <NodeResizer
@@ -264,7 +283,7 @@ function SimpleNode({ id, data }: NodeProps) {
               // check if ctrl or shift + enter is pressed
               if ((e.ctrlKey || e.shiftKey) && e.code === "Enter") {
                 e.preventDefault();
-                if (hasParent && wsRunning) runCode();
+                if (canBeRun()) runCode();
               }
             }}
             style={{ textAlign: "left" }}
@@ -321,7 +340,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Run Code"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || !wsRunning}
+                  disabled={!canBeRun()}
                 >
                   <FontAwesomeIcon className="icon" icon={faPlayCircle} />
                 </button>
@@ -331,7 +350,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Interrupt Kernel ⛔"
                   className="rinputCentered playInterruptButton rcentral"
                   onClick={interruptKernel}
-                  disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                  disabled={!canBeRun()}
                 >
                   <FontAwesomeIcon className="icon" icon={faStopCircle} />
                 </button>
@@ -346,7 +365,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   title="Error: Fix your Code and then let's try it again mate"
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
-                  disabled={!hasParent || !wsRunning}
+                  disabled={!canBeRun()}
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                 >
@@ -360,7 +379,7 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Error: Fix your Code and then let's try it again mate"
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!hasParent || !wsRunning}
+                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
@@ -371,7 +390,7 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Interrupt Kernel ⛔"
                       className="rinputCentered playInterruptButton rcentral"
                       onClick={interruptKernel}
-                      disabled={!hasParent || (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED)}
+                      disabled={!canBeRun()}
                     >
                       <FontAwesomeIcon className="icon" icon={faStopCircle} />
                     </button>

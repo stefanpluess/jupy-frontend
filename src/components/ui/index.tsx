@@ -6,3 +6,4 @@ export { default as SimpleOutputNode } from "./SimpleOutputNode";
 export { default as MarkdownNode } from "./MarkdownNode";
 export { default as SelectedNodesToolbar } from "./SelectedNodesToolbar";
 export { default as CommentNode } from "./CommentNode";
+export { default as GroupEdge } from "./GroupEdge";
