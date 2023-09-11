@@ -66,6 +66,7 @@ import {
   nodes as initialNodes,
   edges as initialEdges,
 } from "../../config/initial-elements";
+import { ToastContainer } from 'react-toastify';
 
 //COMMENT :: Styles
 import "reactflow/dist/style.css";
@@ -78,6 +79,7 @@ import "../../styles/components/minimap.scss";
 import axios from "axios";
 import { Alert, Button } from "react-bootstrap";
 import useNodesStore from "../../helpers/nodesStore";
+import 'react-toastify/dist/ReactToastify.css';
 
 //INFO :: main code
 function DynamicGrouping() {
@@ -440,6 +442,20 @@ function DynamicGrouping() {
           <Panel position="top-center">
             <SuccessAlert />
             <ErrorAlert />
+          </Panel>
+          <Panel position="top-left">
+            <ToastContainer 
+              position="top-left"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              pauseOnFocusLoss={false}
+              pauseOnHover={true}
+              closeOnClick
+              rtl={false}
+              theme="dark"
+              style={{marginLeft: "80px"}}
+            />
           </Panel>
         </ReactFlow>
       </div>

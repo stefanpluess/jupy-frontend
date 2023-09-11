@@ -7,6 +7,7 @@ import {
   KERNEL_IDLE,
   KERNEL_BUSY_FROM_PARENT 
 } from '../../config/constants';
+import { toast } from 'react-toastify';
 
 function useExecuteOnSuccessors() {
     const { getNode } = useReactFlow();
@@ -45,10 +46,9 @@ function useExecuteOnSuccessors() {
         await axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
         .then((res) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
+          if (res.data.status === "error") toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue)
         }).catch((err) => {
-          console.error(err);
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
-          //TODO: show to the user that there was an error
         });
         await new Promise(resolve => setTimeout(resolve, 10));
       }
