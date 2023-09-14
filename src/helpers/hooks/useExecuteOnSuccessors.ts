@@ -15,6 +15,7 @@ function useExecuteOnSuccessors() {
     const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
     const token = useWebSocketStore((state) => state.token);
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
+    const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
 
     const influencedSuccessors = useCallback((node_id: string): string[] => {
       const influencedSuccs = [] as string[];
@@ -49,7 +50,10 @@ function useExecuteOnSuccessors() {
         await axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
         .then((res) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
-          if (res.data.status === "error") toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue)
+          if (res.data.status === "error") {
+            toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue);
+            setHadRecentErrorForGroupNode(succ, {hadError: true, timestamp: new Date()});
+          }
         }).catch((err) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
         });

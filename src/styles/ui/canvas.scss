@@ -172,6 +172,9 @@
     border-width: 2px;
     box-shadow: $node-box-shadow;
 }
+.rfWrapper .react-flow__node-group .hadError {
+    background: green !important;
+}
 
 /* INFO :: canvas area - markdown node*/
 .rfWrapper .react-flow__node-mdNode {
@@ -317,6 +320,7 @@
 }
 
 
+/* INFO :: styles for the GroupEdge */
 .edgebutton {
     width: 20px;
     height: 20px;
