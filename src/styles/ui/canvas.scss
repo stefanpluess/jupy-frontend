@@ -172,9 +172,6 @@
     border-width: 2px;
     box-shadow: $node-box-shadow;
 }
-.rfWrapper .react-flow__node-group .hadError {
-    background: green !important;
-}
 
 /* INFO :: canvas area - markdown node*/
 .rfWrapper .react-flow__node-mdNode {
@@ -334,4 +331,16 @@
   
 .edgebutton:hover {
     box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.297);
+}
+
+@keyframes blink {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.2;
+    }
+    100% {
+      opacity: 1;
+    }
 }

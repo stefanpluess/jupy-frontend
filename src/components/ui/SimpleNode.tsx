@@ -92,9 +92,12 @@ function SimpleNode({ id, data }: NodeProps) {
       // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
       if (hasParent) {
         const groupId = parent!.id;
-        await executeOnSuccessors(parent!.id);
-        setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
-        removeFromQueue(groupId);
+        if (hasError()) stopFurtherExecution();
+        else await executeOnSuccessors(parent!.id);
+        setTimeout(() => {
+          setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
+          removeFromQueue(groupId);
+        }, 20);
       }
       if (outputs && outputs.length === 0) {
         setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
@@ -118,23 +121,28 @@ function SimpleNode({ id, data }: NodeProps) {
  const clearQueue = useNodesStore((state) => state.clearQueue);
  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
  const interruptKernel = useCallback(() => {
-   if(parent){
+   if (parent) {
      onInterrupt(token, parent.data.session.kernel.id);
      // OPTIMIZE - should it behave differently for group node and simple node?
-     clearQueue(parent.id);
-     // always put the node that is currently at the top of the queue
-     const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
-     setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
-   } else{
+     stopFurtherExecution();
+   } else {
      console.warn("interruptKernel: parent is undefined");
    }
  }, [parentNode]);
 
+   /* In case en error appears, stop the further execution (setting to "INTERRUPTED" will reset the execCounts of the stopped nodes) */
+   const stopFurtherExecution = useCallback(() => {
+    if (!parent) return;
+    clearQueue(parent.id); // in case of interrupt: queue most likely was already cleared
+    const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
+    setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
+}, [parent, clearQueue, getExecutionStateForGroupNode, setExecutionStateForGroupNode, hasError]);
+
   const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
 
   useEffect(() => {
-    if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
-      // update the nodes that were in the queue and some other one interrupted
+    if (parentExecutionState?.state === KERNEL_INTERRUPTED && parentExecutionState?.nodeId !== id) {
+      // reset the execCount of nodes that were in the queue (and were interrupted by some other node or won't be executed bc of an error)
       setExecutionCount(data?.executionCount.execCount);
     }
   }, [parentExecutionState]); 

@@ -38,7 +38,9 @@ function useExecuteOnSuccessors() {
       const queue = allQueues[node_id];
       if (!queue || queue.length === 0) return;
       const [simpleNodeId, code] = queue[0];
+      const succsToSkip = [] as string[]; // skip succs of succs that had an error
       for (const succ of influencedSuccs) {
+        if (succsToSkip.includes(succ)) continue;
         console.log("run code " + code + " on successor: " + succ);
         const succNode = getNode(succ);
         const requestBody = {
@@ -53,6 +55,7 @@ function useExecuteOnSuccessors() {
           if (res.data.status === "error") {
             toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue);
             setHadRecentErrorForGroupNode(succ, {hadError: true, timestamp: new Date()});
+            succsToSkip.push(...influencedSuccessors(succ)); // skip all successors of this successor in case of error
           }
         }).catch((err) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
