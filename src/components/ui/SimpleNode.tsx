@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors, useInsertOutput } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -38,7 +38,6 @@ import { OutputNodeData } from "../../config/types";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { onInterrupt } from "../../helpers/websocket/websocketUtils";
 import {
-  KERNEL_BUSY,
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
@@ -211,19 +210,18 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
-  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parent?.data.predecessor]); // can be undefined
-  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[parent?.id!]); // can be undefined
   const hasBusySucc = useHasBusySuccessors();
+  const hasBusyPred = useHasBusyPredecessor();
 
   const canBeRun = useCallback(() => {
     return (
       hasParent &&
       wsRunning &&
       parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT &&
-      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && // something is soon to be executed on this child -> prevent running
+      !hasBusyPred(parentNode!) && // something is soon to be executed on this child -> prevent running
       !hasBusySucc(parentNode!) // something is currently executed on an influenced child -> prevent running
     );
-  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced, hasBusySucc]);
+  }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
   return (
     <>

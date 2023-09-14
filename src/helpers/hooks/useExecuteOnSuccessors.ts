@@ -23,6 +23,9 @@ function useExecuteOnSuccessors() {
       (node.data.successors ?? []).forEach((successor: string) => {
         if (groupNodesInfluenceStates[successor] ?? false) {
           influencedSuccs.push(successor);
+          // Recursively visit successors of successors
+          const successorsOfSuccessor = influencedSuccessors(successor);
+          influencedSuccs.push(...successorsOfSuccessor);
         }
       });
       return influencedSuccs;

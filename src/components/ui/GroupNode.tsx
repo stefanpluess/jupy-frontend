@@ -24,7 +24,7 @@ import {
   faCircleXmark,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
-import {useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors} from "../../helpers/hooks";
+import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
@@ -100,9 +100,8 @@ function GroupNode({ id, data }: NodeProps) {
   const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
   const deleteOutput = useDeleteOutput();
 
-  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[data.predecessor]); // can be undefined
-  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[id]); // can be undefined
   const hasBusySucc = useHasBusySuccessors();
+  const hasBusyPred = useHasBusyPredecessor();
 
   // initially, set the ws state to true and execution state to IDLE (only needed bc sometimes, it's not immediately set)
   useEffect(() => {
@@ -326,12 +325,12 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
-  const displayExecutionState = () => {
+  const displayExecutionState = useCallback(() => {
     if (wsRunning) {
       if (executionState?.state === KERNEL_IDLE) {
         if (hasBusySucc(id)) {
           return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influenced child busy...</div>
-        } else if (predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) {
+        } else if (hasBusyPred(id)) {
           return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influence happening...</div>
         } else {
           return <div className="kernelOn"><FontAwesomeIcon icon={faCircleChevronDown} /> Idle</div>
@@ -348,7 +347,7 @@ function GroupNode({ id, data }: NodeProps) {
     }
     // Return null if none of the conditions are met
     return null;
-  }
+  }, [wsRunning, executionState, hasBusySucc, hasBusyPred]);
 
   return (
     // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>

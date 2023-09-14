@@ -8,16 +8,21 @@ function useHasBusySuccessors() {
     const groupNodesInfluenceStates = useNodesStore((state) => state.groupNodesInfluenceStates);
     const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
 
-    const hasBusySuccessors = useCallback((node_id: string) => {
+    /* Check whether a group node has any successor (only follow flowing paths with influence ON) that is BUSY */
+    const hasBusySuccessors = useCallback((node_id: string): boolean => {
         const groupNode = getNode(node_id);
         const succs = groupNode?.data.successors;
-        if (!succs) return;
+        if (!succs) return false;
         for (let i = 0; i < succs.length; i++) {
           const succ = succs[i];
-          if (groupNodesInfluenceStates[succ] && groupNodesExecutionStates[succ]?.state === KERNEL_BUSY) return true;
+          // if the successor is influenced,
+          if (groupNodesInfluenceStates[succ]) {
+            // then check whether it is busy. Also, recursively check successors of successors
+            if (groupNodesExecutionStates[succ]?.state === KERNEL_BUSY || hasBusySuccessors(succ)) return true;
+          }
         }
         return false;
-    }, [groupNodesExecutionStates, groupNodesInfluenceStates, getNode]);
+      }, [groupNodesExecutionStates, groupNodesInfluenceStates, getNode]);
 
     return hasBusySuccessors;
 }
