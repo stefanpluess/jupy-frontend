@@ -25,7 +25,7 @@ import {
   faSpinner,
   faForward
 } from "@fortawesome/free-solid-svg-icons";
-import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor, useResetExecCounts } from "../../helpers/hooks";
+import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor, useResetExecCounts, useRunAll } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
@@ -250,6 +250,7 @@ function GroupNode({ id, data }: NodeProps) {
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
     await fetchFromParentOrNot(fetchParent);
+    await new Promise(resolve => setTimeout(resolve, 200));
     setModalState("showConfirmModalRestart", false);
   };
 
@@ -297,11 +298,13 @@ function GroupNode({ id, data }: NodeProps) {
   }
 
   /* RUN ALL */
+  const runAllInGroup = useRunAll();
   const onRunAll = async () => setModalState("showConfirmModalRunAll", true);
 
   const runAll = async (restart: boolean = false, fetchParent: boolean = false) => {
     if (restart) await restartKernel(fetchParent);
     setModalState("showConfirmModalRunAll", false);
+    runAllInGroup(id);
   };
 
   /* EXPORT */
