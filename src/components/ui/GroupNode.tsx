@@ -23,6 +23,7 @@ import {
   faCircleChevronDown,
   faCircleXmark,
   faSpinner,
+  faForward
 } from "@fortawesome/free-solid-svg-icons";
 import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -43,6 +44,14 @@ import {
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
 const padding = 25; // OPTIMIZE - externalize
+const initialModalStates = { // OPTIMIZE - externalize
+  showConfirmModalRestart: false,
+  showConfirmModalShutdown: false,
+  showConfirmModalDelete: false,
+  showConfirmModalDetach: false,
+  showConfirmModalReconnect: false,
+  showConfirmModalRunAll: false,
+};
 
 
 function GroupNode({ id, data }: NodeProps) {
@@ -54,11 +63,7 @@ function GroupNode({ id, data }: NodeProps) {
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
   const { deleteElements, getNode, getNodes } = useReactFlow();
   const predecessor = getNode(data.predecessor);
-  const [showConfirmModalRestart, setShowConfirmModalRestart] = useState(false);
-  const [showConfirmModalShutdown, setShowConfirmModalShutdown] = useState(false);
-  const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
-  const [showConfirmModalDetach, setShowConfirmModalDetach] = useState(false);
-  const [showConfirmModalReconnect, setShowConfirmModalReconnect] = useState(false);
+  const [modalStates, setModalStates] = useState(initialModalStates);
   const [isBranching, setIsBranching] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const detachNodes = useDetachNodes();
@@ -108,6 +113,14 @@ function GroupNode({ id, data }: NodeProps) {
     setWsStateForGroupNode(id, true);
     setExecutionStateForGroupNode(id, {nodeId: "", state: KERNEL_IDLE});
   }, []);
+
+  // Function to set a modal state
+  const setModalState = (modalName: string, newValue: boolean) => {
+    setModalStates((prevState) => ({
+      ...prevState,
+      [modalName]: newValue,
+    }));
+  };
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   useEffect(() => {
@@ -182,9 +195,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   /* DELETE */
-  const onDelete = async () => {
-    setShowConfirmModalDelete(true);
-  };
+  const onDelete = async () => setModalState("showConfirmModalDelete", true);
 
   const deleteGroup = async () => {
     deleteElements({ nodes: [{ id }] });
@@ -194,11 +205,11 @@ function GroupNode({ id, data }: NodeProps) {
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
     removeFromPredecessor();
-    setShowConfirmModalDelete(false);
+    setModalState("showConfirmModalDelete", false);
   };
 
   /* DETACH */
-  const onDetach = async () => setShowConfirmModalDetach(true);
+  const onDetach = async () => setModalState("showConfirmModalDetach", true);
 
   const detachGroup = async () => {
     const childNodeIds = Array.from(store.getState().nodeInternals.values())
@@ -212,7 +223,7 @@ function GroupNode({ id, data }: NodeProps) {
       await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
     }
     removeFromPredecessor();
-    setShowConfirmModalDetach(false);
+    setModalState("showConfirmModalDetach", false);
   };
 
   /* BRANCH OUT */
@@ -225,7 +236,7 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   /* RESTART */
-  const onRestart = async () => setShowConfirmModalRestart(true);
+  const onRestart = async () => setModalState("showConfirmModalRestart", true);
 
   /* restarts the kernel (call to /restart) and creates a new websocket connection */
   const restartKernel = async (fetchParent: boolean = false) => {
@@ -239,7 +250,7 @@ function GroupNode({ id, data }: NodeProps) {
     setNodeData({...nodeData, ws: ws});
     data.ws = ws;
     await fetchFromParentOrNot(fetchParent);
-    setShowConfirmModalRestart(false);
+    setModalState("showConfirmModalRestart", false);
   };
 
   const startNewSession = async (fetchParent: boolean = false) => {
@@ -250,7 +261,7 @@ function GroupNode({ id, data }: NodeProps) {
     data.ws = ws;
     data.session = session;
     await fetchFromParentOrNot(fetchParent);
-    setShowConfirmModalReconnect(false);
+    setModalState("showConfirmModalReconnect", false);
     // isReconnecting = false when wsState changes (see useEffect)
   };
 
@@ -268,24 +279,30 @@ function GroupNode({ id, data }: NodeProps) {
   }
 
   /* SHUTDOWN */
-  const onShutdown = async () => {
-    if (wsRunning) setShowConfirmModalShutdown(true);
-  };
+  const onShutdown = async () => setModalState("showConfirmModalShutdown", true);
 
   const shutdownKernel = async () => {
     console.log('Shutting kernel down')
     nodeData.ws.close();
     data.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
-    setShowConfirmModalShutdown(false);
+    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id);
+    setModalState("showConfirmModalShutdown", false);
   };
 
   /* RECONNECT */
   const onReconnect = async () => {
-    if (predecessor && predecessorRunning) setShowConfirmModalReconnect(true);
+    if (predecessor && predecessorRunning) setModalState("showConfirmModalReconnect", true);
     else startNewSession();
   }
+
+  /* RUN ALL */
+  const onRunAll = async () => setModalState("showConfirmModalRunAll", true);
+
+  const runAll = async (restart: boolean = false, fetchParent: boolean = false) => {
+    if (restart) await restartKernel(fetchParent);
+    setModalState("showConfirmModalRunAll", false);
+  };
 
   /* EXPORT */
   const onExporting = async () => {
@@ -293,13 +310,14 @@ function GroupNode({ id, data }: NodeProps) {
     await exportToJupyterNotebook(getNodes(), id, fileName);
   };
 
-  /* Cancel method for all modals (restart, shutdown and delete) */
+  /* Cancel method for all modals */
   const continueWorking = () => {
-    if (showConfirmModalRestart) setShowConfirmModalRestart(false);
-    if (showConfirmModalShutdown) setShowConfirmModalShutdown(false);
-    if (showConfirmModalDelete) setShowConfirmModalDelete(false);
-    if (showConfirmModalDetach) setShowConfirmModalDetach(false);
-    if (showConfirmModalReconnect) setShowConfirmModalReconnect(false);
+    if (modalStates.showConfirmModalRestart) setModalState("showConfirmModalRestart", false);
+    if (modalStates.showConfirmModalShutdown) setModalState("showConfirmModalShutdown", false);
+    if (modalStates.showConfirmModalDelete) setModalState("showConfirmModalDelete", false);
+    if (modalStates.showConfirmModalDetach) setModalState("showConfirmModalDetach", false);
+    if (modalStates.showConfirmModalReconnect) setModalState("showConfirmModalReconnect", false);
+    if (modalStates.showConfirmModalRunAll) setModalState("showConfirmModalRunAll", false);
   };
 
   const fetchParentState = async () => {
@@ -307,7 +325,7 @@ function GroupNode({ id, data }: NodeProps) {
       await new Promise(resolve => setTimeout(resolve, 200));
       const parentKernel = predecessor.data.session?.kernel.id;
       const childKernel = data.session?.kernel.id;
-      const dill_path = path.split('/').slice(0, -1).join('/')
+      const dill_path = path.split('/').slice(0, -1).join('/');
       await passParentState(token, dill_path, parentKernel, childKernel);
     }
   };
@@ -320,7 +338,7 @@ function GroupNode({ id, data }: NodeProps) {
       onInterrupt(token, data.session.kernel.id);
       clearQueue(id);
       setExecutionStateForGroupNode(id, {nodeId: getExecutionStateForGroupNode(id).nodeId, state: KERNEL_INTERRUPTED});
-    } else{
+    } else {
       console.log("executionState.state: ", executionState.state)
     }
   };
@@ -363,22 +381,24 @@ function GroupNode({ id, data }: NodeProps) {
         <button onClick={onDelete} title="Delete Group 👥">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />
         </button>
-        {hasChildNodes && 
-          <button onClick={onDetach} title="Delete Bubble 🫧">
+        {hasChildNodes && <button onClick={onDetach} title="Delete Bubble 🫧">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
           </button>}
-        <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
+        {wsRunning && <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
-        </button>
+        </button>}
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
+        </button>}
+        {wsRunning && <button onClick={onRunAll} title="Run All ⏩">
+          <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
-        <button onClick={onBranchOut} title="Branch out 🍃"> 
+        {wsRunning && <button onClick={onBranchOut} title="Branch out 🍃"> 
           <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
-        </button>
+        </button>}
         <button onClick={onExporting} title="Export to Jupyter Notebook 📩"> 
           <FontAwesomeIcon className="icon" icon={faFileExport}/>
         </button>
@@ -389,28 +409,29 @@ function GroupNode({ id, data }: NodeProps) {
         title="Restart Kernel?" 
         message={"Are you sure you want to restart the kernel? All variables will be lost!" + 
                  ((predecessor && predecessorRunning) ? " If yes, do you want to load the parent state?" : "")} 
-        show={showConfirmModalRestart} 
+        show={modalStates.showConfirmModalRestart} 
         onHide={continueWorking} 
-        onConfirm={(predecessor && predecessorRunning) ? () => restartKernel(true) : restartKernel}
-        confirmText={(predecessor && predecessorRunning) ? "Restart (Load Parent)" : "Restart"}
-        onConfirm2={() => restartKernel(false)}
-        confirmText2={(predecessor && predecessorRunning) ? "Restart" : ""}
+        onConfirm={() => restartKernel(false)}
+        confirmText={"Restart"}
+        onConfirm2={() => restartKernel(true)}
+        confirmText2={(predecessor && predecessorRunning) ? "Restart (Load Parent)" : ""}
       />
       <CustomConfirmModal 
         title="Load parent state?" 
         message="Do you want to load the parent state when reconnecting?" 
-        show={showConfirmModalReconnect} 
+        show={modalStates.showConfirmModalReconnect} 
         denyText="Cancel"
         onHide={continueWorking} 
         onConfirm={() => startNewSession(true)}
         confirmText={"Load parent"}
         onConfirm2={() => startNewSession(false)}
         confirmText2={"Don't load parent"}
+        variants={["success", "success"]}
       />
       <CustomConfirmModal 
         title="Shutdown Kernel?" 
         message="Are you sure you want to shutdown the kernel? All variables will be lost!" 
-        show={showConfirmModalShutdown} 
+        show={modalStates.showConfirmModalShutdown} 
         onHide={continueWorking} 
         onConfirm={shutdownKernel} 
         confirmText="Shutdown"
@@ -418,7 +439,7 @@ function GroupNode({ id, data }: NodeProps) {
       <CustomConfirmModal 
         title="Delete Group?" 
         message="Are you sure you want to delete the group and shutdown the kernel? All cells will be deleted and all variables will be lost!" 
-        show={showConfirmModalDelete} 
+        show={modalStates.showConfirmModalDelete} 
         onHide={continueWorking} 
         onConfirm={deleteGroup} 
         confirmText="Delete"
@@ -426,10 +447,24 @@ function GroupNode({ id, data }: NodeProps) {
       <CustomConfirmModal 
         title="Delete Bubble?" 
         message="Are you sure you want to delete the bubble and shutdown the kernel? The cells will remain, but all variables will be lost!" 
-        show={showConfirmModalDetach} 
+        show={modalStates.showConfirmModalDetach} 
         onHide={continueWorking} 
         onConfirm={detachGroup} 
         confirmText="Delete"
+      />
+      <CustomConfirmModal 
+        title="Restart Kernel before Run All?" 
+        message="Do you want to restart the kernel before running all? If yes, all variables will be lost!" 
+        show={modalStates.showConfirmModalRunAll} 
+        denyText="Cancel"
+        onHide={continueWorking} 
+        onConfirm={() => runAll(false, false)} 
+        confirmText="Just Run"
+        onConfirm2={() => runAll(true, false)}
+        confirmText2="Restart"
+        onConfirm3={() => runAll(true, true)}
+        confirmText3={(predecessor && predecessorRunning) ? "Restart (Load Parent)" : ""}
+        variants={["success", "danger", "danger"]}
       />
       <CustomInformationModal show={isBranching} text='Branching Out...' />
     </div>
