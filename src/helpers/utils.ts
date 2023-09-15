@@ -20,7 +20,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       data: cell.cell_type  === 'code' ? {
         code: cell.source,
         executionCount: {
-          execCount: cell.execution_count,
+          execCount: cell.execution_count ? cell.execution_count : "",
           timestamp: new Date()
         }
       } : cell.cell_type === 'markdown' ? {
