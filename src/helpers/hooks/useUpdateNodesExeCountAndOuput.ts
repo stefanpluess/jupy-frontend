@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReactFlow } from 'reactflow';
-import { CellIdToExecCount, CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
+import { NodeIdToExecCount, CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
 import { WebSocketState } from '../websocket/webSocketStore';
 // access the type from WebSocketState
 type setCITOType = WebSocketState['setCellIdToOutputs'];
@@ -26,7 +26,7 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     const { setNodes } = useReactFlow();
     const firstRenderExecCount = useRef(true);
     const firstRenderOutput = useRef(true);
-    const [execCount, setExecCount] = useState<CellIdToExecCount>({});
+    const [execCount, setExecCount] = useState<NodeIdToExecCount>({});
     /* 
      Another approach: instead of passing arguments we could use the useWebSocketStore
         import useWebSocketStore from './websocket/useWebSocketStore';

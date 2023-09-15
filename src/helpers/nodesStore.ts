@@ -3,8 +3,14 @@ import {
   DEFAULT_LOCK_STATUS,   
   KERNEL_IDLE
  } from '../config/constants';
+import { NodeIdToExecCount } from '../config/types';
 
 export type NodesStore = {
+
+    // INFO :: execution count
+    executionCounts: NodeIdToExecCount;
+    setExecutionCount: (id: string, count: number | string) => void;
+
     locks: { [id: string]: boolean };
     toggleLock: (id: string) => void;
     getIsLockedForId: (id: string) => boolean;
@@ -36,6 +42,19 @@ export type NodesStore = {
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
+  // INFO :: execution count
+  executionCounts: {},
+  setExecutionCount: (id: string, count: number | string) => {
+    set((state) => ({
+        executionCounts: {
+          ...state.executionCounts,
+          [id]: {
+            execCount: count,
+            timestamp: new Date(),
+          },
+        },
+    }))
+  },
   locks: {},
   toggleLock: (id: string) => {
     // console.log('toggleLock - toggled for: ', id);

@@ -25,7 +25,7 @@ import {
   faSpinner,
   faForward
 } from "@fortawesome/free-solid-svg-icons";
-import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor } from "../../helpers/hooks";
+import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor, useResetExecCounts } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
@@ -333,11 +333,14 @@ function GroupNode({ id, data }: NodeProps) {
   // INFO :: 🛑INTERRUPT KERNEL
   const clearQueue = useNodesStore((state) => state.clearQueue);
   const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+  const resetExecCounts = useResetExecCounts();
   const interruptKernel = () => {
     if (wsRunning && executionState && executionState.state !== KERNEL_IDLE) {
       onInterrupt(token, data.session.kernel.id);
       clearQueue(id);
-      setExecutionStateForGroupNode(id, {nodeId: getExecutionStateForGroupNode(id).nodeId, state: KERNEL_INTERRUPTED});
+      const nodeRunning = getExecutionStateForGroupNode(id).nodeId;
+      setExecutionStateForGroupNode(id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
+      resetExecCounts(id, nodeRunning);
     } else {
       console.log("executionState.state: ", executionState.state)
     }
