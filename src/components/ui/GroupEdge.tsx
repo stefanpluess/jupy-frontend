@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScissors, faLink } from "@fortawesome/free-solid-svg-icons";
 import { 
-  KERNEL_BUSY,
   KERNEL_BUSY_FROM_PARENT 
 } from '../../config/constants';
+import { useHasBusyPredecessor } from '../../helpers/hooks';
 
 export default function GroupEdge({
   id,
@@ -32,7 +32,7 @@ export default function GroupEdge({
   });
   
   const [dashOffset, setDashOffset] = useState(0);
-  const passStateDecision = useNodesStore((state) => state.groupNodePassStateDecisions[target] ?? true);
+  const passStateDecision = useNodesStore((state) => state.groupNodesPassStateDecisions[target] ?? true);
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
   const influenceState = useNodesStore((state) => state.groupNodesInfluenceStates[target]);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
@@ -40,7 +40,10 @@ export default function GroupEdge({
   const parentWsRunning = useNodesStore((state) => state.groupNodesWsStates[source]);
 
   const childExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[target]);
-  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[source]);
+  const hasBusyPredecessor = useHasBusyPredecessor();
+
+  const hadRecentError = useNodesStore((state) => state.groupNodesHadRecentError[target]);
+  const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
 
   useEffect(() => {
     // set the influence state of the target to true initially
@@ -68,16 +71,31 @@ export default function GroupEdge({
     setInfluenceStateForGroupNode(target, newState);
     setPassStateDecisionForGroupNode(target, newState); // "remembers" state decision (not really needed, but nice to have fot shutting parent scenario)
   };
+  
+  /* useEffect to show error only for 8 seconds */
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | undefined = undefined;
+    if (hadRecentError?.hadError) {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setHadRecentErrorForGroupNode(target, {hadError: false, timestamp: new Date()});
+      }, 8000);
+    }
+    return () => { if (timeoutId) clearTimeout(timeoutId) };
+  }, [hadRecentError]);
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={
+      <BaseEdge path={edgePath} markerEnd={markerEnd}
+      style={
         influenceState ?
         ( childExecutionState?.state === KERNEL_BUSY_FROM_PARENT ? 
           {stroke: 'rgba(255, 119, 0, 0.7)', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'} :
-          {stroke: 'lightgrey', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 1s linear'}
+          {stroke: hadRecentError?.hadError ? 'red': 'lightgrey', strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset,
+           transition: 'stroke-dashoffset 1s linear', animation: hadRecentError?.hadError ? 'blink 1s linear infinite': 'none'}
         ) :
-        {stroke: 'grey', opacity: 0.6, strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset}
+        {stroke: hadRecentError?.hadError ? 'red' : 'grey', opacity: 0.6, strokeWidth: 2, strokeDasharray: '7, 5', strokeDashoffset: dashOffset, 
+         animation: hadRecentError?.hadError ? 'blink 1s linear infinite': 'none'}
         }
          />
       <EdgeLabelRenderer>
@@ -92,7 +110,7 @@ export default function GroupEdge({
           }}
           className="nodrag nopan"
         >
-          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || parentExecutionState?.state === KERNEL_BUSY}>
+          <button className="edgebutton" onClick={(event) => onEdgeClick(event, id)} disabled={!childWsRunning || !parentWsRunning || hasBusyPredecessor(target, false)}>
             {influenceState ? 
               <FontAwesomeIcon icon={faScissors} rotation={180} style={{ marginLeft: -3, marginTop: 1 }}/> : 
               <FontAwesomeIcon icon={faLink} style={{ marginLeft: -4, marginTop: 1 }}/>

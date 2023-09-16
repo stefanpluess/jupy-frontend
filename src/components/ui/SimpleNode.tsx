@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusySuccessors, useInsertOutput } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -38,7 +38,6 @@ import { OutputNodeData } from "../../config/types";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { onInterrupt } from "../../helpers/websocket/websocketUtils";
 import {
-  KERNEL_BUSY,
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
@@ -58,7 +57,8 @@ function SimpleNode({ id, data }: NodeProps) {
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
   const insertOutput = useInsertOutput();
-  const [executionCount, setExecutionCount] = useState(data?.executionCount.execCount || '');
+  const executionCount = useNodesStore((state) => state.executionCounts[id]?.execCount); // can be undefined
+  const setExecutionCount = useNodesStore((state) => state.setExecutionCount);
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -87,13 +87,15 @@ function SimpleNode({ id, data }: NodeProps) {
     (state) => state.setExecutionStateForGroupNode
   );
 
+  // INFO :: 🚀 EXECUTION COUNT
   useEffect(() => {
     const updateExecCount = async () => {
-      setExecutionCount(data?.executionCount.execCount);
+      setExecutionCount(id, data?.executionCount.execCount);
       // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
       if (hasParent) {
         const groupId = parent!.id;
-        await executeOnSuccessors(parent!.id);
+        if (hasError()) stopFurtherExecution(false);
+        else await executeOnSuccessors(parent!.id);
         setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
         removeFromQueue(groupId);
       }
@@ -110,35 +112,36 @@ function SimpleNode({ id, data }: NodeProps) {
     if (executionCount === "") insertOutput(id); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
-      setExecutionCount("*");
+      setExecutionCount(id, "*");
       addToQueue(groupId, id, data.code); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
   }, [parent, data.code, addToQueue, insertOutput]);
 
- // INFO :: 🛑INTERRUPT KERNEL
- const clearQueue = useNodesStore((state) => state.clearQueue);
- const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
- const interruptKernel = useCallback(() => {
-   if(parent){
-     onInterrupt(token, parent.data.session.kernel.id);
-     // OPTIMIZE - should it behave differently for group node and simple node?
-     clearQueue(parent.id);
-     // always put the node that is currently at the top of the queue
-     const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
-     setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
-   } else{
-     console.warn("interruptKernel: parent is undefined");
-   }
- }, [parentNode]);
-
+  // INFO :: 🛑INTERRUPT KERNEL
+  const clearQueue = useNodesStore((state) => state.clearQueue);
+  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
   const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
-
-  useEffect(() => {
-    if (parentExecutionState && parentExecutionState.state === KERNEL_INTERRUPTED && parentExecutionState.nodeId !== id){
-      // update the nodes that were in the queue and some other one interrupted
-      setExecutionCount(data?.executionCount.execCount);
+  const interruptKernel = useCallback(() => {
+    if (parent) {
+      onInterrupt(token, parent.data.session.kernel.id);
+      // OPTIMIZE - should it behave differently for group node and simple node?
+      stopFurtherExecution(true);
+    } else {
+      console.warn("interruptKernel: parent is undefined");
     }
-  }, [parentExecutionState]); 
+  }, [parentNode]);
+
+  const resetExecCounts = useResetExecCounts();
+
+  /* In case en error appears / kernel was interrupted, stop the further execution (setting to "INTERRUPTED" will reset the execCounts of the stopped nodes) */
+  const stopFurtherExecution = useCallback((was_interrupted: boolean) => {
+    if (!parent) return;
+    clearQueue(parent.id); // in case of interrupt: queue most likely was already cleared
+    const nodeRunning = getExecutionStateForGroupNode(parent.id).nodeId;
+    if (was_interrupted) setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
+    resetExecCounts(parent.id, nodeRunning);
+  }, [parent, clearQueue, setExecutionStateForGroupNode, hasError]);
+
 
  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
@@ -211,19 +214,18 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
-  const predecessorExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parent?.data.predecessor]); // can be undefined
-  const isInfluenced = useNodesStore((state) => state.groupNodesInfluenceStates[parent?.id!]); // can be undefined
   const hasBusySucc = useHasBusySuccessors();
+  const hasBusyPred = useHasBusyPredecessor();
 
   const canBeRun = useCallback(() => {
     return (
       hasParent &&
       wsRunning &&
       parentExecutionState?.state !== KERNEL_BUSY_FROM_PARENT &&
-      !(predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced) && // something is soon to be executed on this child -> prevent running
+      !hasBusyPred(parentNode!) && // something is soon to be executed on this child -> prevent running
       !hasBusySucc(parentNode!) // something is currently executed on an influenced child -> prevent running
     );
-  }, [hasParent, wsRunning, parentExecutionState, predecessorExecutionState, isInfluenced, hasBusySucc]);
+  }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
   return (
     <>

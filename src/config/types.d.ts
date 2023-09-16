@@ -17,9 +17,9 @@ export type CellIdToOutputs = {
     [cellId: string]: OutputNodeData[];
 };
 
-export type CellIdToExecCount = {
-    [cellId: string]: {
-        execCount: number;
+export type NodeIdToExecCount = {
+    [nodeId: string]: {
+        execCount: number | string;
         timestamp: Date;
     };
 };

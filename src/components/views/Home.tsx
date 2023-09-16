@@ -427,7 +427,7 @@ function DynamicGrouping() {
           <Panel position="top-left">
             <ToastContainer 
               position="top-left"
-              autoClose={5000}
+              autoClose={7000}
               hideProgressBar={false}
               newestOnTop={false}
               pauseOnFocusLoss={false}
