@@ -173,6 +173,11 @@
     box-shadow: $node-box-shadow;
 }
 
+// branch out disabled
+.rfWrapper .icon-branchOutOff{
+    opacity: 0.2;
+}
+
 /* INFO :: canvas area - markdown node*/
 .rfWrapper .react-flow__node-mdNode {
     display: flex;

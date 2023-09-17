@@ -39,6 +39,8 @@ import {
   KERNEL_BUSY,
   KERNEL_BUSY_FROM_PARENT
 } from "../../config/constants";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -225,6 +227,15 @@ function GroupNode({ id, data }: NodeProps) {
     setIsBranching(false);
   };
 
+  const MySwal = withReactContent(Swal);
+  const showAlertBranchOutOff = () => {
+    MySwal.fire({ 
+      title: <strong>Branch out warning!</strong>,
+      html: <i>Wait until kernel is idle 😴!</i>,
+      icon: "warning",
+    });
+  };
+
   /* RESTART */
   const onRestart = async () => setShowConfirmModalRestart(true);
 
@@ -377,9 +388,17 @@ function GroupNode({ id, data }: NodeProps) {
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
-        <button onClick={onBranchOut} title="Branch out 🍃"> 
-          <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
-        </button>
+        {/* Disable branching out functionality when code is running */}
+        {((wsRunning && executionState?.state !== KERNEL_IDLE) || 
+            (predecessorExecutionState?.state === KERNEL_BUSY && isInfluenced)) ? (
+          <button onClick={showAlertBranchOutOff} title="Branch out 🍃 temporary disabled 🚫"> 
+            <FontAwesomeIcon className="icon-branchOutOff" icon={faNetworkWired}/>
+          </button>
+        ) : (
+          <button onClick={onBranchOut} title="Branch out 🍃"> 
+            <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
+          </button>
+        )}
         <button onClick={onExporting} title="Export to Jupyter Notebook 📩"> 
           <FontAwesomeIcon className="icon" icon={faFileExport}/>
         </button>
