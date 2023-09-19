@@ -34,15 +34,6 @@ function SimpleOutputNode({
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
 
-  const { minWidth, minHeight, maxHeight, maxWidth } = useStore((store) => {
-    return {
-      minWidth: 50,
-      minHeight: 50,
-      maxHeight: 300, //TODO --> TobeDefined
-      maxWidth: 600, //TODO --> TobeDefined
-    };
-  });
-
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
@@ -216,9 +207,6 @@ function SimpleOutputNode({
     }
   };
 
-  const [outputNodeWidth, setOutputNodeWidth] = useState(minWidth);
-  const [outputNodeHeight, setOutputNodeHeight] = useState(minHeight);
-
   // INFO :: 🖱️ making the output node scrollable with mouse wheel if the content is bigger than max height
   const divRef = useRef<HTMLDivElement | null>(null);
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false);
@@ -226,11 +214,6 @@ function SimpleOutputNode({
     const divElement = divRef.current;
     if (divElement) {
       // if (divElement.scrollHeight !=  divElement.clientHeight) it means that the scrollbar is visible
-
-      setOutputNodeWidth(divElement.offsetWidth);
-      setOutputNodeHeight(divElement.offsetHeight);
-      console.log(`Width: ${outputNodeWidth}px, Height: ${outputNodeHeight}px`);
-
       setIsScrollbarVisible(divElement.scrollHeight != divElement.clientHeight);
     }
   }, [groupedOutputs]);
@@ -260,30 +243,15 @@ function SimpleOutputNode({
   //   }
   // }, [groupedOutputs, parentExecutionState]);
 
-  const styleWhenThereIsOutput = {
-      //display: "flow-root",
-      minHeight: minHeight,
-      minWidth: minWidth,
-      //maxHeight: outputNodeHeight, //BUG --> Alex
-      maxHeight: maxHeight,
-      maxWidth: maxWidth,
-      //overflow: "scroll",
-      //overflow: "hidden",
-
-      overflow: "auto",
-  };
-
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
       {!canRenderEmpty &&
         <NodeResizer
           lineStyle={{ borderColor: "transparent" }}
           handleStyle={handleStyle}
-          minWidth={minWidth + 10}
-          //minHeight={outputNodeHeight + 10} //BUG --> Alex
-          minHeight={minHeight + 10}
-          maxHeight={maxHeight + 10}
-          maxWidth={maxWidth + 10}
+          // watch out the size set in .OutputNode css if changing the sizes here
+          minWidth={35}
+          minHeight={35} 
         />
       }
       <NodeToolbar className="nodrag">
@@ -374,7 +342,6 @@ function SimpleOutputNode({
 
       <div
         ref={divRef}
-        style={canRenderEmpty ? {} : styleWhenThereIsOutput}
         className={isScrollbarVisible ? "nowheel" : "outputContent"}
       >
         {groupedOutputs.map((groupedOutput, index) => (

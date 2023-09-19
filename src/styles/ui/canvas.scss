@@ -125,7 +125,6 @@
 .rfWrapper .react-flow__node-outputNode{
     background-color: $node-background;
     color: $shared-text-color;
-    resize: none;
     outline: none;
     border: $node-border;
     border-radius: $code-and-output-border-radius;
@@ -135,10 +134,33 @@
 
 .rfWrapper .react-flow__node-outputNode .OutputNode{
     text-align: left;
-  
+    width: 100%; // Make the inner div fill the available width
+    height: 100%; // Make the inner div fill the available height
+    max-width: 100%; // Set a maximum width for the inner div
+    max-height: 100%; // Set a maximum height for the inner div
+    overflow: auto;
+    min-width: 25px;
+    min-height: 25px;
+
     .selected {
         background-color: $node-background-selected;
     }
+}
+
+// TODO - make it scrollable
+// TODO - adjust the namings of classes
+// TODO - clean out some code from outputNode
+.rfWrapper .react-flow__node-outputNode .outputContent {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.rfWrapper .react-flow__node-outputNode .outputNode {
+    flex: 1;
+    display: flex;
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNodeEmpty {
