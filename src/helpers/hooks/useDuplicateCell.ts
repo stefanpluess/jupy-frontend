@@ -53,23 +53,22 @@ export function useDuplicateCell(id: NodeProps['id']) {
             const groupNode = getNode(deepCopyOfSimpleNode.parentNode);
             if (groupNode) {
                 // COMMENT - adjustment for simple node
-                // if position is inside the group node then we want to position the node inside this group
+                /* if position is inside the group node then we want to position the node inside this group
                 duplicateSimpleNode.position = getNodePositionInsideParent(duplicateSimpleNode, groupNode) 
-                                               ?? { x: 0, y: 0 };
+                                               ?? { x: 0, y: 0 }; */
                 duplicateSimpleNode.parentNode = groupNode?.id;
                 duplicateSimpleNode.extent = groupNode ? EXTENT_PARENT : undefined;
                 // COMMENT - adjustment for output node
                 // in case the node has a parent, we want to make sure that the output node has the same parent
                 duplicateOutputNode.parentNode = duplicateSimpleNode.parentNode;
                 duplicateOutputNode.extent = EXTENT_PARENT;
-                // adjust the position of the output node in case it is outside of the parent node
+                /* adjust the position of the output node in case it is outside of the parent node
                 duplicateOutputNode.position = getNodePositionInsideParent(duplicateOutputNode, groupNode) 
-                                               ?? { x: 0, y: 0 };
+                                               ?? { x: 0, y: 0 }; */
             } else{
                 console.error("[useDuplicateCell] no group node found...");
             }
         }
-        // OPTIMIZE else{} - feedback? adjust the position when no parent?
         // add nodes and edges to the store
         const sortedNodes = store
             .getState()
