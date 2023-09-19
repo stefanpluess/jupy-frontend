@@ -99,7 +99,6 @@ function SimpleOutputNode({
     setGroupedOutputs(grouped);
   }, [data.outputs]);
 
-  //   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
   const copyOutput = async (index: number = -1) => {
@@ -220,28 +219,6 @@ function SimpleOutputNode({
 
   // INFO :: 0️⃣ change class when no output
   const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
-  // TODO - for now keep the other commented out option below ⬇️ that governs canRenderEmpty
-  // const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
-  // const parentExecutionState = parentNode
-  //   ? (groupNodesExecutionStates[parentNode])
-  //   : undefined;
-  // const [canRenderEmpty, setCanRenderEmpty] = useState(false);
-  // useEffect(() => {
-  //   if (parentExecutionState && data.outputs.length === 0){
-  //     const executionState = parentExecutionState.state;
-  //     // assign class OutputNodeEmpty when no output and kernel idle
-  //     if (executionState === "IDLE"){
-  //       setCanRenderEmpty(true);
-  //     }
-  //     // assign class OutputNodeEmpty when no output and kernel busy/interrupted but with other cell
-  //     else if ((executionState === "BUSY" ||  executionState === "INTERRUPTED") && parentExecutionState.nodeId !== getConnectedNodeId(id)){
-  //       setCanRenderEmpty(true);
-  //     }
-  //     else{
-  //       setCanRenderEmpty(false);
-  //     }
-  //   }
-  // }, [groupedOutputs, parentExecutionState]);
 
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
@@ -255,7 +232,6 @@ function SimpleOutputNode({
         />
       }
       <NodeToolbar className="nodrag">
-        {/* <button onClick={onDelete}>Delete</button> */}
         {!isSimpleNodeLocked ? (
           hasParent && (
             <button
@@ -356,7 +332,6 @@ function SimpleOutputNode({
             }
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
-            // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
           ></div>
         ))}
         {/* COMMENT: Display when already run and no output*/}
