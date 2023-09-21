@@ -55,6 +55,22 @@ export type Content = {
     [key: string]: any;
 };
 
+export type Kernelspecs = {
+    [key: string]: {
+        name: string;
+        spec: {
+            display_name: string;
+            language: string;
+            argv: string[];
+            env: any;
+            interrupt_mode: string;
+            codemirror_mode?: string;
+            metadata: {};
+        };
+        resources: any;
+    };
+}
+
 export type Notebook = {
     cells: NotebookCell[];
     metadata: {

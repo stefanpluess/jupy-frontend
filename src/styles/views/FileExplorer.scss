@@ -70,6 +70,17 @@
   margin-left: 5px;
 }
 
+.dropdown-menu {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+.dropdown-item {
+  font-size: smaller;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
 .noShow {
   display: none;
 }
