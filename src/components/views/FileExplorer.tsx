@@ -14,10 +14,12 @@ import {
   faSort,
   faFolderPlus,
   faPen,
+  faX,
+  faCheck
 } from "@fortawesome/free-solid-svg-icons";
 import Table from "react-bootstrap/Table";
 import Error from "../views/Error";
-import { Button } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import { getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
@@ -54,7 +56,6 @@ export default function FileExplorer() {
           writable: file.writable,
           size: file.size,
           type: file.type,
-          toBeRenamed: false,
         }));
         setShowError(false);
         const sessions = await getSessions(token);
@@ -223,16 +224,6 @@ export default function FileExplorer() {
     return <FontAwesomeIcon icon={faSort} />;
   };
 
-  const changeToBeRenamed = (file: Content) => {
-    const updatedContents = contents.map((content) => {
-      if (content === file) {
-        content.toBeRenamed = !content.toBeRenamed;
-      }
-      return content;
-    });
-    setContents(updatedContents);
-  };
-
   const startRenaming = (file: Content) => {
     setRenamingInfo({
       fileToRename: file,
@@ -240,80 +231,74 @@ export default function FileExplorer() {
     });
   };
 
-  const handleRename = async (file: Content) => {
+  const stopRenaming = () => {
+    setRenamingInfo({ fileToRename: null, newFileName: "" });
+  }
+
+  const handleRename = async () => {
     const { fileToRename, newFileName } = renamingInfo;
-    console.log("handleRename called");
-    console.log("fileToRename:", fileToRename);
-    console.log("newFileName:", newFileName);
-
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-    if (fileToRename) {
-      console.log("Renaming file: ", fileToRename.name, " to ", newFileName);
-
-      // Create a copy of the contents array to avoid mutating state directly
-      const updatedContents = [...contents];
-
-      // Find the index of the file to rename in the contents array
-      const index = updatedContents.findIndex((item) => item === fileToRename);
-
-      if (index !== -1) {
-        // Update the name of the file in the copy of the contents array
-        updatedContents[index].name = newFileName;
-        setContents(updatedContents); // Update the state with the new contents
-      }
-
-      // Make the HTTP request to update the file name on the server
-      await axios
-        .put(`http://localhost:8888/api/contents/${path}`, {
-          // type: fileToRename.type,
-          name: newFileName, // You may need to add a field for the new name in your API request
-        })
-        .then((response) => {
-          console.log("API Response:", response);
-          // Rest of your code
-        })
-        .catch((error) => {
-          console.error("API Error:", error);
-          // Handle any API errors here
-        });
-
-      setRenamingInfo({ fileToRename: null, newFileName: "" });
+    if (!fileToRename) return;
+    if (fileToRename.name === newFileName) {
+      stopRenaming();
+      return;
     }
+    // Make a PATCH request to change the folder name
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    const pathToAdd = path === "" ? "" : "/" + path;
+    await axios
+      .patch(`http://localhost:8888/api/contents${pathToAdd}/${fileToRename.name}`, {
+        path: pathToAdd + "/" + newFileName
+      })
+      .then((res) => {
+        // Update Contents after 50ms
+        setTimeout(() => {
+          getContentsFromPath();
+        }, 50);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+      stopRenaming();
   };
 
   const renderRenameButtonAndInput = (file: Content) => {
-    if (renamingInfo.fileToRename === file) {
+    if (renamingInfo.fileToRename?.name === file.name) {
       return (
-        <div>
-          <input
-            type="text"
-            value={renamingInfo.newFileName}
-            onChange={(e) =>
-              setRenamingInfo({
-                ...renamingInfo,
-                newFileName: e.target.value,
-              })
-            }
-            // onBlur={handleRename}
-            // onKeyUp={(e) => {
-            //   if (e.key === "Enter") {
-            //     handleRename();
-            //   }
-            // }}
-          />
+        <div style={{ display: 'flex' }}>
           <button
-            className="btn btn-sm btn-outline-primary"
-            onClick={() => handleRename(file)}
+            className={"btn btn-sm btn-outline-danger renameButtonLeft"}
+            onClick={() => stopRenaming()}
           >
-            Rename
+            <FontAwesomeIcon icon={faX} />
+          </button>
+          <Form>
+            <Form.Group controlId="newFileName">
+              <Form.Control
+                size="sm"
+                placeholder="New file name"
+                type="text"
+                value={renamingInfo.newFileName}
+                onChange={(e) =>
+                  setRenamingInfo({
+                    ...renamingInfo,
+                    newFileName: e.target.value,
+                  })
+                }
+              />
+            </Form.Group>
+          </Form>
+          <button
+            className="btn btn-sm btn-outline-success renameButtonRight"
+            onClick={() => handleRename()}
+          >
+            <FontAwesomeIcon icon={faCheck} />
           </button>
         </div>
       );
     } else {
       return (
         <button
-          className={"btn btn-sm btn-outline-primary toBeRenamedActive"}
+          className={"btn btn-sm btn-outline-primary renameButtonLeft"}
           onClick={() => startRenaming(file)}
         >
           <FontAwesomeIcon icon={faPen} />
@@ -338,35 +323,25 @@ export default function FileExplorer() {
         <div className="row mb-2 mx-0">
           {/* If path is empty, display root directory */}
           {path === "" && (
-            <h3 className="col-sm-7 mb-0 px-0">Root Directory</h3>
+            <h3 className="col-sm-9 mb-0 px-0">Root Directory</h3>
           )}
           {/* If path is not empty, display path */}
-          {path !== "" && <h3 className="col-sm-11 mb-0 px-0">{path}</h3>}
+          {path !== "" && <h3 className="col-sm-9 mb-0 px-0">{path}</h3>}
           {/* Add a button to create a new notebook in the current directory */}
-          <button
-            className="btn btn-sm btn-outline-primary col-sm-1"
-            onClick={() => createFolder()}
-          >
-            <FontAwesomeIcon icon={faFolderPlus} /> Folder
-          </button>
-          <div className="btn btn-sm  col-sm-1"></div>
-          <button
-            className="btn btn-sm btn-outline-primary col-sm-1"
-            onClick={() => createNotebook()}
-          >
-            <FontAwesomeIcon icon={faFileCirclePlus} /> Notebook
-          </button>
-          <div className="btn btn-sm  col-sm-1"></div>
-
-          {/* <button
-            className={
-              !toBeRenamed
-                ? "noShow"
-                : "btn btn-sm btn-outline-primary col-sm-1"
-            }
-          >
-            <FontAwesomeIcon icon={faPen} /> Rename
-          </button> */}
+          <div className="col col-sm-3 m-0 p-0 alignRight">
+            <button
+              className="btn btn-sm btn-outline-primary createButton"
+              onClick={() => createFolder()}
+            >
+              <FontAwesomeIcon icon={faFolderPlus} /> Folder
+            </button>
+            <button
+              className="btn btn-sm btn-outline-primary createButton"
+              onClick={() => createNotebook()}
+            >
+              <FontAwesomeIcon icon={faFileCirclePlus} /> Notebook
+            </button>
+          </div>
         </div>
 
         {/* For each file in files, display then in a table containing name, last_modified and size */}
@@ -424,51 +399,36 @@ export default function FileExplorer() {
               return (
                 <tr key={file.name}>
                   <td>
-                    {/* <button
-                      className={
-                        file.toBeRenamed
-                          ? "toBeRenamedActive"
-                          : "toBeRenamedDeactive"
-                      }
-                      onClick={() => {
-                        changeToBeRenamed(file);
-                      }}
-                    >
-                      {file.toBeRenamed ? (
-                        <FontAwesomeIcon icon={faSquareCheck} />
-                      ) : (
-                        <FontAwesomeIcon icon={faSquare} />
-                      )}
-                    </button> */}
-
-                    {file.type === "directory" && (
-                      <FontAwesomeIcon icon={faFolder} />
-                    )}
-                    {file.type === "directory" && " "}
-                    {file.type !== "notebook" && (
-                      <button
-                        className="link-button"
-                        onClick={() => navigate(file.path)}
-                      >
-                        {file.name}
-                      </button>
-                    )}
-
-                    {file.type === "notebook" && (
-                      <FontAwesomeIcon icon={faBook} />
-                    )}
-
-                    {file.type === "notebook" && " "}
-
-                    {file.type === "notebook" && (
-                      <button
-                        className="link-button"
-                        onClick={async () => openFile(file.path)}
-                      >
-                        {file.name}
-                      </button>
-                    )}
                     {renderRenameButtonAndInput(file)}
+                    {renamingInfo.fileToRename?.name !== file.name &&
+                    <>
+                      {file.type === "directory" && (
+                        <FontAwesomeIcon icon={faFolder} />
+                      )}
+                      {file.type === "directory" && " "}
+                      {file.type !== "notebook" && (
+                        <button
+                          className="link-button"
+                          onClick={() => navigate(file.path)}
+                        >
+                          {file.name}
+                        </button>
+                      )}
+
+                      {file.type === "notebook" && (
+                        <FontAwesomeIcon icon={faBook} />
+                      )}
+                      {file.type === "notebook" && " "}
+                      {file.type === "notebook" && (
+                        <button
+                          className="link-button"
+                          onClick={async () => openFile(file.path)}
+                        >
+                          {file.name}
+                        </button>
+                      )}
+                    </>
+                    }
                   </td>
                   <td>
                     {file.last_modified &&

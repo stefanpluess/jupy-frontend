@@ -52,20 +52,24 @@
   margin-left: 0.5rem;
 }
 
-.toBeRenamedActive {
-  background-color: transparent;
-  border: none;
-  margin-left: 10px;
-
+.alignRight {
+  text-align: right;
 }
 
-.toBeRenamedDeactive{
-  color: rgb(151, 151, 151);
-  background-color: transparent;
-  border: none;
-
+.createButton {
+  margin-left: 6px;
 }
 
-.noShow{
+.renameButtonLeft {
+  border: none !important;
+  margin-right: 5px;
+}
+
+.renameButtonRight {
+  border: none !important;
+  margin-left: 5px;
+}
+
+.noShow {
   display: none;
 }
