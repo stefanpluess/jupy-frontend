@@ -51,3 +51,21 @@
 .sort-icon {
   margin-left: 0.5rem;
 }
+
+.toBeRenamedActive {
+  background-color: transparent;
+  border: none;
+  margin-left: 10px;
+
+}
+
+.toBeRenamedDeactive{
+  color: rgb(151, 151, 151);
+  background-color: transparent;
+  border: none;
+
+}
+
+.noShow{
+  display: none;
+}
