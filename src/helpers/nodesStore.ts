@@ -3,8 +3,14 @@ import {
   DEFAULT_LOCK_STATUS,   
   KERNEL_IDLE
  } from '../config/constants';
+import { NodeIdToExecCount } from '../config/types';
 
 export type NodesStore = {
+
+    // INFO :: execution count
+    executionCounts: NodeIdToExecCount;
+    setExecutionCount: (id: string, count: number | string) => void;
+
     locks: { [id: string]: boolean };
     toggleLock: (id: string) => void;
     getIsLockedForId: (id: string) => boolean;
@@ -25,18 +31,30 @@ export type NodesStore = {
     // INFO :: ws state functionality
     groupNodesWsStates: { [groupId: string]: boolean };
     setWsStateForGroupNode: (groupId: string, new_state: boolean) => void;
-    getWsStateForGroupNode: (groupId: string) => boolean;
 
-    // INFO :: influence state functionality
+    // INFO :: influence functionality
     groupNodesInfluenceStates: { [groupId: string]: boolean };
     setInfluenceStateForGroupNode: (groupId: string, new_state: boolean) => void;
-    getInfluenceStateForGroupNode: (groupId: string) => boolean;
-    groupNodePassStateDecisions: { [groupId: string]: boolean };
+    groupNodesPassStateDecisions: { [groupId: string]: boolean };
     setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => void;
-    getPassStateDecisionForGroupNode: (groupId: string) => boolean;
+    groupNodesHadRecentError: { [groupId: string]: {hadError: boolean, timestamp: Date} };
+    setHadRecentErrorForGroupNode: (groupId: string, new_state: {hadError: boolean, timestamp: Date}) => void;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
+  // INFO :: execution count
+  executionCounts: {},
+  setExecutionCount: (id: string, count: number | string) => {
+    set((state) => ({
+        executionCounts: {
+          ...state.executionCounts,
+          [id]: {
+            execCount: count,
+            timestamp: new Date(),
+          },
+        },
+    }))
+  },
   locks: {},
   toggleLock: (id: string) => {
     // console.log('toggleLock - toggled for: ', id);
@@ -126,22 +144,6 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         }
     })) 
   },
-  getWsStateForGroupNode: (groupId: string): boolean => {
-    const state = get().groupNodesWsStates[groupId]
-    // check if state is undefined
-    if (state === undefined) {
-        set((state) => ({
-            groupNodesWsStates: {
-              ...state.groupNodesWsStates,
-              [groupId]: false
-            }
-        }))
-        console.log("returining default status...")
-        return false;
-    }
-    console.log("returining current status...")
-    return get().groupNodesWsStates[groupId];
-  },
 
   // INFO :: influence state functionality
   groupNodesInfluenceStates: {},
@@ -153,46 +155,23 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         }
     })) 
   },
-  getInfluenceStateForGroupNode: (groupId: string): boolean => {
-    const state = get().groupNodesInfluenceStates[groupId]
-    // check if state is undefined
-    if (state === undefined) {
-        set((state) => ({
-            groupNodesInfluenceStates: {
-              ...state.groupNodesInfluenceStates,
-              [groupId]: false
-            }
-        }))
-        console.log("returining default status...")
-        return false;
-    }
-    console.log("returining current status...")
-    return get().groupNodesInfluenceStates[groupId];
-  },
-  groupNodePassStateDecisions: {},
+  groupNodesPassStateDecisions: {},
   setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => {
     set((state) => ({
-        groupNodePassStateDecisions: {
-          ...state.groupNodePassStateDecisions,
+        groupNodesPassStateDecisions: {
+          ...state.groupNodesPassStateDecisions,
           [groupId]: new_state
         }
     })) 
   },
-  getPassStateDecisionForGroupNode: (groupId: string): boolean => {
-    const state = get().groupNodePassStateDecisions[groupId]
-    // check if state is undefined
-    if (state === undefined) {
-        set((state) => ({
-            groupNodePassStateDecisions: {
-              ...state.groupNodePassStateDecisions,
-              [groupId]: false
-            }
-        }))
-        console.log("returining default status...")
-        return false;
-    }
-    console.log("returining current status...")
-    return get().groupNodePassStateDecisions[groupId];
+  groupNodesHadRecentError: {},
+  setHadRecentErrorForGroupNode: (groupId: string, new_state: {hadError: boolean, timestamp: Date}) => {
+    set((state) => ({
+        groupNodesHadRecentError: {
+          ...state.groupNodesHadRecentError,
+          [groupId]: new_state
+        }
+    })) 
   },
 }));
 
