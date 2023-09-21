@@ -15,7 +15,8 @@ import {
   faFolderPlus,
   faPen,
   faX,
-  faCheck
+  faCheck,
+  faCopy
 } from "@fortawesome/free-solid-svg-icons";
 import Table from "react-bootstrap/Table";
 import Error from "../views/Error";
@@ -140,6 +141,20 @@ export default function FileExplorer() {
       });
   };
 
+  const duplicateNotebook = async (file: Content) => {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    await axios
+      .post(`http://localhost:8888/api/contents/${path}`, { copy_from: file.path })
+      .then((res) => {
+        setTimeout(() => {
+          getContentsFromPath();
+        }, 100);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+
   const createFolder = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     try {
@@ -149,11 +164,9 @@ export default function FileExplorer() {
           type: "directory",
         }
       );
-      const newPath = response.data.path;
       setTimeout(() => {
         getContentsFromPath();
       }, 100);
-      console.log(`Created folder at: ${newPath}`);
     } catch (error) {
       console.error("Error creating folder:", error);
     }
@@ -268,6 +281,7 @@ export default function FileExplorer() {
           <button
             className={"btn btn-sm btn-outline-danger renameButtonLeft"}
             onClick={() => stopRenaming()}
+            title="Cancel"
           >
             <FontAwesomeIcon icon={faX} />
           </button>
@@ -290,6 +304,7 @@ export default function FileExplorer() {
           <button
             className="btn btn-sm btn-outline-success renameButtonRight"
             onClick={() => handleRename()}
+            title="Submit"
           >
             <FontAwesomeIcon icon={faCheck} />
           </button>
@@ -300,12 +315,27 @@ export default function FileExplorer() {
         <button
           className={"btn btn-sm btn-outline-primary renameButtonLeft"}
           onClick={() => startRenaming(file)}
+          title="Rename"
         >
           <FontAwesomeIcon icon={faPen} />
         </button>
       );
     }
   };
+
+  const copyButton = (file: Content) => {
+    return (
+      <Button
+        className="alignRight no-y-padding"
+        variant="outline-primary"
+        title="Duplicate Notebook"
+        size="sm"
+        onClick={() => duplicateNotebook(file)}
+      >
+        <FontAwesomeIcon icon={faCopy}/>
+      </Button>
+    )
+  }
 
   // Sort the contents based on the current sort column and direction
   const sortedContents = contents.sort(sortFunction);
@@ -323,12 +353,12 @@ export default function FileExplorer() {
         <div className="row mb-2 mx-0">
           {/* If path is empty, display root directory */}
           {path === "" && (
-            <h3 className="col-sm-9 mb-0 px-0">Root Directory</h3>
+            <h3 className="col-sm-8 mb-0 px-0">Root Directory</h3>
           )}
           {/* If path is not empty, display path */}
-          {path !== "" && <h3 className="col-sm-9 mb-0 px-0">{path}</h3>}
+          {path !== "" && <h3 className="col-sm-8 mb-0 px-0">{path}</h3>}
           {/* Add a button to create a new notebook in the current directory */}
-          <div className="col col-sm-3 m-0 p-0 alignRight">
+          <div className="col col-sm-4 m-0 p-0 alignRight">
             <button
               className="btn btn-sm btn-outline-primary createButton"
               onClick={() => createFolder()}
@@ -398,37 +428,40 @@ export default function FileExplorer() {
             {sortedContents.map((file) => {
               return (
                 <tr key={file.name}>
-                  <td>
-                    {renderRenameButtonAndInput(file)}
-                    {renamingInfo.fileToRename?.name !== file.name &&
-                    <>
-                      {file.type === "directory" && (
-                        <FontAwesomeIcon icon={faFolder} />
-                      )}
-                      {file.type === "directory" && " "}
-                      {file.type !== "notebook" && (
-                        <button
-                          className="link-button"
-                          onClick={() => navigate(file.path)}
-                        >
-                          {file.name}
-                        </button>
-                      )}
+                  <td style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      {renderRenameButtonAndInput(file)}
+                      {renamingInfo.fileToRename?.name !== file.name && (
+                        <>
+                          {file.type === "directory" && (
+                            <FontAwesomeIcon icon={faFolder} />
+                          )}
+                          {file.type === "directory" && " "}
+                          {file.type !== "notebook" && (
+                            <button
+                              className="link-button"
+                              onClick={() => navigate(file.path)}
+                            >
+                              {file.name}
+                            </button>
+                          )}
 
-                      {file.type === "notebook" && (
-                        <FontAwesomeIcon icon={faBook} />
+                          {file.type === "notebook" && (
+                            <FontAwesomeIcon icon={faBook} />
+                          )}
+                          {file.type === "notebook" && " "}
+                          {file.type === "notebook" && (
+                            <button
+                              className="link-button"
+                              onClick={async () => openFile(file.path)}
+                            >
+                              {file.name}
+                            </button>
+                          )}
+                        </>
                       )}
-                      {file.type === "notebook" && " "}
-                      {file.type === "notebook" && (
-                        <button
-                          className="link-button"
-                          onClick={async () => openFile(file.path)}
-                        >
-                          {file.name}
-                        </button>
-                      )}
-                    </>
-                    }
+                    </div>
+                    {file.type === "notebook" && copyButton(file)}
                   </td>
                   <td>
                     {file.last_modified &&
