@@ -114,6 +114,9 @@ export type NotebookCell = {
     position?: XYPosition;
     height?: number | null;
     width?: number | null;
+    outputWidth?: number | null;
+    outputHeight?: number | null;
+    outputParent?: string;
     parentNode?: string;
     predecessor?: string;
     successors?: string[];

@@ -4,6 +4,7 @@ import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } f
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
 
 
+/** Method to create the nodes given the JSON upon rendering a notebook for the first time */
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
 
   var initialNodes: Node[] = [];
@@ -37,11 +38,11 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
-      node.extent = 'parent';
+      node.extent = EXTENT_PARENT;
     };
     // for each code node, create an output node (if it has been executed before)
     if (cell.cell_type === 'code' && node.data.executionCount.execCount !== "") {
-      const outputNode: Node = createOutputNode(node)
+      const outputNode: Node = createOutputNode(node, cell.outputParent ?? "")
       // for each output (if multiple) set the output data
       const allOutputs = [] as OutputNodeData[];
       cell.outputs?.forEach((output_cell: NotebookOutput) => {
@@ -60,6 +61,9 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
       outputNode.position = cell.outputs![0]?.position ? { x: cell.outputs![0].position.x, y: cell.outputs![0].position.y } : outputNode.position;
+      outputNode.height = cell.outputHeight;
+      outputNode.width = cell.outputWidth;
+      outputNode.style = { height: cell.outputHeight!, width: cell.outputWidth! };
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
@@ -99,6 +103,7 @@ const unifyId = (cell: NotebookCell, type: string): string => {
   return id;
 }
 
+/** Method to create the JSON given the nodes (upon saving) */
 export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 
   const cells: NotebookCell[] = [];
@@ -124,6 +129,9 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
       // find the corresponding cell to add the outputs to it
       const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
       if (cell) {
+        cell.outputWidth = node.width;
+        cell.outputHeight = node.height;
+        cell.outputParent = node.parentNode;
         node.data.outputs.forEach((outputData: OutputNodeData) => {
           const output: NotebookOutput = {
             output_type: outputData.outputType,
@@ -376,7 +384,7 @@ export function generateMessage( msg_id: string, code: string, {
 
 
 
-export function createOutputNode(node: Node) {
+export function createOutputNode(node: Node, outputParent?: string) {
   const newOutputNode: Node = {
     id: node.id+"_output",
     type: OUTPUT_NODE,
@@ -390,9 +398,11 @@ export function createOutputNode(node: Node) {
     },
   };
 
-  // in case the node has a parent, we want to make sure that the output node has the same parent
-  if (node.parentNode) {
+  if (typeof(outputParent) === 'string') {
     // COMMENT - same part of code used in useDuplicateCell.ts
+    newOutputNode.parentNode = outputParent;
+    newOutputNode.extent = EXTENT_PARENT;
+  } else if (node.parentNode) {
     newOutputNode.parentNode = node.parentNode;
     newOutputNode.extent = EXTENT_PARENT;
   }
