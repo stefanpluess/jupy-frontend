@@ -34,15 +34,6 @@ function SimpleOutputNode({
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
 
-  const { minWidth, minHeight, maxHeight, maxWidth } = useStore((store) => {
-    return {
-      minWidth: 50,
-      minHeight: 50,
-      maxHeight: 300, //TODO --> TobeDefined
-      maxWidth: 600, //TODO --> TobeDefined
-    };
-  });
-
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
@@ -108,7 +99,6 @@ function SimpleOutputNode({
     setGroupedOutputs(grouped);
   }, [data.outputs]);
 
-  //   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
   const copyOutput = async (index: number = -1) => {
@@ -216,9 +206,6 @@ function SimpleOutputNode({
     }
   };
 
-  const [outputNodeWidth, setOutputNodeWidth] = useState(minWidth);
-  const [outputNodeHeight, setOutputNodeHeight] = useState(minHeight);
-
   // INFO :: 🖱️ making the output node scrollable with mouse wheel if the content is bigger than max height
   const divRef = useRef<HTMLDivElement | null>(null);
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false);
@@ -226,52 +213,12 @@ function SimpleOutputNode({
     const divElement = divRef.current;
     if (divElement) {
       // if (divElement.scrollHeight !=  divElement.clientHeight) it means that the scrollbar is visible
-
-      setOutputNodeWidth(divElement.offsetWidth);
-      setOutputNodeHeight(divElement.offsetHeight);
-      console.log(`Width: ${outputNodeWidth}px, Height: ${outputNodeHeight}px`);
-
       setIsScrollbarVisible(divElement.scrollHeight != divElement.clientHeight);
     }
   }, [groupedOutputs]);
 
   // INFO :: 0️⃣ change class when no output
   const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
-  // TODO - for now keep the other commented out option below ⬇️ that governs canRenderEmpty
-  // const groupNodesExecutionStates = useNodesStore((state) => state.groupNodesExecutionStates);
-  // const parentExecutionState = parentNode
-  //   ? (groupNodesExecutionStates[parentNode])
-  //   : undefined;
-  // const [canRenderEmpty, setCanRenderEmpty] = useState(false);
-  // useEffect(() => {
-  //   if (parentExecutionState && data.outputs.length === 0){
-  //     const executionState = parentExecutionState.state;
-  //     // assign class OutputNodeEmpty when no output and kernel idle
-  //     if (executionState === "IDLE"){
-  //       setCanRenderEmpty(true);
-  //     }
-  //     // assign class OutputNodeEmpty when no output and kernel busy/interrupted but with other cell
-  //     else if ((executionState === "BUSY" ||  executionState === "INTERRUPTED") && parentExecutionState.nodeId !== getConnectedNodeId(id)){
-  //       setCanRenderEmpty(true);
-  //     }
-  //     else{
-  //       setCanRenderEmpty(false);
-  //     }
-  //   }
-  // }, [groupedOutputs, parentExecutionState]);
-
-  const styleWhenThereIsOutput = {
-      //display: "flow-root",
-      minHeight: minHeight,
-      minWidth: minWidth,
-      //maxHeight: outputNodeHeight, //BUG --> Alex
-      maxHeight: maxHeight,
-      maxWidth: maxWidth,
-      //overflow: "scroll",
-      //overflow: "hidden",
-
-      overflow: "auto",
-  };
 
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
@@ -279,15 +226,12 @@ function SimpleOutputNode({
         <NodeResizer
           lineStyle={{ borderColor: "transparent" }}
           handleStyle={handleStyle}
-          minWidth={minWidth + 10}
-          //minHeight={outputNodeHeight + 10} //BUG --> Alex
-          minHeight={minHeight + 10}
-          maxHeight={maxHeight + 10}
-          maxWidth={maxWidth + 10}
+          // watch out the size set in .OutputNode css if changing the sizes here
+          minWidth={35}
+          minHeight={35} 
         />
       }
       <NodeToolbar className="nodrag">
-        {/* <button onClick={onDelete}>Delete</button> */}
         {!isSimpleNodeLocked ? (
           hasParent && (
             <button
@@ -374,7 +318,6 @@ function SimpleOutputNode({
 
       <div
         ref={divRef}
-        style={canRenderEmpty ? {} : styleWhenThereIsOutput}
         className={isScrollbarVisible ? "nowheel" : "outputContent"}
       >
         {groupedOutputs.map((groupedOutput, index) => (
@@ -389,7 +332,6 @@ function SimpleOutputNode({
             }
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
-            // style={groupedOutput.isImage ? { maxHeight: "200px", maxWidth: "500px", overflow: "auto" } : {}}
           ></div>
         ))}
         {/* COMMENT: Display when already run and no output*/}

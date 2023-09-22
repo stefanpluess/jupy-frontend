@@ -361,7 +361,7 @@ function SimpleNode({ id, data }: NodeProps) {
           ) : (
             // INFO :: ▶️ run button when we have error ❌
             <div>
-              {isHovered ? (
+              {(isHovered || !hasParent) ? (
                 // show the run button when we hover over it
                 <button
                   title="Error: Fix your Code and then let's try it again mate"
