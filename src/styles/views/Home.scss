@@ -78,16 +78,15 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
 .wrapper .rbottom{
-  margin-left: 350%;
-  top: 10px;
-  font-size: 12px;
+  margin-left: 100%;
+  top: 14px;
+  font-size: 10px;
 }
 
 .wrapper .rtop{
-  margin-left: 12px;
-  top: -15px;
-  left: 100%;
-  font-size: 12px;
+  top: -17px;
+  left: 50%;
+  transform: scale(0.9);
 }
 
 .wrapper .rcentral{
@@ -105,7 +104,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   justify-content: left;
   align-items: center;
   margin-left: 100%;
-  margin-top: -5px;
+  margin-top: -12px;
 }
 
 .wrapper .obuttonArea {
