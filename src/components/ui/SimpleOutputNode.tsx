@@ -6,7 +6,7 @@ import {
   NodeToolbar,
   NodeProps,
   useStore,
-  NodeResizer,
+  NodeResizeControl,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -16,16 +16,16 @@ import {
   faTriangleExclamation,
   faCheck
 } from "@fortawesome/free-solid-svg-icons";
-import { useDetachNodes } from "../../helpers/hooks";
+import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import useNodesStore from "../../helpers/nodesStore";
 import { getConnectedNodeId } from "../../helpers/utils";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { OutputNodeData } from "../../config/types";
 import * as clipboard from "clipboard-polyfill";
-import { MAX_HEIGHT, MAX_WIDTH } from "../../config/constants";
+import { CONTROL_STLYE } from "../../config/constants";
+import ResizeIcon from "./ResizeIcon";
 
-const handleStyle = { height: 6, width: 6 };
 
 function SimpleOutputNode({
   id,
@@ -41,6 +41,9 @@ function SimpleOutputNode({
 
   const [isCopyClicked, setIsCopyClicked] = useState(false);
   const [isSaveClicked, setIsSaveClicked] = useState(false);
+
+  const getResizeBoundaries = useResizeBoundaries();
+  const { maxWidth, maxHeight } = getResizeBoundaries(id);
 
   useEffect(() => {
     if (!data.outputs) return;
@@ -224,15 +227,15 @@ function SimpleOutputNode({
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
       {!canRenderEmpty &&
-        <NodeResizer
-          lineStyle={{ borderColor: "transparent" }}
-          handleStyle={handleStyle}
-          // watch out the size set in .OutputNode css if changing the sizes here
+        <NodeResizeControl
+          style={CONTROL_STLYE}
           minWidth={35}
           minHeight={35}
-          maxWidth={MAX_WIDTH}
-          maxHeight={MAX_HEIGHT}
-        />
+          maxWidth={maxWidth}
+          maxHeight={maxHeight}
+        >
+          <ResizeIcon isSmaller />
+        </NodeResizeControl>
       }
       <NodeToolbar className="nodrag">
         {!isSimpleNodeLocked ? (
