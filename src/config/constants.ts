@@ -22,3 +22,9 @@ export const MIN_WIDTH = 180;
 export const MIN_HEIGHT = 85;
 export const MAX_WIDTH = 600;
 export const MAX_HEIGHT = 500;
+
+export const CONTROL_STLYE = {
+    background: 'transparent',
+    border: 'none',
+    zIndex: 1,
+}

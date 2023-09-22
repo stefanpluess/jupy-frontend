@@ -7,7 +7,7 @@ import {
   useReactFlow,
   Handle,
   Position,
-  NodeResizer,
+  NodeResizeControl,
 } from "reactflow";
 import {
   faCopy,
@@ -16,13 +16,13 @@ import {
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useDetachNodes } from "../../helpers/hooks";
+import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
-import { MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
+import { CONTROL_STLYE, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
+import ResizeIcon from "./ResizeIcon";
 
 function MarkdownNode({ id, data }: NodeProps) {
-  const handleStyle = { height: 6, width: 6 };
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -42,8 +42,10 @@ function MarkdownNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
+  const getResizeBoundaries = useResizeBoundaries();
+  const { maxWidth, maxHeight } = getResizeBoundaries(id);
+
   const createMarkdown = () => setEditMode(false);
-  // const deleteCode = () => (data.code = "");
   const copyCode = () => navigator.clipboard.writeText(data.code);
 
   const toolbar = (
@@ -64,9 +66,6 @@ function MarkdownNode({ id, data }: NodeProps) {
 
   const buttons = (
     <div className="inputCentered buttonArea nodrag">
-      {/* <button className="inputCentered cellButton bLeft" title="Delete Code in Cell" onClick={deleteCode}>
-        <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
-      </button> */}
       <button
         title="Copy Text from Cell"
         className={`inputCentered cellButton bRight ${
@@ -82,14 +81,15 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
 
   const nodeResizer = (
-    <NodeResizer
-      lineStyle={{ borderColor: "transparent" }}
-      handleStyle={handleStyle}
+    <NodeResizeControl
+      style={CONTROL_STLYE}
       minWidth={MIN_WIDTH}
       minHeight={MIN_HEIGHT}
-      maxWidth={MAX_WIDTH}
-      maxHeight={MAX_HEIGHT}
-    />
+      maxWidth={maxWidth}
+      maxHeight={maxHeight}
+    >
+      <ResizeIcon />
+    </NodeResizeControl>
   );
 
   if (!editMode)

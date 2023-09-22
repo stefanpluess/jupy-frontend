@@ -12,7 +12,7 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
-  NodeResizer,
+  NodeResizeControl
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -30,7 +30,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts, useResizeBoundaries } from "../../helpers/hooks";
 import { getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -42,13 +42,11 @@ import {
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
   EXEC_CELL_NOT_YET_RUN,
-  MAX_WIDTH,
-  MAX_HEIGHT,
   MIN_WIDTH,
-  MIN_HEIGHT
+  MIN_HEIGHT,
+  CONTROL_STLYE
 } from "../../config/constants";
-
-const handleStyle = { height: 6, width: 6 };
+import ResizeIcon from "./ResizeIcon";
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -66,6 +64,9 @@ function SimpleNode({ id, data }: NodeProps) {
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
+
+  const getResizeBoundaries = useResizeBoundaries();
+  const { maxWidth, maxHeight } = getResizeBoundaries(id);
 
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
@@ -233,14 +234,15 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
-      <NodeResizer
-        lineStyle={{ borderColor: "transparent" }}
-        handleStyle={handleStyle}
+      <NodeResizeControl
+        style={CONTROL_STLYE}
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
-        maxWidth={MAX_WIDTH}
-        maxHeight={MAX_HEIGHT}
-      />
+        maxWidth={maxWidth}
+        maxHeight={maxHeight}
+      >
+        <ResizeIcon />
+      </NodeResizeControl>
       <NodeToolbar className="nodrag">
         <div>
           <button onClick={deleteNode} title="Delete Cell">
