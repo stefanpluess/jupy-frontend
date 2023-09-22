@@ -16,7 +16,9 @@ import {
   faPen,
   faX,
   faCheck,
-  faCopy
+  faCopy,
+  faTrashAlt,
+  faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import Table from "react-bootstrap/Table";
 import Error from "../views/Error";
@@ -25,6 +27,7 @@ import { getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
 import { ID_LENGTH } from "../../config/constants";
+import CustomConfirmModal from "../ui/CustomConfirmModal";
 
 export default function FileExplorer() {
   const navigate = useNavigate();
@@ -35,6 +38,8 @@ export default function FileExplorer() {
   const [sortColumn, setSortColumn] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<string>("desc");
   const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
+  const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false)
+  const [fileToBeDeleted, setFileToBeDeleted] = useState<Content | null>();
   const token = useWebSocketStore((state) => state.token);
 
   const [renamingInfo, setRenamingInfo] = useState<{
@@ -168,6 +173,26 @@ export default function FileExplorer() {
       .catch((err) => {
         console.log(err);
       });
+  }
+
+  const onDelete = (file: Content) => {
+    setFileToBeDeleted(file);
+    setShowConfirmModalDelete(true);
+  }
+
+  const deleteFile = async (file: Content) => {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    await axios
+      .delete(`http://localhost:8888/api/contents/${file.path}`)
+      .then((res) => {
+        setTimeout(() => {
+          getContentsFromPath();
+        }, 100);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    setShowConfirmModalDelete(false);
   }
 
   const createFolder = async () => {
@@ -339,15 +364,33 @@ export default function FileExplorer() {
   const copyButton = (file: Content) => {
     return (
       <Button
+        style={{marginRight: '4px'}}
         className="alignRight no-y-padding"
         variant="outline-primary"
         title="Duplicate Notebook"
-        size="sm"
         onClick={() => duplicateNotebook(file)}
       >
         <FontAwesomeIcon icon={faCopy}/>
       </Button>
     )
+  }
+
+  const deleteButton = (file: Content) => {
+    return (
+      <Button
+        className="alignRight no-y-padding"
+        variant="outline-danger"
+        title={"Delete "+firstLetterUpperCase(file?.type)}
+        onClick={() => onDelete(file)}
+      >
+        <FontAwesomeIcon icon={faTrashAlt}/>
+      </Button>
+    )
+  }
+
+  const firstLetterUpperCase = (text: string) => {
+    if (!text) return;
+    return text.charAt(0).toUpperCase() + text.slice(1)
   }
 
   // Sort the contents based on the current sort column and direction
@@ -444,7 +487,7 @@ export default function FileExplorer() {
             {sortedContents.map((file) => {
               return (
                 <tr key={file.name}>
-                  <td style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <td style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       {renderRenameButtonAndInput(file)}
                       {renamingInfo.fileToRename?.name !== file.name && (
@@ -452,7 +495,13 @@ export default function FileExplorer() {
                           {file.type === "directory" && (
                             <FontAwesomeIcon icon={faFolder} />
                           )}
-                          {file.type === "directory" && " "}
+                          {file.type === "notebook" && (
+                            <FontAwesomeIcon icon={faBook} />
+                          )}
+                          {file.type === "file" && (
+                            <><FontAwesomeIcon icon={faFile} />&nbsp;</>
+                          )}
+                          {" "}
                           {file.type !== "notebook" && (
                             <button
                               className="link-button"
@@ -461,11 +510,6 @@ export default function FileExplorer() {
                               {file.name}
                             </button>
                           )}
-
-                          {file.type === "notebook" && (
-                            <FontAwesomeIcon icon={faBook} />
-                          )}
-                          {file.type === "notebook" && " "}
                           {file.type === "notebook" && (
                             <button
                               className="link-button"
@@ -477,7 +521,10 @@ export default function FileExplorer() {
                         </>
                       )}
                     </div>
-                    {file.type === "notebook" && copyButton(file)}
+                    <div>
+                      {file.type === "notebook" && copyButton(file)}
+                      {deleteButton(file)}
+                    </div>
                   </td>
                   <td>
                     {file.last_modified &&
@@ -507,6 +554,15 @@ export default function FileExplorer() {
             })}
           </tbody>
         </Table>
+        <CustomConfirmModal 
+          title={"Delete "+firstLetterUpperCase(fileToBeDeleted?.type!)+"?"} 
+          message={"Are you sure you want to delete the "+firstLetterUpperCase(fileToBeDeleted?.type!)+" "+fileToBeDeleted?.name+"?"}
+          show={showConfirmModalDelete} 
+          onHide={() => { setShowConfirmModalDelete(false) }} 
+          onConfirm={() => deleteFile(fileToBeDeleted!)} 
+          confirmText="Delete"
+          denyText="Cancel"
+        />
       </div>
     );
 }
