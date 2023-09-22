@@ -17,3 +17,8 @@ export const KERNEL_BUSY_FROM_PARENT = 'BUSY_FROM_PARENT';
 
 export const EXEC_CELL_NOT_YET_RUN = '';
 export const EXEC_CELL_RUNNING = '*';
+
+export const MIN_WIDTH = 180;
+export const MIN_HEIGHT = 85;
+export const MAX_WIDTH = 600;
+export const MAX_HEIGHT = 500;

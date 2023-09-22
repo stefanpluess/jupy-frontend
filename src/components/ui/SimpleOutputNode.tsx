@@ -23,6 +23,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { OutputNodeData } from "../../config/types";
 import * as clipboard from "clipboard-polyfill";
+import { MAX_HEIGHT, MAX_WIDTH } from "../../config/constants";
 
 const handleStyle = { height: 6, width: 6 };
 
@@ -228,7 +229,9 @@ function SimpleOutputNode({
           handleStyle={handleStyle}
           // watch out the size set in .OutputNode css if changing the sizes here
           minWidth={35}
-          minHeight={35} 
+          minHeight={35}
+          maxWidth={MAX_WIDTH}
+          maxHeight={MAX_HEIGHT}
         />
       }
       <NodeToolbar className="nodrag">

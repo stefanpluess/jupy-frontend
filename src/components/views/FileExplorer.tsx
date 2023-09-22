@@ -34,6 +34,7 @@ export default function FileExplorer() {
   const [contents, setContents] = useState<Content[]>([]);
   const [kernelspecs, setKernelspecs] = useState<Kernelspecs[]>([])
   const path = usePath();
+  document.title = "File Explorer - Jupy Canvas";
   const [showError, setShowError] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<string>("desc");
@@ -365,7 +366,7 @@ export default function FileExplorer() {
     return (
       <Button
         style={{marginRight: '4px'}}
-        className="alignRight no-y-padding"
+        className="alignRight no-y-padding no-border"
         variant="outline-primary"
         title="Duplicate Notebook"
         onClick={() => duplicateNotebook(file)}
@@ -378,7 +379,7 @@ export default function FileExplorer() {
   const deleteButton = (file: Content) => {
     return (
       <Button
-        className="alignRight no-y-padding"
+        className="alignRight no-y-padding no-border"
         variant="outline-danger"
         title={"Delete "+firstLetterUpperCase(file?.type)}
         onClick={() => onDelete(file)}

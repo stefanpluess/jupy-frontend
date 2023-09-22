@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDetachNodes } from "../../helpers/hooks";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
+import { MAX_HEIGHT, MAX_WIDTH, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
 
 function MarkdownNode({ id, data }: NodeProps) {
   const handleStyle = { height: 6, width: 6 };
@@ -84,8 +85,10 @@ function MarkdownNode({ id, data }: NodeProps) {
     <NodeResizer
       lineStyle={{ borderColor: "transparent" }}
       handleStyle={handleStyle}
-      minWidth={200}
-      minHeight={85}
+      minWidth={MIN_WIDTH}
+      minHeight={MIN_HEIGHT}
+      maxWidth={MAX_WIDTH}
+      maxHeight={MAX_HEIGHT}
     />
   );
 

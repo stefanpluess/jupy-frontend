@@ -41,7 +41,11 @@ import {
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
-  EXEC_CELL_NOT_YET_RUN
+  EXEC_CELL_NOT_YET_RUN,
+  MAX_WIDTH,
+  MAX_HEIGHT,
+  MIN_WIDTH,
+  MIN_HEIGHT
 } from "../../config/constants";
 
 const handleStyle = { height: 6, width: 6 };
@@ -232,18 +236,26 @@ function SimpleNode({ id, data }: NodeProps) {
       <NodeResizer
         lineStyle={{ borderColor: "transparent" }}
         handleStyle={handleStyle}
-        minWidth={200}
-        minHeight={85}
+        minWidth={MIN_WIDTH}
+        minHeight={MIN_HEIGHT}
+        maxWidth={MAX_WIDTH}
+        maxHeight={MAX_HEIGHT}
       />
       <NodeToolbar className="nodrag">
         <div>
+          <button onClick={deleteNode} title="Delete Cell">
+            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
+          </button>
+
           <button onClick={duplicateCell} title="Duplicate Cell">
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
-          <button onClick={deleteNode} title="Delete Cell">
-            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
-          </button>
+          {hasParent && (
+            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
+              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
+            </button>
+          )}
 
           <button
             title="Add Comment to Cell"
@@ -253,11 +265,6 @@ function SimpleNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon" icon={faCommentAlt} />
           </button>
 
-          {hasParent && (
-            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
-              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
-            </button>
-          )}
           <button
             title="Additonal cell settings"
             onClick={onAdditionalSettings}
