@@ -150,7 +150,7 @@ function GroupNode({ id, data }: NodeProps) {
           deleteOutput(outputNodeId);
           const outputNode = getNode(outputNodeId);
           if (outputNode === undefined) {
-            console.log("outputNode is undefined");
+            // console.log("outputNode is undefined");
             setTimeout(() => {
               // INFO :: 0️⃣ empty output type functionality
               setOutputTypeEmpty(outputNodeId, false);
