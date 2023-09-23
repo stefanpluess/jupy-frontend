@@ -1,0 +1,373 @@
+@import '../variables';
+
+
+/* INFO :: canvas area = .rfWrapper*/
+/*background color canvas area*/
+.wrapper .react-flow {
+    background: $shared-bg-color;
+}
+
+.wrapper .rfWrapper {
+    flex-grow: 1;
+    height: 100%;
+}
+
+/* INFO :: canvas area - simple node*/
+.rfWrapper .react-flow__node-node {
+    display: flex;
+    border-radius: $code-and-output-border-radius;
+    border: 0;
+    border-color: 'transparent';
+    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2), 
+                inset 0px 0px 40px 2px rgba(255, 255, 255, 0.2);
+}
+
+.rfWrapper .react-flow__node-node:hover{
+    box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
+                inset 0px 0px 40px 3px rgba(255, 255, 255, 0.3);
+}
+.rfWrapper .react-flow__node-node.selected {
+    box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
+                inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
+}
+
+.rfWrapper .react-flow__node-node .simpleNodewrapper {
+    overflow: hidden;
+    display: flex;
+    padding: 2px;
+    position: relative;
+    border-radius: $node-border-radius;
+    // box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
+    flex-grow: 1;
+    min-height: 85px;
+}
+
+.rfWrapper .react-flow__node-node .inner {
+    background: $node-background;
+    // box-shadow: $node-box-shadow-not-active;
+    border-radius: $code-and-output-border-radius;
+    border: $node-border;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+    position: relative;
+    min-width: 196px;
+}
+
+/*color of the code area in code cell*/
+.rfWrapper .textareaNode {
+    background-color: rgba(255, 255, 255, 0.223);
+    min-height: 59px;  // min-height - 26px
+    min-width: 150px;
+    margin-bottom: 20px;
+}
+
+/* animation of the execution */
+.rfWrapper .gradient:before {
+    content: "";
+    position: absolute;
+    padding-bottom: calc(100% * 1.41421356237);
+    width: calc(100% * 1.41421356237);
+    background: conic-gradient(
+        from -160deg at 50% 50%,
+        #e92a67 0deg,
+        #a853ba 120deg,
+        #2a8af6 240deg,
+        #e92a67 360deg
+    );
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 100%;
+}
+.rfWrapper .react-flow__node-node .simpleNodewrapper.gradient:before {
+    content: "";
+    background: conic-gradient(
+        from -160deg at 50% 50%,
+        #e92a67 0deg,
+        #a853ba 120deg,
+        #2a8af6 240deg,
+        rgba(42, 138, 246, 0) 360deg
+    );
+    animation: spinner 4s linear infinite;
+    transform: translate(-50%, -50%) rotate(0deg);
+    z-index: -1;
+}
+@keyframes spinner {
+    100% {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+/* INFO :: canvas area - ouput node*/
+// react-flow__node react-flow__node-outputNode
+/*color of the output cell*/
+.rfWrapper .react-flow__node-outputNode.selected {
+    box-shadow: $node-box-shadow-selected;
+}
+
+.rfWrapper .react-flow__node-outputNode:hover {
+    box-shadow: $node-box-shadow;
+}
+
+.rfWrapper .errorMessage{
+    color: red;
+}
+/* 
+    ".rfWrapper .react-flow__node-outputNod" is the general class from reactflow,
+    ".OutputNode" or ".OutputNodeEmpty" is the class from the output 
+    node component and it is a first div that is a child of ".react-flow__node-outputNode"
+
+    OutputNode and OutputNodeEmpty refer to the same div but, 
+    but OutputNodeEmpty is applied when the output node is empty
+*/ 
+.rfWrapper .react-flow__node-outputNode{
+    background-color: $node-background;
+    color: $shared-text-color;
+    outline: none;
+    border: $node-border;
+    border-radius: $code-and-output-border-radius;
+    padding: 4px;
+    font-size: 10px;
+}
+
+.rfWrapper .react-flow__node-outputNode .OutputNode{
+    text-align: left;
+    width: 100%; // Make the inner div fill the available width
+    height: 100%; // Make the inner div fill the available height
+    max-width: 100%; // Set a maximum width for the inner div
+    max-height: 100%; // Set a maximum height for the inner div
+    overflow: auto;
+    min-width: 25px;
+    min-height: 25px;
+
+    .selected {
+        background-color: $node-background-selected;
+    }
+}
+
+// TODO - make it scrollable
+// TODO - adjust the namings of classes
+// TODO - clean out some code from outputNode
+.rfWrapper .react-flow__node-outputNode .outputContent {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.rfWrapper .react-flow__node-outputNode .outputNode {
+    flex: 1;
+    display: flex;
+}
+
+.rfWrapper .react-flow__node-outputNode .OutputNodeEmpty {
+    min-height: 25px;
+    max-height: 25px;
+    min-width: 25px;
+    max-width: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  
+    .selected {
+        background-color: $node-background-selected;
+    }
+  }
+/* INFO :: canvas area - group node*/
+/*frame around bubble cell*/
+.rfWrapper .react-flow__node-group {
+    background: $group-node-background;
+    border: $node-border;
+    box-shadow: $node-box-shadow-not-active; 
+    resize: both;
+    width: auto;
+}
+/*shade around bubble cell when hovering/selecting */
+.rfWrapper .react-flow__node-group:hover {
+    box-shadow: $node-box-shadow; 
+}
+.rfWrapper .react-flow__node-group.selected {
+    border-width: 2px;
+    box-shadow: $node-box-shadow;
+}
+
+// branch out disabled
+.rfWrapper .icon-branchOutOff{
+    opacity: 0.2;
+}
+
+/* INFO :: canvas area - markdown node*/
+.rfWrapper .react-flow__node-mdNode {
+    display: flex;
+    background: $markdown-node-background;
+    border: 0;
+    border-color: transparent;
+    text-align: left !important;
+    border-radius: $node-border-radius;
+    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2),
+                inset 0px 0px 0px 2px rgba(255, 255, 255, 0.2);
+}
+.rfWrapper .react-flow__node-mdNode .simpleNodewrapper {
+    overflow: hidden;
+    display: flex;
+    padding: 2px;
+    position: relative;
+    border-radius: $node-border-radius;
+    // box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
+    flex-grow: 1;
+    min-height: 85px;
+}
+.rfWrapper .react-flow__node-mdNode .inner {
+    // box-shadow: $node-box-shadow-not-active;
+    border-radius: $code-and-output-border-radius;
+    border: $node-border;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+    position: relative;
+    min-width: 196px;
+}
+.rfWrapper .react-flow__node-mdNode:hover{
+    box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
+                inset 0px 0px 0px 3px rgba(255, 255, 255, 0.3);
+}
+.rfWrapper .react-flow__node-mdNode.selected {
+    box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
+                inset 0px 0px 0px 4px rgba(255, 255, 255, 0.35);
+}
+
+/* INFO :: canvas area - lock icon*/
+.rfWrapper .lock-icon{
+    font-size: 10px;
+  }
+
+.rfWrapper .lock-icon:hover{
+    color: rgba(223, 223, 223, 0.502);
+
+  }
+
+.rfWrapper .lock-icon-transition {
+    transition: opacity 0.5s ease-in-out;
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  
+.rfWrapper .lock-icon-visible {
+    opacity: 1;
+}
+
+/* INFO :: canvas area - ouput node disabled toolbar*/
+// .rfWrapper .detachDisabled {
+//     pointer-events: none;
+// }
+// .rfWrapper .detachDisabled:hover{
+//     background: $toolbar-background;
+// }
+
+.rfWrapper .icon-detachoff-warning{
+    color: #a60034;
+}
+
+.rfWrapper .icon-detachoff-detach{
+    opacity: 0.2;
+}
+
+
+/* INFO :: canvas area - kernel status🟢🔴*/
+@mixin commonStyles {
+    align-items: center;
+    font-family: "Quicksand";
+    font-weight: bold;
+    font-size: 10px;
+    display: inline-block;
+    height: 100%;
+    white-space: nowrap;
+    width: auto;
+    position: relative;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1rem;
+    word-break: break-word;
+}
+
+.rfWrapper .kernelOn {
+    @include commonStyles;
+    color: rgba(71, 176, 66, 0.416);
+}
+
+.rfWrapper .kernelOff {
+    @include commonStyles;
+    color: rgba(255, 0, 0, 0.416);
+}
+
+.rfWrapper .kernelBusy {
+    @include commonStyles;
+    color: rgba(255, 119, 0, 0.416);
+}
+
+
+/* INFO :: Styles for HTML tables (like pd DataFrames) */
+.rendered_html table {
+    // margin-left: auto;
+    // margin-right: auto;
+    border: none;
+    border-collapse: collapse;
+    border-spacing: 0;
+    // color: black;
+    // font-size: 12px;
+    table-layout: fixed;
+}
+.rendered_html tr, .rendered_html th, .rendered_html td {
+    text-align: right;
+    vertical-align: middle;
+    padding: 0.45em 0.45em;
+    line-height: normal;
+    white-space: normal;
+    max-width: none;
+    border: none;
+}
+.rendered_html tbody tr:nth-child(odd) {
+    background: rgb(151, 96, 151);
+}
+.rendered_html tbody tr:hover {
+    background: rgba(66, 165, 245, 0.3);
+}
+.rendered_html thead {
+    border-bottom: 1px solid white;
+    vertical-align: bottom;
+}
+
+
+/* INFO :: styles for the GroupEdge */
+.edgebutton {
+    width: 20px;
+    height: 20px;
+    background: #eee;
+    border: 1px solid #fff;
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+}
+  
+.edgebutton:hover {
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.297);
+}
+
+@keyframes blink {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.2;
+    }
+    100% {
+      opacity: 1;
+    }
+}

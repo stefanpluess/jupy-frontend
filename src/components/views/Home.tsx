@@ -1,4 +1,12 @@
-import { MouseEvent, DragEvent, useCallback, useRef, useState, useEffect } from 'react';
+//COMMENT :: External modules/libraries
+import {
+  MouseEvent,
+  DragEvent,
+  useCallback,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import ReactFlow, {
   Node,
   ReactFlowProvider,
@@ -6,7 +14,6 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   useStoreApi,
-  MarkerType,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -14,270 +21,179 @@ import ReactFlow, {
   Connection,
   MiniMap,
   Controls,
-} from 'reactflow';
+  Panel,
+} from "reactflow";
+import { shallow } from "zustand/shallow";
+//COMMENT :: Internal modules UI
+import { Sidebar, SelectedNodesToolbar } from "../ui";
+//COMMENT :: Internal modules HELPERS
+import {
+  createInitialElements,
+  sortNodes,
+  getId,
+  getNodePositionInsideParent,
+  canRunOnNodeDrag,
+  keepPositionInsideParent,
+  getConnectedNodeId,
+  getSimpleNodeId,
+  checkNodeAllowed,
+  saveNotebook,
+} from "../../helpers/utils";
+import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
+import {
+  useWebSocketStore,
+  createSession,
+  selectorHome,
+} from "../../helpers/websocket";
+//COMMENT :: Internal modules CONFIG
+import {
+  GROUP_NODE,
+  NORMAL_NODE,
+  MARKDOWN_NODE,
+  EXTENT_PARENT,
+  OUTPUT_NODE,
+  DEFAULT_LOCK_STATUS,
+} from "../../config/constants";
+import nodeTypes from "../../config/NodeTypes";
+import edgeTypes from "../../config/EdgeTypes";
+import {
+  proOptions,
+  defaultEdgeOptions,
+  onDragOver,
+} from "../../config/config";
+import {
+  nodes as initialNodes,
+  edges as initialEdges,
+} from "../../config/initial-elements";
+import { ToastContainer } from 'react-toastify';
 
-import Sidebar from '../ui/Sidebar';
-import SimpleNode from '../ui/SimpleNode';
-import GroupNode from '../ui/GroupNode';
-import SimpleOutputNode from '../ui/SimpleOutputNode';
-import { nodes as initialNodes, edges as initialEdges } from '../../helpers/initial-elements';
-import { sortNodes, getId, getNodePositionInsideParent, createOutputNode } from '../../helpers/utils';
-import SelectedNodesToolbar from '../ui/SelectedNodesToolbar';
-import { startSession, removeEscapeCodes } from '../../helpers/utils';
+//COMMENT :: Styles
+import "reactflow/dist/style.css";
+import "@reactflow/node-resizer/dist/style.css";
+import "../../styles/views/Home.scss";
+import "../../styles/ui/sidebar.scss";
+import "../../styles/ui/canvas.scss";
+import "../../styles/components/controls.scss";
+import "../../styles/components/minimap.scss";
+import axios from "axios";
+import { Alert, Button } from "react-bootstrap";
+import useNodesStore from "../../helpers/nodesStore";
+import 'react-toastify/dist/ReactToastify.css';
 
-import 'reactflow/dist/style.css';
-import '@reactflow/node-resizer/dist/style.css';
-
-import '../../styles/views/Home.css';
-import { ExecutionCount, ExecutionOutput, CellIdToMsgId, Cell } from '../../helpers/types';
-
-
-const proOptions = {
-  hideAttribution: true,
-};
-
-const onDragOver = (event: DragEvent) => {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-};
-
-const nodeTypes = {
-  node: SimpleNode,
-  outputNode: SimpleOutputNode,
-  group: GroupNode,
-};
-
-const defaultEdgeOptions = {
-  style: {
-    strokeWidth: 2,
-  },
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-  },
-};
-
-
+//INFO :: main code
 function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const onConnect = useCallback((edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)), [setEdges]);
+  const onConnect = useCallback(
+    (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
+    [setEdges]
+  );
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
+  const path = usePath();
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
+  // other 
+  const { cellIdToMsgId,
+    latestExecutionCount, setLatestExecutionOutput, 
+    latestExecutionOutput, setLatestExecutionCount,
+    cellIdToOutputs, setCellIdToOutputs,
+    token
+  } = useWebSocketStore(selectorHome, shallow);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  // INFO :: needed for lock functionality and moving nodes together:
+  const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
+  const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
-  // --------------- ADDED BY DIEGO ---------------
-  const [latestExecutionCount, setLatestExecutionCount] = useState({} as ExecutionCount);
-  const [latestExecutionOutput, setLatestExecutionOutput] = useState({} as ExecutionOutput);
-  const [cellIdToMsgId, setCellIdToMsgId] = useState({} as CellIdToMsgId);
-  const [webSocketMap, setWebSocketMap] = useState<{ [id: string]: WebSocket }>({});
+  // this hook call ensures that the layout is re-calculated every time the graph changes
+  // useLayout(); // TODO? nice functions to use: https://reactflow.dev/docs/examples/nodes/delete-middle-node/
 
+  //INFO :: useEffect -> update execution count and output of nodes
+  useUpdateNodesExeCountAndOuput(
+    { latestExecutionCount, latestExecutionOutput, cellIdToOutputs, setCellIdToOutputs },
+    cellIdToMsgId
+  );
 
-  function executeCode(parent_id: string, code:string, msg_id:string, cell_id:string) {
-		setCellIdToMsgId({[msg_id]: cell_id});
-    // fetch the connection to execute the code on
-    const ws = webSocketMap[parent_id];
-
-		// Send code to the kernel for execution
-		const message = {
-			header: {
-				msg_type: 'execute_request',
-				msg_id: msg_id,
-				username: 'username',
-			},
-			metadata: {},
-			content: {
-				code: code,
-				silent: false,
-				store_history: true,
-				user_expressions: {},
-				allow_stdin: false, 
-				stop_on_error: false
-			},
-			buffers: [],
-			parent_header: {},
-			channel: 'shell'
-		};
-		if (ws.readyState === WebSocket.OPEN) {
-			ws.send(JSON.stringify(message));
-		} else {
-			console.log("websocket is not connected");
-		}
-	}
-
-  async function createSession() {
-    const url = 'http://localhost:8888/';
-    const session_name = `Session-${Math.floor(Math.random() * 100000000)}`;
-    const token = '3d91a3e0e09f2708ba1f161d0797b57ff70c528f5cac9ee0';
-    const session = await startSession(url, token, session_name);
-    const ws = startWebsocket(session.session_id, session.kernel_id, token);
-    return ws;
-	}
-
-  function startWebsocket(session_id: string, kernel_id: string, token: string) {
-		const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?session_id=${session_id}&token=${token}`;
-		const ws = new WebSocket(websocketUrl);
-
-    // WebSocket event handlers
-		ws.onopen = () => {
-			console.log('WebSocket connection established');
-		};
-
-		// Handle incoming messages from the kernel
-		ws.onmessage = (event) => {
-			const message = JSON.parse(event.data);
-			const msg_type = message.header.msg_type;
-			// console.log('Received message from kernel:', message);
-
-			// Handle different message types as needed
-			if (msg_type === 'execute_reply') {
-				// if (message.content.status === 'error' || message.content.status === 'abort') return;
-				const newObj = {
-					msg_id: message.parent_header.msg_id,
-					execution_count: message.content.execution_count,
-				}
-				setLatestExecutionCount(newObj);
-
-			} else if (msg_type === 'execute_result') {
-				const outputObj = {
-					msg_id: message.parent_header.msg_id,
-					output: message.content.data['text/plain'],
-          isImage: false,
-				}
-				setLatestExecutionOutput(outputObj);
-
-			} else if (msg_type === 'stream') {
-				const outputObj = {
-					msg_id: message.parent_header.msg_id,
-					output: message.content.text,
-          isImage: false,
-				}
-				setLatestExecutionOutput(outputObj);
-
-			} else if (msg_type === 'display_data') {
-				const outputText = message.content.data['text/plain'];
-				const outputImage = message.content.data['image/png'];
-				console.log(outputImage)
-				const outputObj = {
-					msg_id: message.parent_header.msg_id,
-					output: outputImage,
-          isImage: true,
-				}
-				setLatestExecutionOutput(outputObj);
-
-			} else if (msg_type === 'error') {
-        const traceback = message.content.traceback.map(removeEscapeCodes);
-				const outputObj = {
-					msg_id: message.parent_header.msg_id,
-					output: traceback.join('\n'),
-          isImage: false,
-				}
-				setLatestExecutionOutput(outputObj);
-			}
-		};
-
-		ws.onerror = (error) => {
-			console.error('WebSocket error:', error);
-		};
-
-		ws.onclose = () => {
-			console.log('WebSocket connection closed');
-		};
-    return ws;
-	}
-
-	useEffect(() => {
-		// do not trigger on first render
-		if (Object.keys(latestExecutionOutput).length === 0) return;
-		const output = latestExecutionOutput.output;
-    const isImage = latestExecutionOutput.isImage;
-    const msg_id_execCount = latestExecutionCount.msg_id;
-    const msg_id_output= latestExecutionOutput.msg_id;
-    const executionCount = latestExecutionCount.execution_count;
-		// TODO: in case of error, change font color
-		const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
-    const cell_id_output = cellIdToMsgId[msg_id_output];
-
-    const updatedNodes = nodes.map((node) => {
-      // if it matches, update the execution count
-      if (node.id === cell_id_execCount) {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            executionCount: executionCount
-          },
-        };
-      // for the update cell, update the output
-      // TODO: if the output is not changed, set it to empty
-      } else if (node.id === cell_id_output+"_output") {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            output: output,
-            isImage: isImage,
-          },
-        };
-      // if nothing matches, return the node without modification
-      } else return node;
-    });
-    const newNodes = [...updatedNodes];
-    setNodes(newNodes);
-
-	}, [latestExecutionOutput, latestExecutionCount]);
-
-  // needed so that nodes know all websockets (update the execute function)
+  /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
+  //TODO: outsource
   useEffect(() => {
-    const newNodes = nodes.map((node) => {
-      if (node.type === 'node') {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            execute: executeCode
-          },
-        };
-      } else return node;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
+      const notebookData = res.data;
+      const { initialNodes, initialEdges } = createInitialElements(
+        notebookData.content.cells
+      );
+      // For each group node, start a websocket connection
+      initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
+        if (node.type === GROUP_NODE) {
+          const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          node.data.ws = ws;
+          node.data.session = session;
+        }
+      });
+      const sortedNodes = initialNodes.sort(sortNodes);
+      setNodes(sortedNodes);
+      setEdges(initialEdges);
     });
-    setNodes(newNodes);
-  }, [webSocketMap]);
+  }, []);
 
+  /* Saving notebook when pressing Ctrl/Cmd + S */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "s" && (isMac ? e.metaKey : e.ctrlKey)) {
+        e.preventDefault();
+        saveNotebook(nodes, edges, token, path, setShowSuccessAlert, setShowErrorAlert);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [nodes, edges]);
+
+  //INFO :: functions
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
-
     if (wrapperRef.current) {
       const wrapperBounds = wrapperRef.current.getBoundingClientRect();
-      const type = event.dataTransfer.getData('application/reactflow');
-      let position = project({ x: event.clientX - wrapperBounds.x - 20, y: event.clientY - wrapperBounds.top - 20 });
-      const nodeStyle = type === 'group' ? { width: 800, height: 500 } : undefined;
+      const type = event.dataTransfer.getData("application/reactflow");
+      let position = project({
+        x: event.clientX - wrapperBounds.x - 20,
+        y: event.clientY - wrapperBounds.top - 20,
+      }); // TODO - change to not fixed value / export to constant
+      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
+                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 200, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40,
-        height: 40,
-      }).filter((n) => n.type === 'group');
+        width: 40, // TODO - change to not fixed value / export to constant
+        height: 40, // TODO - change to not fixed value / export to constant
+      }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
       const newNode: Node = {
-        id: getId(),
+        id: getId(type),
         type,
         position,
-        data: { label: `${type}` },
+        data: {},
         style: nodeStyle,
       };
 
+      // prevent from dropping a group node on group node
+      if (groupNode && type === GROUP_NODE) return;
+
       // in case we drop a group, create a new websocket connection
-      if (type === 'group') {
-        const newWebSocket = await createSession();
-        // add the websocket to the id -> websocket map
-        setWebSocketMap((prevMap) => ({ ...prevMap, [newNode?.id]: newWebSocket }));
-      } else {
-        newNode.data = {
-          ...newNode.data,
-          execute: executeCode,
-          executionCount: null
+      if (type === GROUP_NODE) {
+        const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        newNode.data.ws = ws;
+        newNode.data.session = session;
+      } else if (type === NORMAL_NODE) {
+        newNode.data.executionCount = {
+          execCount: '',
+          timestamp: new Date()
         };
+      } else if (type === MARKDOWN_NODE) {
+        newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }
 
       if (groupNode) {
@@ -285,109 +201,195 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 40,
-            height: 40,
+            width: 400, // TODO - change to not fixed value / export to constant
+            height: 40, // TODO - change to not fixed value / export to constant
           },
           groupNode
         ) ?? { x: 0, y: 0 };
         newNode.parentNode = groupNode?.id;
-        newNode.extent = groupNode ? 'parent' : undefined;
+        newNode.extent = groupNode ? EXTENT_PARENT : undefined;
       }
 
-      if (type !== 'group') {
-        const newOutputNode: Node = createOutputNode(newNode);
-        const sortedNodes = store.getState().getNodes().concat(newNode).concat(newOutputNode).sort(sortNodes);
-        setNodes(sortedNodes);
-        const newEdge: Edge = {
-          id: getId(),
-          source: newNode.id,
-          target: newOutputNode.id,
-        };
-        setEdges([...edges, newEdge]);
-      } else {
-        // we need to make sure that the parents are sorted before the children
-        // to make sure that the children are rendered on top of the parents
-        const sortedNodes = store.getState().getNodes().concat(newNode).sort(sortNodes);
-        setNodes(sortedNodes);
-      }
+      // we need to make sure that the parents are sorted before the children
+      // to make sure that the children are rendered on top of the parents
+      const sortedNodes = store
+        .getState()
+        .getNodes()
+        .concat(newNode)
+        .sort(sortNodes);
+      setNodes(sortedNodes);
     }
   };
 
+  //INFO :: onNodeDrag... Callbacks
   const onNodeDragStop = useCallback(
     (_: MouseEvent, node: Node) => {
-      if ((node.type !== 'node' && node.type !== 'outputNode') && !node.parentNode) {
-        return;
-      }
-
-      const intersections = getIntersectingNodes(node).filter((n) => n.type === 'group');
+      if (!canRunOnNodeDrag(node)) return;
+      /* function calculates intersections, i.e., the group nodes 
+      that the moved node might now be inside of.*/
+      const intersections = getIntersectingNodes(node)
+                              .filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
-
-      // when there is an intersection on drag stop, we want to attach the node to its new parent
+      const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
+      /* when there is an intersection on drag stop, we want 
+      to attach the node to its new parent */
       if (intersections.length && node.parentNode !== groupNode?.id) {
-        const nextNodes: Node[] = store
-          .getState()
-          .getNodes()
+        /* if dragged node has any intersections on DragStop we need to 
+        move it and its connected node to the group node this is not 
+        activated if we just drag node within the group node */
+        // OPTIMIZE - for now assume we always have two nodes connected, what if we have only code cell without output node?
+        const nextNodes: Node[] = store.getState().getNodes() 
           .map((n) => {
             if (n.id === groupNode.id) {
-              return {
-                ...n,
-                className: '',
-              };
+              return {...n, className: ''};
             } else if (n.id === node.id) {
+              const position = getNodePositionInsideParent(n, groupNode) 
+                               ?? { x: 0, y: 0 };
+              return { 
+                ...n,
+                position,
+                parentNode: groupNode.id,
+                extent: EXTENT_PARENT as 'parent',
+              };
+            }
+            // if 🔒 lock is ✅ then update also connected node
+            else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-
+              /* OPTIMIZE - get the difference between {x,y} of the node and the connected node at the DragStart
+                 OPTIMIZE - if there is space in group node ensure that the nodes are not overlapping */
               return {
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: 'parent' as 'parent',
+                extent: EXTENT_PARENT as 'parent',
               };
             }
-
             return n;
           })
           .sort(sortNodes);
-
         setNodes(nextNodes);
       }
     },
-    [getIntersectingNodes, setNodes, store]
+    [getIntersectingNodes, setNodes, store, onDragStartData]
+  );
+
+  const onNodeDragStart = useCallback(
+    (_: MouseEvent, node: Node) => {
+      if (!canRunOnNodeDrag(node) || !checkNodeAllowed(node.id)) return;
+      const draggedNodeId = node.id;
+      // find the connected node - could be SimpleNode or SimpleOutputNode
+      const connectedNodeId = getConnectedNodeId(draggedNodeId);
+      const connectedNode = store.getState().getNodes()
+                              .find(n => n.id === connectedNodeId);
+      if (!connectedNode) {
+        console.error("connectedNode not found");
+        return;
+      }
+      // update the data used in onNodeDrag and onNodeDragStop
+      setOnDragStartData({
+        nodePosition: node.position,
+        nodeId: draggedNodeId,
+        connectedNodePosition: connectedNode.position,
+        connectedNodeId: connectedNode.id,
+        isLockOn: getIsLockedForId(getSimpleNodeId(draggedNodeId)),
+      });
+    }, 
+    [store]
   );
 
   const onNodeDrag = useCallback(
     (_: MouseEvent, node: Node) => {
-      if ((node.type !== 'node' && node.type !== 'outputNode')  && !node.parentNode) {
-        return;
-      }
-
-      const intersections = getIntersectingNodes(node).filter((n) => n.type === 'group');
-      const groupClassName = intersections.length && node.parentNode !== intersections[0]?.id ? 'active' : '';
-
+      if (!canRunOnNodeDrag(node)) return;
+      const intersections = getIntersectingNodes(node)
+                              .filter((n) => n.type === GROUP_NODE);
+      /* groupClassName will be 'active' if there is at least one intersection
+      and the parent node of the current node is not the first intersection. */
+      const groupClassName = intersections.length && 
+                             node.parentNode !== intersections[0]?.id
+                             ? 'active' 
+                             : '';
+      const isLockOn = onDragStartData.isLockOn;
+      const isNodeAllowed = checkNodeAllowed(node.id);
+      // update the nodes
       setNodes((nds) => {
         return nds.map((n) => {
-          if (n.type === 'group') {
-            return {
-              ...n,
-              className: groupClassName,
-            };
+          if (n.type === GROUP_NODE) {
+            return { ...n, className: groupClassName};
           } else if (n.id === node.id) {
-            return {
-              ...n,
-              position: node.position,
+            return { 
+              ...n, 
+              position: node.position
             };
           }
-
+          // if 🔒 lock is ✅ then update also connected node
+          else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
+            const newPosition = {
+              x: onDragStartData.connectedNodePosition.x + 
+                (node.position.x - onDragStartData.nodePosition.x),
+              y: onDragStartData.connectedNodePosition.y + 
+                (node.position.y - onDragStartData.nodePosition.y)
+            };
+            const groupNode = intersections.length &&
+                  n.parentNode === intersections[0]?.id
+                  ? intersections[0]
+                  : undefined;
+            if (groupNode) {
+              // we have parent and are inside parent
+              const position = keepPositionInsideParent(n, groupNode, newPosition) 
+                               ?? { x: 0, y: 0 };
+              /*keep the connected node inside the group node if 
+              it is close to the bounds and has a parent already*/
+              return {...n, position: position};
+            } else{
+              return {...n, position: newPosition};
+            }
+          }
           return { ...n };
         });
       });
     },
-    [getIntersectingNodes, setNodes]
+    [getIntersectingNodes, setNodes, onDragStartData]
   );
+  
+
+  // ---------- ALERTS ----------
+  const SuccessAlert = () => {
+    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
+    return (
+      <Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>
+        Notebook saved successfully!
+      </Alert>
+    );
+  };
+  const ErrorAlert = () => {
+    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
+    return (
+      <Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>
+        Error saving notebook!
+      </Alert>
+    );
+  };
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const successTimeout = setTimeout(() => { setShowSuccessAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showSuccessAlert]);
+  useEffect(() => {
+    if (showErrorAlert) {
+      const successTimeout = setTimeout(() => { setShowErrorAlert(false) }, 3000);
+      return () => { clearTimeout(successTimeout) };
+    }
+  }, [showErrorAlert]);
+
 
   return (
-    <div className={'wrapper'}>
-      <Sidebar />
-      <div className={'rfWrapper'} ref={wrapperRef}>
+    <div className={"wrapper"}>
+      <div className={"sidebar"}>
+        <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
+      </div>
+      <div className={"rfWrapper"} ref={wrapperRef}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -395,6 +397,7 @@ function DynamicGrouping() {
           onNodesChange={onNodesChange}
           onConnect={onConnect}
           onNodeDrag={onNodeDrag}
+          onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
           onDragOver={onDragOver}
@@ -402,13 +405,39 @@ function DynamicGrouping() {
           fitView
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          minZoom={0.2}
+          minZoom={0.15}
+          maxZoom={3}
+          deleteKeyCode={null}
         >
-          <Background color="#bbb" gap={50} variant={BackgroundVariant.Dots} />
+          <Background gap={50} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
-          <MiniMap nodeColor='#b44b9f80' maskStrokeColor='#222' nodeStrokeWidth={3} position={'top-right'} zoomable pannable />
-          <Controls />
+          <MiniMap position={"top-right"} zoomable pannable />
+          <Controls
+            showFitView={true}
+            showZoom={true}
+            showInteractive={true}
+            position="bottom-right"
+          />
+          <Panel position="top-center">
+            <SuccessAlert />
+            <ErrorAlert />
+          </Panel>
+          <Panel position="top-left">
+            <ToastContainer 
+              position="top-left"
+              autoClose={7000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              pauseOnFocusLoss={false}
+              pauseOnHover={true}
+              closeOnClick
+              rtl={false}
+              theme="dark"
+              style={{marginLeft: "80px"}}
+            />
+          </Panel>
         </ReactFlow>
       </div>
     </div>

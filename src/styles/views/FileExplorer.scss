@@ -1,0 +1,75 @@
+// TODO - use _variables.scss?
+.FileExplorer {
+  text-align: left;
+  margin: 30px 50px;
+}
+
+.link-button {
+  color: blue;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.link-button-back {
+  color: rgb(152, 152, 255);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+}
+
+.no-y-padding {
+  padding: 0px 4px !important
+}
+
+.running {
+  color: green;
+}
+
+.table-header {
+  border: none;
+  background: none;
+  position: relative;
+  transition: color 0.2s, opacity 0.2s;
+  font-weight: bold;
+}
+
+/* Add fancy hover effect to the table header */
+.clickable:hover {
+  color: #007bff; /* Change color on hover (you can use any color you like) */
+  opacity: 0.8; /* Reduce opacity on hover */
+}
+
+.non-clickable {
+  cursor: auto !important;
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.createButton {
+  margin-left: 6px;
+}
+
+.renameButtonLeft {
+  border: none !important;
+  margin-right: 5px;
+}
+
+.renameButtonRight {
+  border: none !important;
+  margin-left: 5px;
+}
+
+.noShow {
+  display: none;
+}
