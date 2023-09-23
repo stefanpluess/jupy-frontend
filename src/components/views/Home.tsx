@@ -283,7 +283,7 @@ function DynamicGrouping() {
       const connectedNode = store.getState().getNodes()
                               .find(n => n.id === connectedNodeId);
       if (!connectedNode) {
-        console.error("connectedNode not found");
+        // console.error("connectedNode not found");
         return;
       }
       // update the data used in onNodeDrag and onNodeDragStop
