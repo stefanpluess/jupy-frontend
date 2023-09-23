@@ -165,8 +165,6 @@ function GroupNode({ id, data }: NodeProps) {
           console.log("websocket is not connected");
         }
       }
-    } else {
-      console.error("Queue is undefined for GROUP: ", id);
     }
   }, [queues]);
 
