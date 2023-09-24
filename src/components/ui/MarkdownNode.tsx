@@ -43,7 +43,10 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
 
   const getResizeBoundaries = useResizeBoundaries();
-  const { maxWidth, maxHeight } = getResizeBoundaries(id);
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
 
   const createMarkdown = () => setEditMode(false);
   const copyCode = () => navigator.clipboard.writeText(data.code);
@@ -171,6 +174,18 @@ function MarkdownNode({ id, data }: NodeProps) {
         </Handle>
       </>
     );
+}
+
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
+  );
 }
 
 export default memo(MarkdownNode);
