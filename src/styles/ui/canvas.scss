@@ -226,8 +226,9 @@
 }
 
 // branch out disabled
-.rfWrapper .icon-branchOutOff{
-    opacity: 0.2;
+.rfWrapper .icon-disabled {
+    opacity: 0.3;
+    transform: scale(0.8)
 }
 
 /* INFO :: canvas area - markdown node*/

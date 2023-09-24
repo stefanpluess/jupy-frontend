@@ -25,7 +25,9 @@ import {
   faSpinner,
   faForward
 } from "@fortawesome/free-solid-svg-icons";
-import { useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, useHasBusyPredecessor, useResetExecCounts, useRunAll } from "../../helpers/hooks";
+import { 
+  useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, 
+  useHasBusyPredecessor, useResetExecCounts, useRunAll, useRemoveGroupNode } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
 import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
@@ -65,12 +67,13 @@ function GroupNode({ id, data }: NodeProps) {
   const path = usePath();
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
-  const { deleteElements, getNode, getNodes } = useReactFlow();
+  const { getNode, getNodes } = useReactFlow();
   const predecessor = getNode(data.predecessor);
   const [modalStates, setModalStates] = useState(initialModalStates);
   const [isBranching, setIsBranching] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const detachNodes = useDetachNodes();
+  const removeGroupNode = useRemoveGroupNode();
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -189,25 +192,11 @@ function GroupNode({ id, data }: NodeProps) {
     }
   }, [nodeData.ws?.readyState]);
 
-  // from the predecessor, remove the current node from its successors
-  const removeFromPredecessor = () => {
-    if (predecessor) {
-      const updatedSuccessors = predecessor.data.successors.filter((successor: string) => successor !== id);
-      predecessor.data.successors = updatedSuccessors;
-    }
-  };
-
   /* DELETE */
   const onDelete = async () => setModalState("showConfirmModalDelete", true);
 
   const deleteGroup = async () => {
-    deleteElements({ nodes: [{ id }] });
-    if (wsRunning) {
-      nodeData.ws.close();
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
-    }
-    removeFromPredecessor();
+    removeGroupNode(id, true);
     setModalState("showConfirmModalDelete", false);
   };
 
@@ -219,13 +208,7 @@ function GroupNode({ id, data }: NodeProps) {
       .filter((n) => n.parentNode === id)
       .map((n) => n.id);
     detachNodes(childNodeIds, id);
-    if (wsRunning) {
-      nodeData.ws.close();
-      data.ws.close();
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id)
-    }
-    removeFromPredecessor();
+    removeGroupNode(id, false);
     setModalState("showConfirmModalDetach", false);
   };
 
@@ -426,7 +409,7 @@ function GroupNode({ id, data }: NodeProps) {
         {((wsRunning && executionState?.state !== KERNEL_IDLE) || 
             (hasBusyPred(id))) ? (
           <button onClick={showAlertBranchOutOff} title="Branch out 🍃 temporary disabled 🚫"> 
-            <FontAwesomeIcon className="icon-branchOutOff" icon={faNetworkWired}/>
+            <FontAwesomeIcon className="icon-disabled" icon={faNetworkWired}/>
           </button>
         ) : (
           <button onClick={onBranchOut} title="Branch out 🍃"> 
@@ -472,7 +455,7 @@ function GroupNode({ id, data }: NodeProps) {
       />
       <CustomConfirmModal 
         title="Delete Group?" 
-        message="Are you sure you want to delete the group and shutdown the kernel? All cells will be deleted and all variables will be lost!" 
+        message={"Are you sure you want to delete the group" + (wsRunning ? " and shutdown the kernel?" : "?") + " All cells will be deleted" + (wsRunning ? " and all variables will be lost!" : "!")}
         show={modalStates.showConfirmModalDelete} 
         onHide={continueWorking} 
         onConfirm={deleteGroup} 
@@ -480,7 +463,7 @@ function GroupNode({ id, data }: NodeProps) {
       />
       <CustomConfirmModal 
         title="Delete Bubble?" 
-        message="Are you sure you want to delete the bubble and shutdown the kernel? The cells will remain, but all variables will be lost!" 
+        message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " The cells will remain" + (wsRunning ? ", but all variables will be lost!": "!")}
         show={modalStates.showConfirmModalDetach} 
         onHide={continueWorking} 
         onConfirm={detachGroup} 
