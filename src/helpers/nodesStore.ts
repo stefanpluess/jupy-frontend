@@ -22,6 +22,7 @@ export type NodesStore = {
     // INFO :: queue functionality
     queues: { [groupId: string]: Array<[string, string]> }; // Update the type for queue
     addToQueue: (groupId: string, nodeId: string, code: string) => void; // Include 'code' parameter
+    getTopOfQueue: (groupId: string) => [string, string] | undefined;
     removeFromQueue: (groupId: string) => void;
     clearQueue: (groupId: string) => void;
     groupNodesExecutionStates: { [groupId: string]: {nodeId: string, state: string} };
@@ -39,6 +40,14 @@ export type NodesStore = {
     setPassStateDecisionForGroupNode: (groupId: string, new_state: boolean) => void;
     groupNodesHadRecentError: { [groupId: string]: {hadError: boolean, timestamp: Date} };
     setHadRecentErrorForGroupNode: (groupId: string, new_state: {hadError: boolean, timestamp: Date}) => void;
+
+    // INFO :: 😴 stale state functionality
+    identifiersUsedInGroupNodes: { [groupId: string]: { [nodeId: string]: string[] } };
+    getUsedIdentifiersForGroupNodes: (parentId: string) => { [key: string]: string[] };
+    setUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string, usedIdentifiers: string[]) => void;
+    deleteNodeFromUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string) => void;
+    staleState: { [nodeId: string]: boolean };
+    setStaleState: (nodeId: string, isStale: boolean) => void;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -102,6 +111,7 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         [groupId]: [...(state.queues[groupId] || []), [nodeId, code]],
       },
     })),
+  getTopOfQueue: (groupId) => get().queues[groupId]?.[0],
   removeFromQueue: (groupId) =>
     set((state) => {
       const [, ...rest] = state.queues[groupId] || [];
@@ -172,6 +182,36 @@ const useNodesStore = create<NodesStore>((set, get) => ({
           [groupId]: new_state
         }
     })) 
+  },
+
+  // INFO :: 😴 stale state functionality
+  identifiersUsedInGroupNodes: {}, // could contain variables, functions, etc.
+  getUsedIdentifiersForGroupNodes: (parentId: string) => get().identifiersUsedInGroupNodes[parentId] || {},
+  setUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string, usedIdentifiers: string[]) => {
+    set((state) => ({
+        identifiersUsedInGroupNodes: {
+            ...state.identifiersUsedInGroupNodes,
+            [parentId]: {
+                ...(state.identifiersUsedInGroupNodes[parentId] || {}),
+                [nodeId]: usedIdentifiers,
+            },
+        },
+    }));
+  },
+  deleteNodeFromUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string) => {
+    set((state) => {
+        const { [nodeId]: _, ...rest } = state.identifiersUsedInGroupNodes[parentId] || {};
+        return { identifiersUsedInGroupNodes: { ...state.identifiersUsedInGroupNodes, [parentId]: rest } };
+    });
+  },
+  staleState: {},
+  setStaleState: (nodeId: string, isStale: boolean) => {
+    set((state) => ({
+        staleState: {
+          ...state.staleState,
+          [nodeId]: isStale
+        }
+    }))
   },
 }));
 

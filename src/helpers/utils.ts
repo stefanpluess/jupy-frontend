@@ -292,6 +292,15 @@ export async function passParentState(token: string, dill_path: string, parent_k
     .catch((err) => console.log(err));
 }
 
+export async function analyzeCode(token: string, code: string) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  return axios.post('http://localhost:8888/canvas_ext/analyze', { 'code': code, 'use_dict': 'false' })
+    .then(res => res.data)
+    .catch(error => {
+      console.error("Error analyzing code:", error);
+      throw error;
+    });
+}
 // ------------------------- START -------------------------
 // collection of helper methods
 // export async function getContent(url: String, token: String) {
