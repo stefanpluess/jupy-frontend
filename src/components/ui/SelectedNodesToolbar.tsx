@@ -1,8 +1,6 @@
 import { useNodes, Node, getRectOfNodes, NodeToolbar, useStoreApi, useReactFlow } from 'reactflow';
-import {GROUP_NODE, EXTENT_PARENT} from '../../config/constants';
+import {GROUP_NODE, EXTENT_PARENT, PADDING} from '../../config/constants';
 import { getId } from '../../helpers/utils';
-
-const padding = 25;
 
 export default function SelectedNodesToolbar() {
   const nodes = useNodes();
@@ -28,8 +26,8 @@ export default function SelectedNodesToolbar() {
       type: GROUP_NODE,
       position: parentPosition,
       style: {
-        width: rectOfNodes.width + padding * 2,
-        height: rectOfNodes.height + padding * 2,
+        width: rectOfNodes.width + PADDING * 2,
+        height: rectOfNodes.height + PADDING * 2,
       },
       data: {},
     };
@@ -39,8 +37,8 @@ export default function SelectedNodesToolbar() {
         return {
           ...node,
           position: {
-            x: node.position.x - parentPosition.x + padding,
-            y: node.position.y - parentPosition.y + padding,
+            x: node.position.x - parentPosition.x + PADDING,
+            y: node.position.y - parentPosition.y + PADDING,
           },
           extent: EXTENT_PARENT,
           parentNode: groupId,

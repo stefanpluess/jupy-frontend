@@ -38,14 +38,16 @@ import {
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
   KERNEL_BUSY,
-  KERNEL_BUSY_FROM_PARENT
+  KERNEL_BUSY_FROM_PARENT,
+  MIN_WIDTH_GROUP,
+  MIN_HEIGHT_GROUP,
+  PADDING
 } from "../../config/constants";
 import withReactContent from "sweetalert2-react-content";
 import Swal from "sweetalert2";
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
-const padding = 25; // OPTIMIZE - externalize
 const initialModalStates = { // OPTIMIZE - externalize
   showConfirmModalRestart: false,
   showConfirmModalShutdown: false,
@@ -69,23 +71,24 @@ function GroupNode({ id, data }: NodeProps) {
   const [isBranching, setIsBranching] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const detachNodes = useDetachNodes();
+
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
       (n) => n.parentNode === id
     );
     const rect = getRectOfNodes(childNodes);
-
+    const node = getNode(id);
     if (childNodes.length === 0) {
       // if there are no child nodes, return the default width and height
       return {
-        minWidth: 50 + padding * 2,
-        minHeight: 50 + padding * 2,
+        minWidth: MIN_WIDTH_GROUP + PADDING * 2,
+        minHeight: MIN_HEIGHT_GROUP + PADDING * 2,
         hasChildNodes: childNodes.length > 0,
       };
-    }else{
+    } else {
       return {
-        minWidth: rect.width + padding * 2,
-        minHeight: rect.height + padding * 2,
+        minWidth: (rect.x - node!.position.x) + rect.width + PADDING * 2,
+        minHeight: (rect.y - node!.position.y) + rect.height + PADDING * 2,
         hasChildNodes: childNodes.length > 0,
       };
     }
@@ -394,6 +397,14 @@ function GroupNode({ id, data }: NodeProps) {
         minWidth={minWidth}
         minHeight={minHeight}
       />
+      {/* TODO: either remove or keep */}
+      {/* <NodeResizeControl
+        style={CONTROL_STLYE}
+        minWidth={minWidth}
+        minHeight={minHeight}
+      >
+        <ResizeIcon />
+      </NodeResizeControl> */}
       <NodeToolbar className="nodrag">
         <button onClick={onDelete} title="Delete Group 👥">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />

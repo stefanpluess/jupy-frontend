@@ -64,9 +64,11 @@ function SimpleNode({ id, data }: NodeProps) {
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
-
   const getResizeBoundaries = useResizeBoundaries();
-  const { maxWidth, maxHeight } = getResizeBoundaries(id);
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
 
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
@@ -446,6 +448,18 @@ function SimpleNode({ id, data }: NodeProps) {
         </div>
       </Handle>
     </>
+  );
+}
+
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
   );
 }
 
