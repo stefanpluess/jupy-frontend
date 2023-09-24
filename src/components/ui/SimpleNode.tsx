@@ -174,7 +174,7 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
     if (!data.code || data.code.trim() === '') return;
-    if (executionCount === "") insertOutput(id); // if the execution count is "", create an output node and add an edge
+    if (executionCount === "") insertOutput([id]); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
       setExecutionCount(id, "*");
@@ -417,6 +417,7 @@ function SimpleNode({ id, data }: NodeProps) {
                 <FontAwesomeIcon className="stalewarning-icon" icon={faCircleExclamation} />
               </button>
             )}
+            <div style={{width: "20px"}}/>
           </div>
         </div>
       </div>
