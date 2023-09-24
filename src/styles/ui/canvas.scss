@@ -18,42 +18,17 @@
     min-width: 150px;
 }
 
-/* INFO :: canvas area - simple node*/
-.rfWrapper .react-flow__node-node {
-    display: flex;
-    border-radius: $code-and-output-border-radius;
-    border: 0;
-    border-color: 'transparent';
-    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2), 
-                inset 0px 0px 40px 2px rgba(255, 255, 255, 0.2);
-
-    &:hover {
-        box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
-                    inset 0px 0px 40px 3px rgba(255, 255, 255, 0.3);
-    }
-
-    &.selected {
-        box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
-                    inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
-    }
-}
-
-.rfWrapper .react-flow__node-node .simpleNodewrapper {
+@mixin commonSimpleNodewrapper{
     overflow: hidden;
     display: flex;
     padding: 2px;
     position: relative;
     border-radius: $node-border-radius;
-    // box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
     flex-grow: 1;
     min-height: 85px;
 }
 
-// inner div contains textareaNode & bottomCodeCellButtons
-.rfWrapper .react-flow__node-node .inner {
-    background: $node-background;
-    // box-shadow: $node-box-shadow-not-active;
-    border-radius: $code-and-output-border-radius;
+@mixin commonInner{
     border: $node-border;
     display: flex;
     flex-direction: column;
@@ -64,13 +39,7 @@
     padding: 0;
 }
 
-/*color of the code area in code cell*/
-.rfWrapper .react-flow__node-node .inner .textareaNode {
-    @include commonStyleCodeAndMarkdownCell;
-}
-
-.rfWrapper .react-flow__node-node .inner .bottomCodeCellButtons{
-    // background: blue;
+@mixin commonBottomCodeCellButtons{
     min-width: 150px;
     min-height: 20px;
     max-height: 20px;
@@ -79,61 +48,111 @@
     justify-content: space-between;
     font-size: 10px;
 
-    // apply hovering effect for copy-icon, stale-icon, resize-icon
-    .copy-icon:hover, .stale-icon:hover, .resize-icon:hover{
+    .copy-icon:hover {
         color: rgba(223, 223, 223, 0.502);
     }
-    .stale-icon{
-        color: rgba(0, 0, 0, 0.54);
-        padding: 0.5px;
-    }
-    .stalewarning-icon{
-        color: #a60035bc;
-        font-size: 5px;
-    }
 
-    .copy-icon:active, .stale-icon:active, .resize-icon:active{
+    .copy-icon:active {
         transform: scale(0.8);
     }
 }
 
-/* animation of the execution */
-.rfWrapper .gradient:before {
-    content: "";
-    position: absolute;
-    padding-bottom: calc(100% * 1.41421356237);
-    width: calc(100% * 1.41421356237);
-    background: conic-gradient(
-        from -160deg at 50% 50%,
-        #e92a67 0deg,
-        #a853ba 120deg,
-        #2a8af6 240deg,
-        #e92a67 360deg
-    );
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 100%;
+/* INFO :: canvas area - simple node*/
+.rfWrapper {
+    .react-flow__node-node {
+        display: flex;
+        border-radius: $code-and-output-border-radius;
+        border: 0;
+        border-color: 'transparent';
+        box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2), 
+                                inset 0px 0px 40px 2px rgba(255, 255, 255, 0.2);
+
+        &:hover {
+            box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
+                                    inset 0px 0px 40px 3px rgba(255, 255, 255, 0.3);
+        }
+
+        &.selected {
+            box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
+                                    inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
+        }
+
+        .simpleNodewrapper {
+            @include commonSimpleNodewrapper;
+
+            .inner {
+                background: $node-background;
+                border-radius: $code-and-output-border-radius;
+                @include commonInner;
+
+                .textareaNode {
+                    @include commonStyleCodeAndMarkdownCell;
+                }
+
+                .bottomCodeCellButtons {
+                    @include commonBottomCodeCellButtons;
+
+                    .stale-icon:hover, .resize-icon:hover {
+                        color: rgba(223, 223, 223, 0.502);
+                    }
+
+                    .stale-icon {
+                        color: rgba(0, 0, 0, 0.54);
+                        padding: 0.5px;
+                    }
+
+                    .stalewarning-icon {
+                        color: #a60035bc;
+                        font-size: 5px;
+                    }
+
+                    .stale-icon:active, .resize-icon:active {
+                        transform: scale(0.8);
+                    }
+                }
+            }
+
+            &.gradient {
+                &:before {
+                    content: "";
+                    position: absolute;
+                    padding-bottom: calc(100% * 1.41421356237);
+                    width: calc(100% * 1.41421356237);
+                    background: conic-gradient(
+                        from -160deg at 50% 50%,
+                        #e92a67 0deg,
+                        #a853ba 120deg,
+                        #2a8af6 240deg,
+                        #e92a67 360deg
+                    );
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    border-radius: 100%;
+                }
+
+                &:before {
+                    background: conic-gradient(
+                        from -160deg at 50% 50%,
+                        #e92a67 0deg,
+                        #a853ba 120deg,
+                        #2a8af6 240deg,
+                        rgba(42, 138, 246, 0) 360deg
+                    );
+                    animation: spinner 4s linear infinite;
+                    transform: translate(-50%, -50%) rotate(0deg);
+                    z-index: -1;
+                }
+            }
+        }
+    }
 }
-.rfWrapper .react-flow__node-node .simpleNodewrapper.gradient:before {
-    content: "";
-    background: conic-gradient(
-        from -160deg at 50% 50%,
-        #e92a67 0deg,
-        #a853ba 120deg,
-        #2a8af6 240deg,
-        rgba(42, 138, 246, 0) 360deg
-    );
-    animation: spinner 4s linear infinite;
-    transform: translate(-50%, -50%) rotate(0deg);
-    z-index: -1;
-}
+
 @keyframes spinner {
     100% {
         transform: translate(-50%, -50%) rotate(-360deg);
     }
 }
-
 /* INFO :: canvas area - ouput node*/
 // react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
@@ -239,66 +258,36 @@
     border-color: transparent;
     text-align: left !important;
     border-radius: $node-border-radius;
-    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2),
-                inset 0px 0px 0px 2px rgba(255, 255, 255, 0.2);
+    box-shadow: 0px 0px 10px 1px rgba(255, 255, 255, 0.2), 
+                            inset 0px 0px 0px 2px rgba(255, 255, 255, 0.2);
 
     &:hover {
         box-shadow: 0px 0px 14px 2px rgba(255, 255, 255, 0.3), 
-                    inset 0px 0px 0px 3px rgba(255, 255, 255, 0.3);
+                                inset 0px 0px 0px 3px rgba(255, 255, 255, 0.3);
     }
 
     &.selected {
-        box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35), 
-                    inset 0px 0px 0px 4px rgba(255, 255, 255, 0.35);
+        box-shadow: 0px 0px 18px 2px rgba(255, 255, 255, 0.35),
+                                inset 0px 0px 0px 4px rgba(255, 255, 255, 0.35);
+    }
+
+    .simpleNodewrapper {
+        @include commonSimpleNodewrapper;
+
+        .inner {
+            border-radius: $code-and-output-border-radius;
+            @include commonInner;
+
+            .textareaNode {
+                @include commonStyleCodeAndMarkdownCell;
+            }
+
+            .bottomCodeCellButtons {
+                @include commonBottomCodeCellButtons;
+            }
+        }
     }
 }
-
-.rfWrapper .react-flow__node-mdNode .simpleNodewrapper {
-    overflow: hidden;
-    display: flex;
-    padding: 2px;
-    position: relative;
-    border-radius: $node-border-radius;
-    // box-shadow: $node-box-shadow-not-active-lighter; /* opacity a bit less that inner*/
-    flex-grow: 1;
-    min-height: 85px;
-}
-.rfWrapper .react-flow__node-mdNode .inner {
-    // box-shadow: $node-box-shadow-not-active;
-    border-radius: $code-and-output-border-radius;
-    border: $node-border;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-grow: 1;
-    position: relative;
-    min-width: 196px;
-    padding: 0;
-}
-
-.rfWrapper .react-flow__node-mdNode .inner .textareaNode {
-    @include commonStyleCodeAndMarkdownCell;
-}
-
-.rfWrapper .react-flow__node-mdNode .inner .bottomCodeCellButtons{
-    // background: blue;
-    min-width: 150px;
-    min-height: 20px;
-    max-height: 20px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    font-size: 10px;
-
-    // apply hovering effect for copy-icon
-    .copy-icon:hover{
-        color: rgba(223, 223, 223, 0.502);
-    }
-    .copy-icon:active{
-        transform: scale(0.8);
-    }
-}
-
 /* INFO :: canvas area - lock icon*/
 .rfWrapper .lock-icon{
     font-size: 10px;
