@@ -22,6 +22,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Panel,
+  SelectionMode,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules UI
@@ -416,8 +417,9 @@ function DynamicGrouping() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
+          selectionMode={SelectionMode.Full}   // Partial = only need to touch a node to select it
           minZoom={0.15}
-          maxZoom={3}
+          maxZoom={4}
           deleteKeyCode={null}
         >
           <Background gap={50} variant={BackgroundVariant.Dots} />
