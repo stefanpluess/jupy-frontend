@@ -27,11 +27,16 @@ import {
   faXmarkCircle,
   faLockOpen,
   faStopCircle,
+  faUpRightAndDownLeftFromCenter,
+  faArrowsTurnToDots,
+  faCircleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 import useAddComment from "../../helpers/hooks/useAddComment";
 import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts, useResizeBoundaries } from "../../helpers/hooks";
-import { getConnectedNodeId } from "../../helpers/utils";
+import { analyzeCode, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
 import { OutputNodeData } from "../../config/types";
@@ -47,6 +52,8 @@ import {
   CONTROL_STLYE
 } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
+import useAnalyzeStaleState from "../../helpers/hooks/useAnalyzeStaleState";
+
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -61,9 +68,16 @@ function SimpleNode({ id, data }: NodeProps) {
   const insertOutput = useInsertOutput();
   const executionCount = useNodesStore((state) => state.executionCounts[id]?.execCount); // can be undefined
   const setExecutionCount = useNodesStore((state) => state.setExecutionCount);
+  // INFO :: 😴 STALE STATE
+  const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
+  const setUsedIdentifiersForGroupNodes = useNodesStore((state) => state.setUsedIdentifiersForGroupNodes);
+  const deleteNodeFromUsedIdentifiersForGroupNodes = useNodesStore((state) => state.deleteNodeFromUsedIdentifiersForGroupNodes);
+  const staleState = useNodesStore((state) => state.staleState[id] ?? false);
+  const setStaleState = useNodesStore((state) => state.setStaleState);
+  const analyzeStaleState = useAnalyzeStaleState(id);
+  
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
-  const [isClicked, setIsClicked] = useState(false);
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = useStore((store) => {
     // isEqual needed for rerendering purposes
@@ -89,6 +103,7 @@ function SimpleNode({ id, data }: NodeProps) {
 
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
   const addToQueue = useNodesStore((state) => state.addToQueue);
+  const getTopOfQueue = useNodesStore((state) => state.getTopOfQueue);
   const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
   const setExecutionStateForGroupNode = useNodesStore(
     (state) => state.setExecutionStateForGroupNode
@@ -110,6 +125,49 @@ function SimpleNode({ id, data }: NodeProps) {
         setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
       }
     };
+    // const processStaleState = async () => {
+    //   if (parent){
+    //     const parentId = parent.id;
+    //     const queueTop = getTopOfQueue(parentId);
+    //     if (queueTop) {
+    //       // if current node has a stale state mark it as not stale as we just executed it
+    //       setStaleState(id, false);
+    //       const [nodeId, code] = queueTop;
+    //       const responseData = await analyzeCode(token, code); 
+    //       const assignedVariables: string[] = Object.keys(responseData.assigned);
+    //       const uniqueCombinedList = Array.from(new Set([...responseData.used, ...assignedVariables]));
+    //       // responseData.assigned is {}, responseData.used is []
+    //       /* alternative DICT approach:
+    //           comapre values of current code cell to its previous state from the store
+    //           procced if different*/
+    //       const dictUsedIdentifiersPerCell = getUsedIdentifiersForGroupNodes(parentId);
+    //       if (Object.keys(dictUsedIdentifiersPerCell).length === 0){
+    //         // there are no variables used across group node -> no need to check for stale nodes
+    //         console.log("No variables used in any other node.");
+    //         // update variablesUsedInGroupNodes
+    //         setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
+    //       }
+    //       else{
+    //         // filter out the current node from the dictUsedIdentifiersPerCell
+    //         delete dictUsedIdentifiersPerCell[nodeId];
+    //         // check if any variable that was assigned in the current node is used in any other node
+    //         const staleNodeIds: string[] = [];
+    //         for (const nodeId in dictUsedIdentifiersPerCell) {
+    //           const variablesUsedInNode = dictUsedIdentifiersPerCell[nodeId];
+    //           const hasCommonElement = assignedVariables.some(variable => variablesUsedInNode.includes(variable));
+    //           if (hasCommonElement) staleNodeIds.push(nodeId);
+    //         }
+    //         // update variablesUsedInGroupNodes
+    //         setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
+    //         // mark stale nodes
+    //         console.log("Marking nodes as stale: ", staleNodeIds);
+    //         staleNodeIds.forEach(nodeId => setStaleState(nodeId, true));
+    //       }
+    //     }
+    //   }
+    // };
+    // processStaleState();
+    analyzeStaleState(); // externalized version of processStaleState()
     updateExecCount();
   }, [data?.executionCount]);
 
@@ -166,6 +224,19 @@ function SimpleNode({ id, data }: NodeProps) {
       console.log("run detach for " + id + "!");
       detachNodes([id]);
     }
+    // remove the node from the list of used identifiers for the group node
+    deleteNodeFromUsedIdentifiersForGroupNodes(parentNode!, id);
+    // mark as stale
+    setStaleState(id, false);
+  };
+
+  const MySwal = withReactContent(Swal);
+  const showInfoStaleState = () => {
+    MySwal.fire({
+      title: 'Stale state detected...',
+      html: <i>This cell might be using variables that changed!</i>,
+      icon: "info",
+    });
   };
 
   /*AddComments*/
@@ -326,21 +397,30 @@ function SimpleNode({ id, data }: NodeProps) {
               },
             }}
           />
+          {/* INFO :: bottom bar below Monaco with buttons for code cell */}
+          <div className="bottomCodeCellButtons">
+            {/* COPY CELL */}
+            <button
+              title="Copy Text from Cell"
+              className="cellButton"
+              onClick={copyCode}
+              onMouseDown={() => console.log("mouse down")}
+              onMouseUp={() => console.log("mouse up")}
+            >
+              <FontAwesomeIcon className="copy-icon" icon={faCopy} />
+            </button>
+            {/* STALE STATE INDICATOR */}
+            {staleState && (
+              <button
+                className="cellButton"
+                onClick = {showInfoStaleState}
+              >
+                <FontAwesomeIcon className="stale-icon" icon={faArrowsTurnToDots} />
+                <FontAwesomeIcon className="stalewarning-icon" icon={faCircleExclamation} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="inputCentered buttonArea nodrag">
-        <button
-          title="Copy Text from Cell"
-          className={`inputCentered cellButton bRight ${
-            isClicked ? "clicked" : ""
-          }`}
-          onClick={copyCode}
-          onMouseDown={() => setIsClicked(true)}
-          onMouseUp={() => setIsClicked(false)}
-        >
-          <FontAwesomeIcon className="icon" icon={faCopy} />
-        </button>
       </div>
       <Handle type="source" position={Position.Right}>
         <div>

@@ -284,7 +284,15 @@ function DynamicGrouping() {
       const connectedNode = store.getState().getNodes()
                               .find(n => n.id === connectedNodeId);
       if (!connectedNode) {
-        console.error("connectedNode not found");
+        // console.log("connectedNode not found");
+        // update the data used in onNodeDrag and onNodeDragStop with default
+        setOnDragStartData({
+          nodePosition: node.position,
+          nodeId: draggedNodeId,
+          connectedNodePosition: {x: 0, y: 0},
+          connectedNodeId: "",
+          isLockOn: DEFAULT_LOCK_STATUS,
+        });
         return;
       }
       // update the data used in onNodeDrag and onNodeDragStop
