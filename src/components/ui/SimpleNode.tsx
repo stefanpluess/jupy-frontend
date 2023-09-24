@@ -404,8 +404,6 @@ function SimpleNode({ id, data }: NodeProps) {
               title="Copy Text from Cell"
               className="cellButton"
               onClick={copyCode}
-              onMouseDown={() => console.log("mouse down")}
-              onMouseUp={() => console.log("mouse up")}
             >
               <FontAwesomeIcon className="copy-icon" icon={faCopy} />
             </button>
