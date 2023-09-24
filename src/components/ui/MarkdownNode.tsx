@@ -32,8 +32,6 @@ function MarkdownNode({ id, data }: NodeProps) {
   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
 
-  const [isClicked, setIsClicked] = useState(false);
-
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
       data.code = value;
@@ -62,20 +60,13 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
 
   const buttons = (
-    <div className="inputCentered buttonArea nodrag">
-      {/* <button className="inputCentered cellButton bLeft" title="Delete Code in Cell" onClick={deleteCode}>
-        <FontAwesomeIcon className="icon" icon={faDeleteLeft} />
-      </button> */}
+    <div className="bottomCodeCellButtons">
       <button
         title="Copy Text from Cell"
-        className={`inputCentered cellButton bRight ${
-          isClicked ? "clicked" : ""
-        }`}
+        className="cellButton"
         onClick={copyCode}
-        onMouseDown={() => setIsClicked(true)}
-        onMouseUp={() => setIsClicked(false)}
       >
-        <FontAwesomeIcon className="icon" icon={faCopy} />
+        <FontAwesomeIcon className="copy-icon" icon={faCopy} />
       </button>
     </div>
   );
@@ -103,9 +94,10 @@ function MarkdownNode({ id, data }: NodeProps) {
             >
               <ReactMarkdown className="markdown">{data.code}</ReactMarkdown>
             </div>
+            {buttons}
           </div>
         </div>
-        {buttons}
+        
       </>
     );
   else
@@ -154,9 +146,9 @@ function MarkdownNode({ id, data }: NodeProps) {
                 },
               }}
             />
+            {buttons}
           </div>
         </div>
-        {buttons}
         <Handle type="source" position={Position.Right}>
           <button
             title="Run CodeCell"
