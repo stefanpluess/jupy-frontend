@@ -226,7 +226,7 @@ function SimpleOutputNode({
 
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
-      {!canRenderEmpty &&
+      {/* {!canRenderEmpty && */}
         <NodeResizeControl
           style={CONTROL_STLYE}
           minWidth={35}
@@ -236,7 +236,7 @@ function SimpleOutputNode({
         >
           <ResizeIcon isSmaller />
         </NodeResizeControl>
-      }
+      {/* } */}
       <NodeToolbar className="nodrag">
         {!isSimpleNodeLocked ? (
           hasParent && (
@@ -349,6 +349,7 @@ function SimpleOutputNode({
         type="target"
         position={Position.Left}
         isConnectableStart={false}
+        style={{ height: "6px", width: "6px" }}
       />
     </div>
   );
