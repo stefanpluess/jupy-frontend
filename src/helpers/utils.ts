@@ -60,7 +60,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       });
       outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
-      outputNode.position = cell.outputs![0]?.position ? { x: cell.outputs![0].position.x, y: cell.outputs![0].position.y } : outputNode.position;
+      outputNode.position = cell.outputPosition ? { x: cell.outputPosition.x, y: cell.outputPosition.y } : outputNode.position;
       outputNode.height = cell.outputHeight;
       outputNode.width = cell.outputWidth;
       outputNode.style = { height: cell.outputHeight!, width: cell.outputWidth! };
@@ -132,11 +132,11 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
         cell.outputWidth = node.width;
         cell.outputHeight = node.height;
         cell.outputParent = node.parentNode;
+        cell.outputPosition = node.position;
         node.data.outputs.forEach((outputData: OutputNodeData) => {
           const output: NotebookOutput = {
             output_type: outputData.outputType,
             data: {},
-            position: node.position,
             isImage: outputData.isImage,
           };
           if (output.output_type === 'execute_result') {
