@@ -13,7 +13,7 @@ function useRunAll() {
     const insertOutput = useInsertOutput();
 
     /* Given a group node, puts all children into the queue based on their y position inside the group */
-    const runAll = useCallback((group_node_id: string): void => {
+    const runAll = useCallback( async (group_node_id: string) => {
         const nodes = getNodes();
         const groupNode = getNode(group_node_id);
         if (!groupNode) return;
@@ -26,7 +26,9 @@ function useRunAll() {
         });
         // filter the child nodes to only include those that have code and insert the output nodes
         const executableChildNodes = sortedChildNodes.filter((node) => node.data.code && node.data.code.trim() !== '');
-        insertOutput(executableChildNodes.map((node) => node.id));
+        // for all executable child nodes with execution count being "", insert the output node
+        const noOutputNodes = executableChildNodes.filter((node) => executionCounts[node.id]?.execCount === "");
+        await insertOutput(noOutputNodes.map((node) => node.id));
         // for each child node with code, add it to the queue and set the execution count to *
         executableChildNodes.forEach((node) => {
             setExecutionCount(node.id, '*');
