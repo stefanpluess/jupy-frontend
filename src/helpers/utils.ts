@@ -4,6 +4,7 @@ import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } f
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
 
 
+/** Method to create the nodes given the JSON upon rendering a notebook for the first time */
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
 
   var initialNodes: Node[] = [];
@@ -37,11 +38,11 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
-      node.extent = 'parent';
+      node.extent = EXTENT_PARENT;
     };
     // for each code node, create an output node (if it has been executed before)
     if (cell.cell_type === 'code' && node.data.executionCount.execCount !== "") {
-      const outputNode: Node = createOutputNode(node)
+      const outputNode: Node = createOutputNode(node, cell.outputParent ?? "")
       // for each output (if multiple) set the output data
       const allOutputs = [] as OutputNodeData[];
       cell.outputs?.forEach((output_cell: NotebookOutput) => {
@@ -59,7 +60,10 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       });
       outputNode.data.outputs = allOutputs;
       // if a position is given, use it, otherwise use the default position provided in the createOutputNode function
-      outputNode.position = cell.outputs![0]?.position ? { x: cell.outputs![0].position.x, y: cell.outputs![0].position.y } : outputNode.position;
+      outputNode.position = cell.outputPosition ? { x: cell.outputPosition.x, y: cell.outputPosition.y } : outputNode.position;
+      outputNode.height = cell.outputHeight;
+      outputNode.width = cell.outputWidth;
+      outputNode.style = { height: cell.outputHeight!, width: cell.outputWidth! };
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
@@ -91,7 +95,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     
 }
 
-/* Method used to unify id's when opening normal .ipynb notebooks */
+/** Method used to unify id's when opening normal .ipynb notebooks */
 const unifyId = (cell: NotebookCell, type: string): string => {
   const id = (cell.id.includes(NORMAL_NODE) || cell.id.includes(GROUP_NODE) || cell.id.includes(MARKDOWN_NODE)) ? 
               cell.id : 
@@ -99,6 +103,7 @@ const unifyId = (cell: NotebookCell, type: string): string => {
   return id;
 }
 
+/** Method to create the JSON given the nodes (upon saving) */
 export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 
   const cells: NotebookCell[] = [];
@@ -124,11 +129,14 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
       // find the corresponding cell to add the outputs to it
       const cell = cells.find((cell: NotebookCell) => cell.id === node.id.replace('_output', ''));
       if (cell) {
+        cell.outputWidth = node.width;
+        cell.outputHeight = node.height;
+        cell.outputParent = node.parentNode;
+        cell.outputPosition = node.position;
         node.data.outputs.forEach((outputData: OutputNodeData) => {
           const output: NotebookOutput = {
             output_type: outputData.outputType,
             data: {},
-            position: node.position,
             isImage: outputData.isImage,
           };
           if (output.output_type === 'execute_result') {
@@ -160,6 +168,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
   return notebookPUT;
 }
 
+/** Method to export to a normal .ipynb (getting rid of all additional fields) */
 export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string) {
 
   const cells: NotebookCell[] = [];
@@ -223,6 +232,7 @@ export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string
   window.URL.revokeObjectURL(url);
 }
 
+/** Method to create the notebook JSONO given the cells are already in correct format */
 function createNotebookJSON(cells: NotebookCell[]): Notebook {
 
   const notebook: Notebook = {
@@ -253,6 +263,7 @@ function createNotebookJSON(cells: NotebookCell[]): Notebook {
   return notebook;
 }
 
+/** Method to create the JSON and save the notebook */
 export async function saveNotebook(nodes: Node[], edges: Edge[], token: string, 
                                    path: string, setShowSuccessAlert: any, setShowErrorAlert: any) {
   const notebookData: NotebookPUT = createJSON(nodes, edges);
@@ -265,6 +276,7 @@ export async function saveNotebook(nodes: Node[], edges: Edge[], token: string,
   }
 }
 
+/** Method to update the notebook given the data */
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
@@ -272,12 +284,14 @@ export async function updateNotebook(token: string, notebookData: NotebookPUT, p
     .catch((err) => console.log(err));
 }
 
+/** Method to get all running sessions */
 export async function getSessions(token: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   const res = await axios.get('http://localhost:8888/api/sessions')
   return res.data
 }
 
+/** Method to pass the parent state to a child */
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   await axios.post('http://localhost:8888/canvas_ext/export', { 'kernel_id': parent_kernel_id })
@@ -287,11 +301,11 @@ export async function passParentState(token: string, dill_path: string, parent_k
   await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
     .catch((err) => console.log(err));
   // delete the dill file that was saved
-  await axios.delete(`http://localhost:8888/api/contents/${dill_path}/${parent_kernel_id}.pkl`)
-    .then((res) => console.log('dill file deleted'))
+  await axios.delete(`http://localhost:8888/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
     .catch((err) => console.log(err));
 }
 
+/** Method to analyze code (static analysis) after executing a code cell */
 export async function analyzeCode(token: string, code: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   return axios.post('http://localhost:8888/canvas_ext/analyze', { 'code': code, 'use_dict': 'false' })
@@ -301,47 +315,6 @@ export async function analyzeCode(token: string, code: string) {
       throw error;
     });
 }
-// ------------------------- START -------------------------
-// collection of helper methods
-// export async function getContent(url: String, token: String) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     const res = await axios.get(url + 'api/contents')
-//     return res.data
-// }
-
-// export async function getNotebook(url: String, token: String, name: String) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     var res = await axios.get(url + 'api/contents/'+name)
-//     console.log("Notebook content:")
-//     console.log(res.data.content)
-//     return res.data.content
-// }
-
-// export async function createNotebook(url: String, token: String) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     var requestBody = {
-//         "type": "notebook"
-//     }
-//     const res = await axios.post(url + 'api/contents', requestBody)
-//     return res.data
-// }
-
-// export async function renameNotebook(url: String, token: String, newName: String, oldName: String) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     var requestBody = {
-//         "path": newName+".ipynb"
-//     }
-//     const res = await axios.patch(url + 'api/contents/'+oldName, requestBody)
-//     return res.data
-// }
-
-// export async function getKernelspecs(url, token) {
-//     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-//     const res = await axios.get(url + 'api/kernelspecs')
-//     console.log("Kernelspecs:")
-//     console.log(res.data)
-//     return res.data
-// }
 
 
 /**
@@ -383,9 +356,8 @@ export function generateMessage( msg_id: string, code: string, {
     };
 }
 
-
-
-export function createOutputNode(node: Node) {
+/** Method to create an output node for a normal node */
+export function createOutputNode(node: Node, outputParent?: string) {
   const newOutputNode: Node = {
     id: node.id+"_output",
     type: OUTPUT_NODE,
@@ -399,9 +371,11 @@ export function createOutputNode(node: Node) {
     },
   };
 
-  // in case the node has a parent, we want to make sure that the output node has the same parent
-  if (node.parentNode) {
+  if (typeof(outputParent) === 'string') {
     // COMMENT - same part of code used in useDuplicateCell.ts
+    newOutputNode.parentNode = outputParent;
+    newOutputNode.extent = EXTENT_PARENT;
+  } else if (node.parentNode) {
     newOutputNode.parentNode = node.parentNode;
     newOutputNode.extent = EXTENT_PARENT;
   }
@@ -412,16 +386,15 @@ export function removeEscapeCodes(str: string) {
   return str.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
-// ------------------------- END -------------------------
-// some helper methods for reactflow
-// we have to make sure that parent nodes are rendered before their children
+/** Method to make sure that parent nodes are rendered before their children */
 export const sortNodes = (a: Node, b: Node): number => {
     if (a.type === b.type) {
       return 0;
     }
     return a.type === GROUP_NODE && b.type !== GROUP_NODE ? -1 : 1;
 };
-  
+
+/** Method to generate an ID with a prefix (which is the node type) */
 export const getId = (prefix = NORMAL_NODE) => {
   const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const idLength = ID_LENGTH;
@@ -433,7 +406,7 @@ export const getId = (prefix = NORMAL_NODE) => {
   return `${prefix}_${id}`;
 ;}
 
-  
+/** Method when dropping a node inside a group */
 export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
     const position = node.position ?? { x: 0, y: 0 };
     const nodeWidth = node.width ?? 0;
@@ -469,9 +442,8 @@ export function canRunOnNodeDrag(node: Node): boolean {
   }
 }
 
-/* given the group node and newPostion of the node, keep the 
-newPostion.x between 0 and groupNode.width - node.width, and 
-newPostion.y between 0 and groupNode.height - node.height */
+/* given the group node and newPostion of the node, keep the newPostion.x between 0 and 
+groupNode.width - node.width, and newPostion.y between 0 and groupNode.height - node.height */
 export const keepPositionInsideParent = (node: Partial<Node>, groupNode: Node, newPosition: {x: number, y: number}) => {
   const position = { ...newPosition };
   const nodeWidth = node.width ?? 0;
@@ -498,6 +470,7 @@ export const keepPositionInsideParent = (node: Partial<Node>, groupNode: Node, n
   return position;
 }
 
+/** Get the connected node id (either OUTPUT_NODE or NORMAL_NODE) */
 export const getConnectedNodeId = (id: string) : string => {
   if (id.includes(NORMAL_NODE)) {
     if (id.includes('output')) {
@@ -511,7 +484,7 @@ export const getConnectedNodeId = (id: string) : string => {
   return '';
 }
 
-// given a node id return id without "_output"
+/** Given a node id return it without "_output" */
 export const getSimpleNodeId = (id: string) : string => {
   if (id.includes(NORMAL_NODE)) {
     if (id.includes('output')) {
@@ -522,7 +495,8 @@ export const getSimpleNodeId = (id: string) : string => {
   console.error('getSimpleNodeId: id is not a node id');
   return '';
 }
-// implement a function that takes id and returns true if node is a NORMAL_NODE or OUTPUT_NODE
+
+/** Takes node_id and returns true if node is a NORMAL_NODE or OUTPUT_NODE */
 export const checkNodeAllowed = (id: string) : boolean => {
   if (id.includes(NORMAL_NODE) || id.includes(OUTPUT_NODE)) {
     return true;

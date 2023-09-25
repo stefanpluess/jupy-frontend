@@ -35,7 +35,7 @@
     justify-content: center;
     flex-grow: 1;
     position: relative;
-    min-width: 196px;
+    min-width: 176px; // min-width - 4px
     padding: 0;
 }
 
@@ -259,8 +259,9 @@
 }
 
 // branch out disabled
-.rfWrapper .icon-branchOutOff{
-    opacity: 0.2;
+.rfWrapper .icon-disabled {
+    opacity: 0.3;
+    transform: scale(0.8)
 }
 
 /* INFO :: canvas area - markdown node*/
@@ -301,6 +302,7 @@
         }
     }
 }
+
 /* INFO :: canvas area - lock icon*/
 .rfWrapper .lock-icon{
     font-size: 10px;

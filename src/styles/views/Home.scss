@@ -78,16 +78,15 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
 .wrapper .rbottom{
-  margin-left: 350%;
-  top: 10px;
-  font-size: 12px;
+  margin-left: 100%;
+  top: 14px;
+  font-size: 10px;
 }
 
 .wrapper .rtop{
-  margin-left: 12px;
-  top: -15px;
-  left: 100%;
-  font-size: 12px;
+  top: -17px;
+  left: 50%;
+  transform: scale(0.9);
 }
 
 .wrapper .rcentral{
@@ -105,7 +104,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   justify-content: left;
   align-items: center;
   margin-left: 100%;
-  margin-top: -5px;
+  margin-top: -12px;
 }
 
 .wrapper .obuttonArea {
@@ -161,21 +160,9 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 
  /*color of the lower button area in code cell*/
 .wrapper .buttonArea {
-  background-color: rgba(99, 64, 32, 0.502);
-  bottom: 2px;
-  height: 20px;
-  right: 22px;
-  font-size: 16px;
+  bottom: 0;
+  left: 6px;
 }
-// TESTME merge - in Home.css was like this - similar to above
-// .wrapper .buttonArea {
-//   background-color: rgba(99, 64, 32, 0.502);
-//   color: green;
-//   bottom: 0px;
-//   height: 20px;
-//   width: 100%;
-// }
-
 
  /*color of the lower button icons in code cell*/
 .wrapper .cellButton {
@@ -243,8 +230,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   display: left;
 }
 
-
-
 .wrapper .test{
   background-color: transparent;
   border-color: transparent;
@@ -255,15 +240,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 
 }
 
-
-
-
-
-/*left frame buttonarea in code cell*/
-.wrapper .bLeft {
-  width: 10%;
-  right: 10%;
-}
 
 /*right frame buttonarea in code cell*/
 .wrapper .bRight {

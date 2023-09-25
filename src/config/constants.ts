@@ -17,3 +17,17 @@ export const KERNEL_BUSY_FROM_PARENT = 'BUSY_FROM_PARENT';
 
 export const EXEC_CELL_NOT_YET_RUN = '';
 export const EXEC_CELL_RUNNING = '*';
+
+export const MIN_WIDTH = 180;
+export const MIN_HEIGHT = 85;
+export const MIN_WIDTH_GROUP = 50;
+export const MIN_HEIGHT_GROUP = 50;
+export const MAX_WIDTH = 600;
+export const MAX_HEIGHT = 500;
+export const PADDING = 15;
+
+export const CONTROL_STLYE = {
+    background: 'transparent',
+    border: 'none',
+    zIndex: 1,
+}

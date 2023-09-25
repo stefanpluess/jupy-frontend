@@ -12,7 +12,7 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
-  NodeResizer,
+  NodeResizeControl
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -35,7 +35,7 @@ import MonacoEditor from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts } from "../../helpers/hooks";
+import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts, useResizeBoundaries } from "../../helpers/hooks";
 import { analyzeCode, getConnectedNodeId } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
@@ -46,11 +46,14 @@ import {
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
-  EXEC_CELL_NOT_YET_RUN
+  EXEC_CELL_NOT_YET_RUN,
+  MIN_WIDTH,
+  MIN_HEIGHT,
+  CONTROL_STLYE
 } from "../../config/constants";
+import ResizeIcon from "./ResizeIcon";
 import useAnalyzeStaleState from "../../helpers/hooks/useAnalyzeStaleState";
 
-const handleStyle = { height: 6, width: 6 };
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -75,6 +78,11 @@ function SimpleNode({ id, data }: NodeProps) {
   
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
+  const getResizeBoundaries = useResizeBoundaries();
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
 
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
@@ -166,7 +174,7 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
     if (!data.code || data.code.trim() === '') return;
-    if (executionCount === "") insertOutput(id); // if the execution count is "", create an output node and add an edge
+    if (executionCount === "") await insertOutput([id]); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
       setExecutionCount(id, "*");
@@ -299,21 +307,30 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
-      <NodeResizer
-        lineStyle={{ borderColor: "transparent" }}
-        handleStyle={handleStyle}
-        minWidth={200}
-        minHeight={85}
-      />
+      <NodeResizeControl
+        style={CONTROL_STLYE}
+        minWidth={MIN_WIDTH}
+        minHeight={MIN_HEIGHT}
+        maxWidth={maxWidth}
+        maxHeight={maxHeight}
+      >
+        <ResizeIcon />
+      </NodeResizeControl>
       <NodeToolbar className="nodrag">
         <div>
+          <button onClick={deleteNode} title="Delete Cell">
+            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
+          </button>
+
           <button onClick={duplicateCell} title="Duplicate Cell">
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
-          <button onClick={deleteNode} title="Delete Cell">
-            <FontAwesomeIcon className="icon" icon={faTrashAlt} />
-          </button>
+          {hasParent && (
+            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
+              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
+            </button>
+          )}
 
           <button
             title="Add Comment to Cell"
@@ -323,11 +340,6 @@ function SimpleNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon" icon={faCommentAlt} />
           </button>
 
-          {hasParent && (
-            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
-              <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
-            </button>
-          )}
           <button
             title="Additonal cell settings"
             onClick={onAdditionalSettings}
@@ -405,12 +417,7 @@ function SimpleNode({ id, data }: NodeProps) {
                 <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
               </button>
             )}
-            {/* RESIZER PLACEHOLDER */}
-            <button
-              className="cellButton"
-            >
-              <FontAwesomeIcon className="resize-icon" icon={faUpRightAndDownLeftFromCenter}/>
-            </button>
+            <div style={{width: "20px"}}/>
           </div>
         </div>
       </div>
@@ -520,6 +527,18 @@ function SimpleNode({ id, data }: NodeProps) {
         </div>
       </Handle>
     </>
+  );
+}
+
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
   );
 }
 

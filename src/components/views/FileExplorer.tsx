@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Content, Session } from "../../config/types";
+import { Content, Session, Kernelspecs } from "../../config/types";
 import "../../styles/views/FileExplorer.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -15,24 +15,32 @@ import {
   faFolderPlus,
   faPen,
   faX,
-  faCheck
+  faCheck,
+  faCopy,
+  faTrashAlt,
+  faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import Table from "react-bootstrap/Table";
 import Error from "../views/Error";
-import { Button, Form } from "react-bootstrap";
+import { Button, Form, DropdownButton, Dropdown } from "react-bootstrap";
 import { getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
 import { ID_LENGTH } from "../../config/constants";
+import CustomConfirmModal from "../ui/CustomConfirmModal";
 
 export default function FileExplorer() {
   const navigate = useNavigate();
   const [contents, setContents] = useState<Content[]>([]);
+  const [kernelspecs, setKernelspecs] = useState<Kernelspecs[]>([])
   const path = usePath();
+  document.title = "File Explorer - Jupy Canvas";
   const [showError, setShowError] = useState(false);
   const [sortColumn, setSortColumn] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<string>("desc");
   const [shuttingFiles, setShuttingFiles] = useState<string[]>([]);
+  const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false)
+  const [fileToBeDeleted, setFileToBeDeleted] = useState<Content | null>();
   const token = useWebSocketStore((state) => state.token);
 
   const [renamingInfo, setRenamingInfo] = useState<{
@@ -42,6 +50,18 @@ export default function FileExplorer() {
     fileToRename: null,
     newFileName: "",
   });
+
+  const fetchKernelSpecs = async () => {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    await axios
+      .get('http://localhost:8888/api/kernelspecs')
+      .then((res) => {
+        setKernelspecs(res.data.kernelspecs)
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
 
   const getContentsFromPath = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -81,8 +101,10 @@ export default function FileExplorer() {
   /* useEffect to initially fetch the contents / sessions and setup polling */
   useEffect(() => {
     getContentsFromPath();
+    fetchKernelSpecs();
     const interval = setInterval(() => {
       getContentsFromPath();
+      fetchKernelSpecs();
     }, 10000);
     return () => clearInterval(interval);
   }, [path]);
@@ -140,6 +162,40 @@ export default function FileExplorer() {
       });
   };
 
+  const duplicateNotebook = async (file: Content) => {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    await axios
+      .post(`http://localhost:8888/api/contents/${path}`, { copy_from: file.path })
+      .then((res) => {
+        setTimeout(() => {
+          getContentsFromPath();
+        }, 100);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+
+  const onDelete = (file: Content) => {
+    setFileToBeDeleted(file);
+    setShowConfirmModalDelete(true);
+  }
+
+  const deleteFile = async (file: Content) => {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    await axios
+      .delete(`http://localhost:8888/api/contents/${file.path}`)
+      .then((res) => {
+        setTimeout(() => {
+          getContentsFromPath();
+        }, 100);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    setShowConfirmModalDelete(false);
+  }
+
   const createFolder = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     try {
@@ -149,11 +205,9 @@ export default function FileExplorer() {
           type: "directory",
         }
       );
-      const newPath = response.data.path;
       setTimeout(() => {
         getContentsFromPath();
       }, 100);
-      console.log(`Created folder at: ${newPath}`);
     } catch (error) {
       console.error("Error creating folder:", error);
     }
@@ -231,9 +285,7 @@ export default function FileExplorer() {
     });
   };
 
-  const stopRenaming = () => {
-    setRenamingInfo({ fileToRename: null, newFileName: "" });
-  }
+  const stopRenaming = () => setRenamingInfo({ fileToRename: null, newFileName: "" });  
 
   const handleRename = async () => {
     const { fileToRename, newFileName } = renamingInfo;
@@ -268,6 +320,7 @@ export default function FileExplorer() {
           <button
             className={"btn btn-sm btn-outline-danger renameButtonLeft"}
             onClick={() => stopRenaming()}
+            title="Cancel"
           >
             <FontAwesomeIcon icon={faX} />
           </button>
@@ -290,6 +343,7 @@ export default function FileExplorer() {
           <button
             className="btn btn-sm btn-outline-success renameButtonRight"
             onClick={() => handleRename()}
+            title="Submit"
           >
             <FontAwesomeIcon icon={faCheck} />
           </button>
@@ -300,12 +354,45 @@ export default function FileExplorer() {
         <button
           className={"btn btn-sm btn-outline-primary renameButtonLeft"}
           onClick={() => startRenaming(file)}
+          title="Rename"
         >
           <FontAwesomeIcon icon={faPen} />
         </button>
       );
     }
   };
+
+  const copyButton = (file: Content) => {
+    return (
+      <Button
+        style={{marginRight: '4px'}}
+        className="alignRight no-y-padding no-border"
+        variant="outline-primary"
+        title="Duplicate Notebook"
+        onClick={() => duplicateNotebook(file)}
+      >
+        <FontAwesomeIcon icon={faCopy}/>
+      </Button>
+    )
+  }
+
+  const deleteButton = (file: Content) => {
+    return (
+      <Button
+        className="alignRight no-y-padding no-border"
+        variant="outline-danger"
+        title={"Delete "+firstLetterUpperCase(file?.type)}
+        onClick={() => onDelete(file)}
+      >
+        <FontAwesomeIcon icon={faTrashAlt}/>
+      </Button>
+    )
+  }
+
+  const firstLetterUpperCase = (text: string) => {
+    if (!text) return;
+    return text.charAt(0).toUpperCase() + text.slice(1)
+  }
 
   // Sort the contents based on the current sort column and direction
   const sortedContents = contents.sort(sortFunction);
@@ -323,24 +410,27 @@ export default function FileExplorer() {
         <div className="row mb-2 mx-0">
           {/* If path is empty, display root directory */}
           {path === "" && (
-            <h3 className="col-sm-9 mb-0 px-0">Root Directory</h3>
+            <h3 className="col-sm-8 mb-0 px-0">Root Directory</h3>
           )}
           {/* If path is not empty, display path */}
-          {path !== "" && <h3 className="col-sm-9 mb-0 px-0">{path}</h3>}
+          {path !== "" && <h3 className="col-sm-8 mb-0 px-0">{path}</h3>}
           {/* Add a button to create a new notebook in the current directory */}
-          <div className="col col-sm-3 m-0 p-0 alignRight">
+          <div className="col col-sm-4 m-0 p-0 alignRight">
             <button
               className="btn btn-sm btn-outline-primary createButton"
               onClick={() => createFolder()}
             >
               <FontAwesomeIcon icon={faFolderPlus} /> Folder
             </button>
-            <button
-              className="btn btn-sm btn-outline-primary createButton"
-              onClick={() => createNotebook()}
-            >
-              <FontAwesomeIcon icon={faFileCirclePlus} /> Notebook
-            </button>
+            <DropdownButton className="createButton d-inline" size="sm" variant="outline-primary" id="dropdown-basic-button" 
+                            title={<><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</>}>
+              {/* Iterate through kernelspecs */}
+              {kernelspecs && Object.keys(kernelspecs).map((key: string) => (
+                <Dropdown.Item className="px-3" onClick={() => createNotebook()}>
+                  {kernelspecs[key].spec.display_name}
+                </Dropdown.Item>
+              ))}
+            </DropdownButton>
           </div>
         </div>
 
@@ -398,37 +488,44 @@ export default function FileExplorer() {
             {sortedContents.map((file) => {
               return (
                 <tr key={file.name}>
-                  <td>
-                    {renderRenameButtonAndInput(file)}
-                    {renamingInfo.fileToRename?.name !== file.name &&
-                    <>
-                      {file.type === "directory" && (
-                        <FontAwesomeIcon icon={faFolder} />
+                  <td style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      {renderRenameButtonAndInput(file)}
+                      {renamingInfo.fileToRename?.name !== file.name && (
+                        <>
+                          {file.type === "directory" && (
+                            <FontAwesomeIcon icon={faFolder} />
+                          )}
+                          {file.type === "notebook" && (
+                            <FontAwesomeIcon icon={faBook} />
+                          )}
+                          {file.type === "file" && (
+                            <><FontAwesomeIcon icon={faFile} />&nbsp;</>
+                          )}
+                          {" "}
+                          {file.type !== "notebook" && (
+                            <button
+                              className="link-button"
+                              onClick={() => navigate(file.path)}
+                            >
+                              {file.name}
+                            </button>
+                          )}
+                          {file.type === "notebook" && (
+                            <button
+                              className="link-button"
+                              onClick={async () => openFile(file.path)}
+                            >
+                              {file.name}
+                            </button>
+                          )}
+                        </>
                       )}
-                      {file.type === "directory" && " "}
-                      {file.type !== "notebook" && (
-                        <button
-                          className="link-button"
-                          onClick={() => navigate(file.path)}
-                        >
-                          {file.name}
-                        </button>
-                      )}
-
-                      {file.type === "notebook" && (
-                        <FontAwesomeIcon icon={faBook} />
-                      )}
-                      {file.type === "notebook" && " "}
-                      {file.type === "notebook" && (
-                        <button
-                          className="link-button"
-                          onClick={async () => openFile(file.path)}
-                        >
-                          {file.name}
-                        </button>
-                      )}
-                    </>
-                    }
+                    </div>
+                    <div>
+                      {file.type === "notebook" && copyButton(file)}
+                      {deleteButton(file)}
+                    </div>
                   </td>
                   <td>
                     {file.last_modified &&
@@ -458,6 +555,15 @@ export default function FileExplorer() {
             })}
           </tbody>
         </Table>
+        <CustomConfirmModal 
+          title={"Delete "+firstLetterUpperCase(fileToBeDeleted?.type!)+"?"} 
+          message={"Are you sure you want to delete the "+firstLetterUpperCase(fileToBeDeleted?.type!)+" "+fileToBeDeleted?.name+"?"}
+          show={showConfirmModalDelete} 
+          onHide={() => { setShowConfirmModalDelete(false) }} 
+          onConfirm={() => deleteFile(fileToBeDeleted!)} 
+          confirmText="Delete"
+          denyText="Cancel"
+        />
       </div>
     );
 }

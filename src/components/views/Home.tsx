@@ -22,6 +22,7 @@ import ReactFlow, {
   MiniMap,
   Controls,
   Panel,
+  SelectionMode,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules UI
@@ -92,6 +93,7 @@ function DynamicGrouping() {
   const { project, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
+  document.title = path.split("/").pop() + " - Jupy Canvas";
   const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
   // other 
   const { cellIdToMsgId,
@@ -161,7 +163,7 @@ function DynamicGrouping() {
         y: event.clientY - wrapperBounds.top - 20,
       }); // TODO - change to not fixed value / export to constant
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
-                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 200, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
+                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
 
       const intersections = getIntersectingNodes({
         x: position.x,
@@ -415,8 +417,9 @@ function DynamicGrouping() {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
+          selectionMode={SelectionMode.Full}   // Partial = only need to touch a node to select it
           minZoom={0.15}
-          maxZoom={3}
+          maxZoom={4}
           deleteKeyCode={null}
         >
           <Background gap={50} variant={BackgroundVariant.Dots} />

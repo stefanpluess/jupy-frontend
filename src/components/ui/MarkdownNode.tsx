@@ -7,7 +7,7 @@ import {
   useReactFlow,
   Handle,
   Position,
-  NodeResizer,
+  NodeResizeControl,
 } from "reactflow";
 import {
   faCopy,
@@ -16,12 +16,13 @@ import {
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useDetachNodes } from "../../helpers/hooks";
+import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
+import { CONTROL_STLYE, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
+import ResizeIcon from "./ResizeIcon";
 
 function MarkdownNode({ id, data }: NodeProps) {
-  const handleStyle = { height: 6, width: 6 };
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -39,8 +40,13 @@ function MarkdownNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
+  const getResizeBoundaries = useResizeBoundaries();
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
+
   const createMarkdown = () => setEditMode(false);
-  // const deleteCode = () => (data.code = "");
   const copyCode = () => navigator.clipboard.writeText(data.code);
 
   const toolbar = (
@@ -72,12 +78,15 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
 
   const nodeResizer = (
-    <NodeResizer
-      lineStyle={{ borderColor: "transparent" }}
-      handleStyle={handleStyle}
-      minWidth={200}
-      minHeight={85}
-    />
+    <NodeResizeControl
+      style={CONTROL_STLYE}
+      minWidth={MIN_WIDTH}
+      minHeight={MIN_HEIGHT}
+      maxWidth={maxWidth}
+      maxHeight={maxHeight}
+    >
+      <ResizeIcon />
+    </NodeResizeControl>
   );
 
   if (!editMode)
@@ -160,6 +169,18 @@ function MarkdownNode({ id, data }: NodeProps) {
         </Handle>
       </>
     );
+}
+
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
+  );
 }
 
 export default memo(MarkdownNode);

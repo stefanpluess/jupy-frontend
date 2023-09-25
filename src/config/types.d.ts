@@ -55,6 +55,22 @@ export type Content = {
     [key: string]: any;
 };
 
+export type Kernelspecs = {
+    [key: string]: {
+        name: string;
+        spec: {
+            display_name: string;
+            language: string;
+            argv: string[];
+            env: any;
+            interrupt_mode: string;
+            codemirror_mode?: string;
+            metadata: {};
+        };
+        resources: any;
+    };
+}
+
 export type Notebook = {
     cells: NotebookCell[];
     metadata: {
@@ -101,6 +117,10 @@ export type NotebookCell = {
     parentNode?: string;
     predecessor?: string;
     successors?: string[];
+    outputWidth?: number | null;
+    outputHeight?: number | null;
+    outputPosition?: XYPosition;
+    outputParent?: string;
 };
 
 export type NotebookOutput = {
@@ -113,7 +133,6 @@ export type NotebookOutput = {
     traceback?: string[];
     ename?: string;
     evalue?: string;
-    position?: XYPosition;
     isImage?: boolean;
 };
 
