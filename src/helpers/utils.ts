@@ -95,7 +95,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     
 }
 
-/* Method used to unify id's when opening normal .ipynb notebooks */
+/** Method used to unify id's when opening normal .ipynb notebooks */
 const unifyId = (cell: NotebookCell, type: string): string => {
   const id = (cell.id.includes(NORMAL_NODE) || cell.id.includes(GROUP_NODE) || cell.id.includes(MARKDOWN_NODE)) ? 
               cell.id : 
@@ -295,8 +295,7 @@ export async function passParentState(token: string, dill_path: string, parent_k
   await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
     .catch((err) => console.log(err));
   // delete the dill file that was saved
-  await axios.delete(`http://localhost:8888/api/contents/${dill_path}/${parent_kernel_id}.pkl`)
-    .then((res) => console.log('dill file deleted'))
+  await axios.delete(`http://localhost:8888/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
     .catch((err) => console.log(err));
 }
 
