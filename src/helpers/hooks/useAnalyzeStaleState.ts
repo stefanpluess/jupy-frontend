@@ -24,9 +24,10 @@ export function useAnalyzeStaleState(id: string) {
             setStaleState(id, false);
             const [nodeId, code] = queueTop;
             const responseData = await analyzeCode(token, code); 
-            const assignedVariables: string[] = Object.keys(responseData.assigned);
-            const uniqueCombinedList = Array.from(new Set([...responseData.used, ...assignedVariables]));
-            // responseData.assigned is {}, responseData.used is []
+            const assignedVariables: string[] = responseData.assigned;
+            const usedVariables: string[] = responseData.used;
+            const uniqueCombinedList = Array.from(new Set([...usedVariables, ...assignedVariables]));
+            // assignedVariables is [], usedVariables is []
             /* alternative DICT approach:
                 comapre values of current code cell to its previous state from the store
                 procced if different*/
@@ -35,7 +36,7 @@ export function useAnalyzeStaleState(id: string) {
               // there are no variables used across group node -> no need to check for stale nodes
               // console.log("No variables used in any other node.");
               // update variablesUsedInGroupNodes
-              setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
+              setUsedIdentifiersForGroupNodes(parentId, id, usedVariables);
             }
             else{
               // filter out the current node from the dictUsedIdentifiersPerCell
@@ -48,7 +49,7 @@ export function useAnalyzeStaleState(id: string) {
                 if (hasCommonElement) staleNodeIds.push(nodeId);
               }
               // update variablesUsedInGroupNodes
-              setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
+              setUsedIdentifiersForGroupNodes(parentId, id, usedVariables);
               // mark stale nodes
               // console.log("Marking nodes as stale: ", staleNodeIds);
               staleNodeIds.forEach(nodeId => setStaleState(nodeId, true));
