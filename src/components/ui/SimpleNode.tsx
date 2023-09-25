@@ -28,8 +28,8 @@ import {
   faLockOpen,
   faStopCircle,
   faUpRightAndDownLeftFromCenter,
-  faArrowsTurnToDots,
-  faCircleExclamation,
+  faHourglass,
+  faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
@@ -398,11 +398,11 @@ function SimpleNode({ id, data }: NodeProps) {
             {/* STALE STATE INDICATOR */}
             {staleState && (
               <button
-                className="cellButton"
+                className="cellButton staleIcons"
                 onClick = {showInfoStaleState}
               >
-                <FontAwesomeIcon className="stale-icon" icon={faArrowsTurnToDots} />
-                <FontAwesomeIcon className="stalewarning-icon" icon={faCircleExclamation} />
+                <FontAwesomeIcon className="stale-icon" icon={faHourglass} />
+                <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
               </button>
             )}
             {/* RESIZER PLACEHOLDER */}

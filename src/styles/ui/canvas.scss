@@ -92,22 +92,35 @@
                 .bottomCodeCellButtons {
                     @include commonBottomCodeCellButtons;
 
-                    .stale-icon:hover, .resize-icon:hover {
-                        color: rgba(223, 223, 223, 0.502);
+                    .staleIcons{
+                        color: #fff201;
+
+                        &:hover{
+                            color: rgba(223, 223, 223, 0.502);
+                        }
+
+                        &:active{
+                            transform: scale(0.8);
+                        }
+
+                        // .stale-icon {
+                        // }
+    
+                        .stalewarning-icon {
+                            font-size: 5px;
+                            padding-bottom: 3px;
+                            padding-right: 1px;
+                        }
                     }
 
-                    .stale-icon {
-                        color: rgba(0, 0, 0, 0.54);
-                        padding: 0.5px;
-                    }
+                    .resize-icon{
+                        &:hover{
+                            color: rgba(223, 223, 223, 0.502);
+                        }
+                        &:active{
+                            transform: scale(0.8);
+                        }
 
-                    .stalewarning-icon {
-                        color: #a60035bc;
-                        font-size: 5px;
-                    }
-
-                    .stale-icon:active, .resize-icon:active {
-                        transform: scale(0.8);
                     }
                 }
             }
