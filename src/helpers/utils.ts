@@ -470,7 +470,7 @@ export const keepPositionInsideParent = (node: Partial<Node>, groupNode: Node, n
   return position;
 }
 
-/** Get the connected node id (output) */
+/** Get the connected node id (either OUTPUT_NODE or NORMAL_NODE) */
 export const getConnectedNodeId = (id: string) : string => {
   if (id.includes(NORMAL_NODE)) {
     if (id.includes('output')) {
@@ -484,7 +484,7 @@ export const getConnectedNodeId = (id: string) : string => {
   return '';
 }
 
-/** Given a node id return id without "_output" */
+/** Given a node id return it without "_output" */
 export const getSimpleNodeId = (id: string) : string => {
   if (id.includes(NORMAL_NODE)) {
     if (id.includes('output')) {

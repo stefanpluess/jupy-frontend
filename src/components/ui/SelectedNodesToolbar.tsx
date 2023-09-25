@@ -1,6 +1,6 @@
 import { useNodes, Node, getRectOfNodes, NodeToolbar, useStoreApi, useReactFlow } from 'reactflow';
-import {GROUP_NODE, EXTENT_PARENT, PADDING} from '../../config/constants';
-import { getId } from '../../helpers/utils';
+import {GROUP_NODE, EXTENT_PARENT, PADDING, NORMAL_NODE, OUTPUT_NODE} from '../../config/constants';
+import { getConnectedNodeId, getId } from '../../helpers/utils';
 import { usePath, useRemoveGroupNode } from '../../helpers/hooks';
 import { shallow } from 'zustand/shallow';
 import { useWebSocketStore, createSession, selectorBubbleBranch } from '../../helpers/websocket';
@@ -93,8 +93,14 @@ export default function SelectedNodesToolbar() {
         removeGroupNode(node.id, false);
       }
     });
+    const correspondingNodes: string[] = [];
+    selectedNodes.forEach((node) => {
+      // for OUTPUT_NODE, get corresponding SIMPLE_NODE and vice versa
+      if (node.type === NORMAL_NODE || node.type === OUTPUT_NODE) correspondingNodes.push(getConnectedNodeId(node.id));
+    });
+    const nodesToBeDeleted = [...selectedNodes, ...nodes.filter((node) => correspondingNodes.includes(node.id))];
     // actually remove the nodes
-    deleteElements({ nodes: selectedNodes });
+    deleteElements({ nodes: nodesToBeDeleted });
     setShowConfirmModalDelete(false);
   };
 
