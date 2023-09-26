@@ -23,7 +23,8 @@ import {
   faCircleChevronDown,
   faCircleXmark,
   faSpinner,
-  faForward
+  faForward,
+  faCircleInfo,
 } from "@fortawesome/free-solid-svg-icons";
 import { 
   useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, 
@@ -47,6 +48,7 @@ import {
 } from "../../config/constants";
 import withReactContent from "sweetalert2-react-content";
 import Swal from "sweetalert2";
+import Spinner from 'react-bootstrap/Spinner';
 
 const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
 const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
@@ -72,6 +74,8 @@ function GroupNode({ id, data }: NodeProps) {
   const [modalStates, setModalStates] = useState(initialModalStates);
   const [isBranching, setIsBranching] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [showKernelInfo, setShowKernelInfo] = useState(false);
+  const [installedPackages, setInstalledPackages] = useState({});
   const detachNodes = useDetachNodes();
   const removeGroupNode = useRemoveGroupNode();
 
@@ -344,6 +348,71 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
+  // INFO :: Kernel Info
+  const toggleKernelInfo = () => {
+    if (Object.keys(installedPackages).length === 0) fetchInstalledPackages();
+    setShowKernelInfo(!showKernelInfo);
+  }
+
+  const fetchInstalledPackages = async () => {
+    setInstalledPackages({});
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    const requestBody = { "kernel_id": data.session?.kernel.id };
+    const response = await axios.post('http://localhost:8888/canvas_ext/installed', requestBody);
+    setInstalledPackages(response.data);
+  }
+
+  const renderKernelInfo = () => {
+    return (
+      <div className="kernelinfo nowheel">
+        <div className="infoicon" onClick={fetchInstalledPackages}>
+          <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
+        </div>
+        <div className="header">Kernel Information</div>
+        <table>
+          <tbody>
+            <tr>
+              <td>Name</td>
+              <td>{data.session?.kernel.name}</td>
+            </tr>
+            <tr>
+              <td>Running On&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+              <td>Local Machine</td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="header" style={{marginTop: '6px'}}>Installed Packages</div>
+        {Object.keys(installedPackages).length !== 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Version</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(installedPackages).map((key) => (
+              <tr key={key}>
+                <td>{key}</td>
+                <td>{installedPackages[key]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        ) : (
+          <Spinner
+            style={{marginLeft: '62px', marginTop: '10px'}}
+            as="span"
+            animation="border"
+            size="sm"
+            role="status"
+            aria-hidden="true"
+          />
+        )}
+      </div>
+    )
+  }
+
   const displayExecutionState = useCallback(() => {
     if (wsRunning) {
       if (executionState?.state === KERNEL_IDLE) {
@@ -378,14 +447,6 @@ function GroupNode({ id, data }: NodeProps) {
         minWidth={minWidth}
         minHeight={minHeight}
       />
-      {/* TODO: either remove or keep */}
-      {/* <NodeResizeControl
-        style={CONTROL_STLYE}
-        minWidth={minWidth}
-        minHeight={minHeight}
-      >
-        <ResizeIcon />
-      </NodeResizeControl> */}
       <NodeToolbar className="nodrag">
         <button onClick={onDelete} title="Delete Group 👥">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />
@@ -484,6 +545,10 @@ function GroupNode({ id, data }: NodeProps) {
         variants={["success", "danger", "danger"]}
       />
       <CustomInformationModal show={isBranching} text='Branching Out...' />
+      <div className="infoicon nodrag" title="Show kernel info ℹ️" onClick={toggleKernelInfo}>
+        <FontAwesomeIcon className="icon" icon={faCircleInfo}/>
+      </div>
+      { showKernelInfo && renderKernelInfo() }
     </div>
   );
 }

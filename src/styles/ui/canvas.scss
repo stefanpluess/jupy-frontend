@@ -373,6 +373,49 @@
     color: rgba(255, 119, 0, 0.416);
 }
 
+/* INFO :: canvas area - Kernel info */
+.rfWrapper .infoicon {
+    color: rgba(255, 255, 255, 0.658);
+    right: 9px;
+    top: 5px;
+    position: absolute;
+    transform: scale(1.5);
+    &:active {
+        transform: scale(1.25);
+      }
+    :hover {
+        color: rgba(255, 255, 255, 0.41);
+    }
+}
+
+.rfWrapper .kernelinfo {
+    text-align: left;
+    padding: 5px;
+    font-size: 8px;
+    color: white;
+    position: absolute;
+    top: 0px;
+    right: -165px;
+    height: 100%;
+    width: 155px;
+    background-color: rgba(121, 65, 134, 0.385);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.571);
+    overflow: auto;
+    
+    &:hover {
+        background-color: rgba(121, 65, 134, 0.606);
+        box-shadow: 0px 0px 6px 0px rgba(255, 255, 255, 0.4);
+    }
+
+    .header {
+        font-size: 10px;
+        font-weight: bold;
+        text-align: center;
+        padding-bottom: 2px;
+    }
+}
+
 
 /* INFO :: Styles for HTML tables (like pd DataFrames) */
 .rendered_html table {
