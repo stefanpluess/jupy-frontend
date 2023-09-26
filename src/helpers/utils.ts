@@ -291,6 +291,13 @@ export async function getSessions(token: string) {
   return res.data
 }
 
+/** Method to get the kernelspecs */
+export async function getKernelspecs(token: string) {
+  axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  const res = await axios.get('http://localhost:8888/api/kernelspecs')
+  return res.data;
+}
+
 /** Method to pass the parent state to a child */
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`

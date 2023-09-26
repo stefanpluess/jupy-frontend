@@ -348,12 +348,14 @@ function GroupNode({ id, data }: NodeProps) {
     }
   };
 
+  // INFO :: Kernel Info
   const toggleKernelInfo = () => {
-    if (!showKernelInfo) fetchInstalledPackages(); // OPTIMIZE - only fetch if new libraries are installed
+    if (Object.keys(installedPackages).length === 0) fetchInstalledPackages();
     setShowKernelInfo(!showKernelInfo);
   }
 
   const fetchInstalledPackages = async () => {
+    setInstalledPackages({});
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     const requestBody = { "kernel_id": data.session?.kernel.id };
     const response = await axios.post('http://localhost:8888/canvas_ext/installed', requestBody);
@@ -362,17 +364,24 @@ function GroupNode({ id, data }: NodeProps) {
 
   const renderKernelInfo = () => {
     return (
-      <div className="kernelinfo">
+      <div className="kernelinfo nowheel">
+        <div className="infoicon" onClick={fetchInstalledPackages}>
+          <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
+        </div>
         <div className="header">Kernel Information</div>
         <table>
           <tbody>
             <tr>
-              <td>Name:</td>
+              <td>Name</td>
               <td>{data.session?.kernel.name}</td>
+            </tr>
+            <tr>
+              <td>Running On&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+              <td>Local Machine</td>
             </tr>
           </tbody>
         </table>
-        <div className="header" style={{marginTop: '5px'}}>Installed Packages</div>
+        <div className="header" style={{marginTop: '6px'}}>Installed Packages</div>
         {Object.keys(installedPackages).length !== 0 ? (
         <table>
           <thead>

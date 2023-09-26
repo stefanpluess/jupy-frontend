@@ -23,7 +23,7 @@ import {
 import Table from "react-bootstrap/Table";
 import Error from "../views/Error";
 import { Button, Form, DropdownButton, Dropdown } from "react-bootstrap";
-import { getSessions } from "../../helpers/utils";
+import { getKernelspecs, getSessions } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
 import { ID_LENGTH } from "../../config/constants";
@@ -52,15 +52,9 @@ export default function FileExplorer() {
   });
 
   const fetchKernelSpecs = async () => {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    await axios
-      .get('http://localhost:8888/api/kernelspecs')
-      .then((res) => {
-        setKernelspecs(res.data.kernelspecs)
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    const res = await getKernelspecs(token);
+    const kernelSpecs = getKernelspecs(token);
+    kernelSpecs.then((specs) => { setKernelspecs(specs.kernelspecs) });
   }
 
   const getContentsFromPath = async () => {
