@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { ExecutionCount, ExecutionOutput, CellIdToMsgId, CellIdToOutputs} from '../../config/types';
-
+/*
+  WebSocket store based on zustand with functions relted to:
+    - execution count
+    - execution output
+    - mapping of cell id to outputs
+    - mapping of cell id to message id
+*/ 
 export type WebSocketState = {
     latestExecutionCount: ExecutionCount;
     setLatestExecutionCount: (newObj: ExecutionCount) => void;
@@ -18,7 +24,7 @@ export type WebSocketState = {
     setCellIdToMsgId: (newObj: CellIdToMsgId) => void;
     getCellIdToMsgId: () => CellIdToMsgId;
 
-    token: string;
+    token: string; // extracted from .env file
     getToken: () => string;
 };
 

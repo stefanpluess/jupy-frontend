@@ -20,8 +20,8 @@ export type NodesStore = {
     setOutputTypeEmpty: (id: string, type: boolean) => void;
   
     // INFO :: queue functionality
-    queues: { [groupId: string]: Array<[string, string]> }; // Update the type for queue
-    addToQueue: (groupId: string, nodeId: string, code: string) => void; // Include 'code' parameter
+    queues: { [groupId: string]: Array<[string, string]> };
+    addToQueue: (groupId: string, nodeId: string, code: string) => void;
     getTopOfQueue: (groupId: string) => [string, string] | undefined;
     removeFromQueue: (groupId: string) => void;
     clearQueue: (groupId: string) => void;
@@ -66,7 +66,6 @@ const useNodesStore = create<NodesStore>((set, get) => ({
   },
   locks: {},
   toggleLock: (id: string) => {
-    // console.log('toggleLock - toggled for: ', id);
     set((state) => ({
         locks: {
           ...state.locks,

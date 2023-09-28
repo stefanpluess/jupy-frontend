@@ -6,6 +6,12 @@ import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorBubbleBranch } from '../websocket';
 import usePath from './usePath';
 
+/**
+ * Returns a callback function that creates a new child group node and connection from the given parent.
+ * The child node is created with a unique id and positioned below the parent node.
+ * A websocket connection is created for the child gruop node, and the parent state is passed to the child.
+ * @param id - The id of the parent node.
+ */
 export function useBubbleBranchClick(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getEdges, getNode } = useReactFlow();
     const store = useStoreApi();

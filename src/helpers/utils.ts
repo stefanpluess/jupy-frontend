@@ -144,7 +144,7 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
             output.data['text/html'] = outputData.outputHTML;
           } else if (output.output_type === 'stream') {
             output.text = [outputData.output];
-            // output.name = "stdout"; //TODO: needed?
+            // output.name = "stdout";
           } else if (output.output_type === 'display_data') {
             if (outputData.isImage) {
               output.data['image/png'] = outputData.output;

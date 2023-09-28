@@ -2,7 +2,10 @@ import { useCallback } from 'react';
 import { Position, useReactFlow, useStoreApi } from 'reactflow';
 import { COMMENT_NODE } from '../../config/constants';
 
-
+/**
+ * A hook that returns a function to add comments to nodes in the React Flow graph.
+ * Designed to be used in the SimpleNode toolbar. 
+ */
 function useAddComment() {
   const { setNodes } = useReactFlow();
   const store = useStoreApi();

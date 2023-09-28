@@ -2,9 +2,15 @@ import { useCallback } from 'react';
 import { Edge, Node, useReactFlow } from 'reactflow';
 import { createOutputNode } from '../utils';
 
+/**
+ * Returns a function that inserts output nodes and edges into the React Flow graph.
+ */
 function useInsertOutput() {
     const { getNode, setNodes, setEdges } = useReactFlow();
-
+    /**
+     * Inserts output nodes and edges into the React Flow graph.
+     * @param node_ids - An array of node IDs to insert output nodes and edges for.
+     */
     const insertOutput = useCallback( async (node_ids: string[]) => {
         if (node_ids.length === 0) return;
         const newNodes = [] as Node[];

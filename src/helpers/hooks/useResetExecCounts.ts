@@ -2,6 +2,9 @@ import { useCallback } from 'react';
 import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
 
+/**
+ * Returns a function that resets the execution counts of all nodes in a group except for the specified node.
+ */
 function useResetExecCounts() {
     const { getNodes } = useReactFlow();
     const setExecutionCount = useNodesStore((state) => state.setExecutionCount);

@@ -9,6 +9,10 @@ import {
 } from '../../config/constants';
 import { toast } from 'react-toastify';
 
+/**
+ * Custom React hook that returns a function to execute a code on all successors of a given node.
+ * @returns {Function} A function that takes a node ID as argument and executes the code on all its successors.
+ */
 function useExecuteOnSuccessors() {
     const { getNode } = useReactFlow();
     const allQueues = useNodesStore((state) => state.queues);
@@ -17,6 +21,11 @@ function useExecuteOnSuccessors() {
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
     const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
 
+    /**
+     * Returns an array of all successors of a given node that are influenced by a group node.
+     * @param {string} node_id - The ID of the node to get the successors of.
+     * @returns {string[]} An array of all successors of the given node that are influenced by a group node.
+     */
     const influencedSuccessors = useCallback((node_id: string): string[] => {
       const influencedSuccs = [] as string[];
       const node = getNode(node_id);
@@ -32,6 +41,11 @@ function useExecuteOnSuccessors() {
       return influencedSuccs;
     }, [groupNodesInfluenceStates, getNode]);
 
+    /**
+     * Executes a code on all successors of a given node.
+     * @param {string} node_id - The ID of the node to execute the code on its successors.
+     * @returns {Promise<void>} A promise that resolves when the code is executed on all successors.
+     */
     // INFO :: version1 -> each child is run and awaited separately
     const executeOnSuccessors = useCallback(async (node_id: string) => {
       const influencedSuccs = influencedSuccessors(node_id);
@@ -64,7 +78,7 @@ function useExecuteOnSuccessors() {
       }
     }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
 
-
+    
     // INFO :: version2 -> children are awaited all together
     // const executeOnSuccessors = useCallback(async (node_id: string) => {
     //   const influencedSuccs = influencedSuccessors(node_id);

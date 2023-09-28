@@ -2,6 +2,12 @@ import { useCallback } from 'react';
 import {  useReactFlow } from 'reactflow';
 import { MAX_HEIGHT, MAX_WIDTH } from '../../config/constants';
 
+/**
+ * Returns a function that calculates the maximum resize boundaries for a given node.
+ * If the node has no parent, the boundaries are restricted to the canvas size.
+ * Otherwise, the boundaries are restricted to the parent size.
+ * @returns A function that takes a node ID as argument and returns an object with maxWidth and maxHeight properties.
+ */
 function useResizeBoundaries() {
 
   const { getNode } = useReactFlow();

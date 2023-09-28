@@ -12,3 +12,5 @@ export { default as useResetExecCounts } from './useResetExecCounts';
 export { default as useRunAll } from './useRunAll';
 export { default as useResizeBoundaries } from './useResizeBoundaries';
 export { default as useRemoveGroupNode } from './useRemoveGroupNode';
+export { default as useDuplicateCell } from './useDuplicateCell';
+export { default as useAnalyzeStaleState } from './useAnalyzeStaleState';

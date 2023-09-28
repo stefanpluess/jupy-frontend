@@ -3,6 +3,12 @@ import useNodesStore from '../nodesStore';
 import { analyzeCode } from "../../helpers/utils";
 import { useWebSocketStore } from '../websocket';
 
+/**
+ * Returns a function that analyzes the stale state of a node and other nodes in its parent group node.
+ * If any variable that was assigned in the current node is used in any other node of the parent group node,
+ * it marks those nodes as stale.
+ * @param id - The id of the node to analyze.
+ */
 export function useAnalyzeStaleState(id: string) {
     const { getNode } = useReactFlow();
     const token = useWebSocketStore((state) => state.token);

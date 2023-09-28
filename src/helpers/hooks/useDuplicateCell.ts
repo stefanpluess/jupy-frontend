@@ -4,6 +4,10 @@ import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } fro
 import { EXTENT_PARENT } from '../../config/constants';
 import useNodesStore from '../nodesStore';
 
+/**
+ * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.
+ * @param id - The id of the node to duplicate.
+ */
 export function useDuplicateCell(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getNode, getIntersectingNodes } = useReactFlow();
     const store = useStoreApi();

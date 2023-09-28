@@ -4,6 +4,11 @@ import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
 import { useWebSocketStore } from '../websocket';
 
+/**
+ * Returns a function to remove a group node from the React Flow graph, ensuring that predecessors 
+ * and successors are updated accordingly. If the group node has running webScoket connection, 
+ * the corresponding websocket is closed and the session is deleted from the backend.
+ */
 function useRemoveGroupNode() {
     const { getNode, deleteElements } = useReactFlow();
     const token = useWebSocketStore((state) => state.token);

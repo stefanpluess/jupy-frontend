@@ -12,7 +12,7 @@ interface UpdateNodesProps {
     setCellIdToOutputs: setCITOType;
   }
 /**
- * A hook that updates the nodes in the React Flow graph based on the latest execution count and output.
+ * A custom hook that updates the nodes in the React Flow graph based on the latest execution count and output.
  * @param latestExecutionCount The latest execution count.
  * @param latestExecutionOutput The latest execution output.
  * @param cellIdToOutputs A mapping of cell IDs to outputs.

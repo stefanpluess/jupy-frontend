@@ -4,6 +4,9 @@ import useNodesStore from '../nodesStore';
 import { NORMAL_NODE } from '../../config/constants';
 import { useInsertOutput } from '.';
 
+/**
+ * A custom hook that returns a function to run all executable child nodes of a group node.
+ */
 function useRunAll() {
     const { getNode, getNodes } = useReactFlow();
     const addToQueue = useNodesStore((state) => state.addToQueue);

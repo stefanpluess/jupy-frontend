@@ -42,16 +42,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
     const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);
-    /* 
-    ANOTHER APPROACH INSTEAD OF PASSING FUNCTIONS WOULD BE TO USE useWebsocketStore 
-    This approach is using the Zustand state selector function. Here, the components which 
-    use setLatestExecutionOutput and setLatestExecutionCount will only re-render when either
-    of these two specific pieces of state change. The selector function allows us to access 
-    specific pieces of state, and the component will only be sensitive to changes to these parts. 
-    If other parts of the state object change, the component won't re-render. 
-    const setLatestExecutionOutput = useWebsocketStore((state) => state.setLatestExecutionOutput);
-    const setLatestExecutionCount = useWebsocketStore((state) => state.setLatestExecutionCount);
-    */
     // WebSocket event handlers
     ws.onopen = () => {
         console.log('WebSocket connection established');
@@ -65,7 +55,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
 
         // Handle different message types as needed
         if (msg_type === 'execute_reply') {
-            // TODO - have it in separate function
             // if (message.content.status === 'error' || message.content.status === 'abort') return;
             const newObj = {
                 msg_id: message.parent_header.msg_id,
@@ -74,7 +63,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             setLatestExecutionCount(newObj);
 
         } else if (msg_type === 'execute_result') {
-            // TODO - have it in separate function
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
                 output: message.content.data['text/plain'],
@@ -85,7 +73,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'stream') {
-            // TODO - have it in separate function
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
                 output: removeEscapeCodes(message.content.text),
@@ -95,7 +82,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'display_data') {
-            // TODO - have it in separate function
             const outputImage = message.content.data['image/png'];
             var outputObj;
             if (outputImage !== undefined) {
@@ -117,7 +103,6 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'error') {
-            // TODO - have it in separate function
             const traceback = message.content.traceback.map(removeEscapeCodes);
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
