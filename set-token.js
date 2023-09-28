@@ -1,9 +1,5 @@
-// # # Get the token input from the user
-// # $token = Read-Host "Enter the API token"
-
-// # # Create or update the .env file with the entered token
-// # Set-Content -Path ".env" -Value "REACT_APP_API_TOKEN=$token"
-
+// script responsible for setting the API token in the .env file
+// Usage: npm run start-set-token
 const readline = require('readline');
 const fs = require('fs');
 

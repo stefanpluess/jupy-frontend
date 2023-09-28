@@ -1,4 +1,7 @@
 @import '../variables';
+/*
+  Defines the style for the controls component in the bottom right corner
+*/
 .react-flow__controls button {
     background-color: $shared-bg-color;
     color: $shared-text-color;

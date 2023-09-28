@@ -27,8 +27,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   height: 100vh;
 }
 
-
-// TODO - organize and clean what is below
  /*connection points for edge */
  .wrapper .react-flow__handle {
   background: #ddd;
@@ -46,23 +44,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   transform: translate(-50%, 120%);
   color: #f5f5f5;
   font-size: 12px;
-}
-
- /*???*/
-.wrapper .inputCentered {
-  background-color: blue;
-  color: blue;
-  position: absolute;
-  color: #f5f5f5;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  /*border-top: 0.2px solid #fff;*/
-
-  //margin-left: 90%;
-
-  // TESTME merge - in Home.css was like this:
-  // margin-left: 90%;
 }
 
 .wrapper .rinputCentered{
@@ -118,45 +99,34 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   background-color: transparent;
   border-color: transparent;
   color: grey;
-
-  
-
 }
 
- .wrapper .oUpper {
-  /*margin: 10%;*/
+.wrapper .oUpper {
   margin-right: 0px
-  
 }
 
 .wrapper .oLower {
   margin-left: -50%;
   margin-bottom: -50px;
-
 }
 
 .wrapper .oLower:disabled {
   margin-left: -50%;
   margin-bottom: -40px;
   color: red;
-
 }
 
-
 .oClicked {
-
   transform: scale(0.8);
 }
 
 .oClickedSave {
-
   transform: scale(0.8);
 }
 
 .clicked {
   transform: scale(0.8);
 }
-
 
  /*color of the lower button area in code cell*/
 .wrapper .buttonArea {
@@ -172,7 +142,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
  /*color of the play button icons in code cell*/
- .wrapper .playButton {
+.wrapper .playButton {
   background-color: transparent;
   border-color: transparent;
   color: green;
@@ -199,7 +169,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
  /*color of the play button icons in code cell*/
- .wrapper .playErrorButton {
+.wrapper .playErrorButton {
   background-color: transparent;
   border-color: transparent;
   color: red;
@@ -207,9 +177,8 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   font-size: 20px;
 }
 
-
  /*color of the play button icons in code cell*/
- .wrapper .playErrorButton:hover {
+.wrapper .playErrorButton:hover {
   background-color: transparent;
   border-color: transparent;
   color: green;
@@ -219,11 +188,8 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 }
 
 .wrapper .playErrorButton:disabled {
-
   display: none;
 }
-
-
 
 /* Add this CSS to your stylesheet */
 .wrapper .button-content {
@@ -237,9 +203,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   height: 100%;
   font-size: 20px;
   display: none;
-
 }
-
 
 /*right frame buttonarea in code cell*/
 .wrapper .bRight {
@@ -256,7 +220,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   transform: scale(0.8);
 }
 
-  /*execution count*/
+/*execution count*/
 .wrapper .executionCount {
   position: absolute;
   display: flex;
@@ -293,7 +257,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 /*color of upper delete/ungroup/detach bar when hovering over it*/
 .wrapper .react-flow__node-toolbar button:hover {
   background-color: #ddd;
-
 }
 
 /*frame color upper delete/ungroup/detach bar*/
@@ -309,7 +272,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   background-color: #fff;
   margin-top: 10px;
   margin-bottom: 20px;
-
 }
 
 .comment-field textarea {
@@ -333,7 +295,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   margin-left: 8px;
 }
 
-
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #888 #f0f0f0;
@@ -349,10 +310,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   background-color: #888;
   border-radius: 20px;
   min-height: 80px;
-
-
 }
-
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #555;

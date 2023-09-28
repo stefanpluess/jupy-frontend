@@ -1,4 +1,7 @@
 @import '../variables';
+/*
+  Defines the style for the minimap component in the top right corner
+*/
 .react-flow__minimap {
     background-color: $shared-bg-color;
     border: $minimap-controls-border;
