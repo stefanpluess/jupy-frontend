@@ -46,19 +46,20 @@ You will be asked to enter the token from the backend.
 This will set the token in the `.env` file and start the project.
 
 ## 📝 Note
-If you want to use the application with Safari, then you are good to go. 
-If you want to use it with Chrome you need to disable the same origin policy.
-To do so, you need to start Chrome with the following command:
+If you plan to utilize the application in Safari, you're all set to proceed without any additional steps.
 
+However, if you intend to use it in Chrome, you'll need to deactivate the same origin policy. 
 > ⚠️ Kill all chrome instances before running command and do not use this particular tab for browsing the web!
 
 - To read more: https://stackoverflow.com/a/19317888/19886556
 
-**For windows press windows key + r and type in the following:**
+To achieve this, initiate Chrome using the following command:
+
+**🪟 For Windows  press windows key + r and type in the following:**
 ```bash
 chrome.exe --user-data-dir="C:\path\to\chrome\user\data\directory" --disable-web-security
 ```
-**For mac:**
+**🍎 For mac:**
 ```bash
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --disable-web-security --user-data-dir=/path/to/chrome/user/data/directory
 ```
