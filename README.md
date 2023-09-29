@@ -1,5 +1,5 @@
 # jupy-frontend
-The Frontend Repository for the Jupyter-Canvas
+The Frontend Repository for the Jupy-Canvas
 
 ![Jupy](/public/jupy.jpg)
 
