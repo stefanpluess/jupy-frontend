@@ -1,5 +1,23 @@
 import { XYPosition } from "reactflow";
 
+/**
+ * This file contains types that are used throughout the application:
+ * - ExecutionCount
+ * - ExecutionOutput
+ * - CellIdToOutputs
+ * - NodeIdToExecCount
+ * - OutputNodeData
+ * - CellIdToMsgId
+ * - Cell
+ * - Content
+ * - Kernelspecs
+ * - Notebook
+ * - NotebookPUT
+ * - NotebookCell
+ * - NotebookOutput
+ * - Kernel
+ * - Session
+ */
 export type ExecutionCount = {
     msg_id: string;
     execution_count: number;

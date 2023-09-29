@@ -1,6 +1,10 @@
 import { MarkerType} from 'reactflow';
 import { DragEvent } from 'react';
 
+/**
+ * This file defines the configuration for ReactFlow used in Home component
+ */
+
 export const proOptions = {
     hideAttribution: true,
 };
