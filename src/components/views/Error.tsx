@@ -6,6 +6,11 @@ interface ErrorPageProps {
   errorMessage: string;
 }
 
+/**
+ * Error page component that displays an error code and message.
+ * Used in AppRouter and FileExplorer components
+ */
+
 const Error: React.FC<ErrorPageProps> = ({ errorCode, errorMessage }) => {
   return (
     <div className="error-page">

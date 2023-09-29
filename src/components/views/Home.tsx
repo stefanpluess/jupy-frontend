@@ -25,8 +25,17 @@ import ReactFlow, {
   SelectionMode,
 } from "reactflow";
 import { shallow } from "zustand/shallow";
+import { ToastContainer } from 'react-toastify';
+import axios from "axios";
+import { 
+  Alert, 
+  Button 
+} from "react-bootstrap";
 //COMMENT :: Internal modules UI
-import { Sidebar, SelectedNodesToolbar } from "../ui";
+import { 
+  Sidebar, 
+  SelectedNodesToolbar 
+} from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
   createInitialElements,
@@ -40,19 +49,22 @@ import {
   checkNodeAllowed,
   saveNotebook,
 } from "../../helpers/utils";
-import { useUpdateNodesExeCountAndOuput, usePath } from "../../helpers/hooks";
+import { 
+  useUpdateNodesExeCountAndOuput, 
+  usePath 
+} from "../../helpers/hooks";
 import {
   useWebSocketStore,
   createSession,
   selectorHome,
 } from "../../helpers/websocket";
+import useNodesStore from "../../helpers/nodesStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
   NORMAL_NODE,
   MARKDOWN_NODE,
   EXTENT_PARENT,
-  OUTPUT_NODE,
   DEFAULT_LOCK_STATUS,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
@@ -66,8 +78,6 @@ import {
   nodes as initialNodes,
   edges as initialEdges,
 } from "../../config/initial-elements";
-import { ToastContainer } from 'react-toastify';
-
 //COMMENT :: Styles
 import "reactflow/dist/style.css";
 import "@reactflow/node-resizer/dist/style.css";
@@ -76,12 +86,22 @@ import "../../styles/ui/sidebar.scss";
 import "../../styles/ui/canvas.scss";
 import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
-import axios from "axios";
-import { Alert, Button } from "react-bootstrap";
-import useNodesStore from "../../helpers/nodesStore";
 import 'react-toastify/dist/ReactToastify.css';
 
-//INFO :: main code
+/**
+ * Home component, which is the main component of the application.
+ * This component renders a canvas where the user can move and manipulate nodes.
+ * It also includes a sidebar from where the user can drop new nodes onto the canvas.
+ * Inside this component we update execution count and output of nodes.
+ * It contains the configuration of the elements like:
+ * - ReactFlow
+ * - Background
+ * - MiniMap
+ * - Controls
+ * Functions like: onNodeDragStart, onNodeDrag and onNodeDragStop are called when a node is being dragged.
+ * Function onDrop is called when a node is being dropped from the sidebar onto the canvas.
+ */
+
 function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -94,8 +114,7 @@ function DynamicGrouping() {
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
-  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0 // BUG - 'platform' is deprecated.ts(6385) lib.dom.d.ts(15981, 8): The declaration was marked as deprecated here.
-  // other 
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
   const { cellIdToMsgId,
     latestExecutionCount, setLatestExecutionOutput, 
     latestExecutionOutput, setLatestExecutionCount,
@@ -108,9 +127,6 @@ function DynamicGrouping() {
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
-  // this hook call ensures that the layout is re-calculated every time the graph changes
-  // useLayout(); // TODO? nice functions to use: https://reactflow.dev/docs/examples/nodes/delete-middle-node/
-
   //INFO :: useEffect -> update execution count and output of nodes
   useUpdateNodesExeCountAndOuput(
     { latestExecutionCount, latestExecutionOutput, cellIdToOutputs, setCellIdToOutputs },
@@ -118,7 +134,6 @@ function DynamicGrouping() {
   );
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
-  //TODO: outsource
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
@@ -127,7 +142,7 @@ function DynamicGrouping() {
         notebookData.content.cells
       );
       // For each group node, start a websocket connection
-      initialNodes.forEach( async (node) => { // BUG - Promise returned in function argument where a void return was expected.
+      initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
@@ -161,15 +176,15 @@ function DynamicGrouping() {
       let position = project({
         x: event.clientX - wrapperBounds.x - 20,
         y: event.clientY - wrapperBounds.top - 20,
-      }); // TODO - change to not fixed value / export to constant
+      });
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
-                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined; // TODO - change to not fixed value / export to constant
+                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined;
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40, // TODO - change to not fixed value / export to constant
-        height: 40, // TODO - change to not fixed value / export to constant
+        width: 40,
+        height: 40,
       }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
@@ -203,8 +218,8 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 400, // TODO - change to not fixed value / export to constant
-            height: 40, // TODO - change to not fixed value / export to constant
+            width: 400,
+            height: 40,
           },
           groupNode
         ) ?? { x: 0, y: 0 };
@@ -240,7 +255,6 @@ function DynamicGrouping() {
         /* if dragged node has any intersections on DragStop we need to 
         move it and its connected node to the group node this is not 
         activated if we just drag node within the group node */
-        // OPTIMIZE - for now assume we always have two nodes connected, what if we have only code cell without output node?
         const nextNodes: Node[] = store.getState().getNodes() 
           .map((n) => {
             if (n.id === groupNode.id) {
@@ -258,8 +272,6 @@ function DynamicGrouping() {
             // if 🔒 lock is ✅ then update also connected node
             else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-              /* OPTIMIZE - get the difference between {x,y} of the node and the connected node at the DragStart
-                 OPTIMIZE - if there is space in group node ensure that the nodes are not overlapping */
               return {
                 ...n,
                 position,
@@ -285,7 +297,6 @@ function DynamicGrouping() {
       const connectedNode = store.getState().getNodes()
                               .find(n => n.id === connectedNodeId);
       if (!connectedNode) {
-        // console.log("connectedNode not found");
         // update the data used in onNodeDrag and onNodeDragStop with default
         setOnDragStartData({
           nodePosition: node.position,
@@ -365,7 +376,6 @@ function DynamicGrouping() {
 
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
-    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
       <Alert variant="success" show={showSuccessAlert} onClose={() => setShowSuccessAlert(false)} dismissible>
         Notebook saved successfully!
@@ -373,7 +383,6 @@ function DynamicGrouping() {
     );
   };
   const ErrorAlert = () => {
-    // BUG - Do not define components during render. React will see a new component type on every render and destroy the entire subtree\u8217s DOM nodes and state. Instead, move this component definition out of the parent component \u8220DynamicGrouping\u8221 and pass data as props.
     return (
       <Alert variant="danger" show={showErrorAlert} onClose={() => setShowErrorAlert(false)} dismissible>
         Error saving notebook!

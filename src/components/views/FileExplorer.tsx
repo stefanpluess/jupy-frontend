@@ -1,8 +1,10 @@
+//COMMENT :: External modules/libraries
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { 
+  useEffect, 
+  useState 
+} from "react";
 import { useNavigate } from "react-router-dom";
-import { Content, Session, Kernelspecs } from "../../config/types";
-import "../../styles/views/FileExplorer.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFolder,
@@ -21,13 +23,41 @@ import {
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
 import Table from "react-bootstrap/Table";
-import Error from "../views/Error";
-import { Button, Form, DropdownButton, Dropdown } from "react-bootstrap";
-import { getKernelspecs, getSessions } from "../../helpers/utils";
+import { 
+  Button, 
+  Form, 
+  DropdownButton, 
+  Dropdown 
+} from "react-bootstrap";
+//COMMENT :: Internal modules HELPERS
+import { 
+  getKernelspecs, 
+  getSessions 
+} from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
+//COMMENT :: Internal modules CONFIG
+import { 
+  Content, 
+  Session,
+  Kernelspecs 
+} from "../../config/types";
 import { ID_LENGTH } from "../../config/constants";
-import CustomConfirmModal from "../ui/CustomConfirmModal";
+//COMMENT :: Internal modules UI
+import { CustomConfirmModal } from "../ui";
+//COMMENT :: Internal modules VIEWS
+import Error from "../views/Error";
+//COMMENT :: Styles
+import "../../styles/views/FileExplorer.scss";
+
+/**
+ *  A component that displays the contents of a directory and allows the user to:
+ *  - navigate through the directory, 
+ *  - create new files and folders, 
+ *  - rename and delete files and folders, 
+ *  - and open files for editing.
+ *  - see if a file has a running session and shut down the session
+ */
 
 export default function FileExplorer() {
   const navigate = useNavigate();
@@ -420,7 +450,7 @@ export default function FileExplorer() {
                             title={<><FontAwesomeIcon icon={faFileCirclePlus} /> Notebook</>}>
               {/* Iterate through kernelspecs */}
               {kernelspecs && Object.keys(kernelspecs).map((key: string) => (
-                <Dropdown.Item className="px-3" onClick={() => createNotebook()}>
+                <Dropdown.Item key = {key} className="px-3" onClick={() => createNotebook()}>
                   {kernelspecs[key].spec.display_name}
                 </Dropdown.Item>
               ))}
