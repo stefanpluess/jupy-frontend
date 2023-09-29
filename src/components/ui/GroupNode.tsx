@@ -1,4 +1,10 @@
-import { memo, useCallback, useEffect, useState } from "react";
+//COMMENT :: External modules/libraries
+import { 
+  memo, 
+  useCallback, 
+  useEffect, 
+  useState 
+} from "react";
 import {
   getRectOfNodes,
   Handle,
@@ -26,17 +32,41 @@ import {
   faForward,
   faCircleInfo,
 } from "@fortawesome/free-solid-svg-icons";
-import { 
-  useDetachNodes, useBubbleBranchClick, usePath, useDeleteOutput, useHasBusySuccessors, 
-  useHasBusyPredecessor, useResetExecCounts, useRunAll, useRemoveGroupNode } from "../../helpers/hooks";
-import { useWebSocketStore } from "../../helpers/websocket";
 import axios from "axios";
-import { startWebsocket, createSession, onInterrupt } from "../../helpers/websocket/websocketUtils";
-import CustomConfirmModal from "./CustomConfirmModal";
-import CustomInformationModal from "./CustomInformationModal";
-import useNodesStore from "../../helpers/nodesStore";
 import { v4 as uuidv4 } from "uuid";
-import { exportToJupyterNotebook, generateMessage, passParentState } from "../../helpers/utils";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
+import Spinner from 'react-bootstrap/Spinner';
+//COMMENT :: Internal modules HELPERS
+import { 
+  useDetachNodes, 
+  useBubbleBranchClick, 
+  usePath, 
+  useDeleteOutput, 
+  useHasBusySuccessors, 
+  useHasBusyPredecessor, 
+  useResetExecCounts, 
+  useRunAll, 
+  useRemoveGroupNode 
+} from "../../helpers/hooks";
+import { 
+  exportToJupyterNotebook, 
+  generateMessage, 
+  passParentState 
+} from "../../helpers/utils";
+import useNodesStore from "../../helpers/nodesStore";
+import { useWebSocketStore } from "../../helpers/websocket";
+import { 
+  startWebsocket, 
+  createSession, 
+  onInterrupt 
+} from "../../helpers/websocket/websocketUtils";
+//COMMENT :: Internal modules UI
+import { 
+  CustomConfirmModal, 
+  CustomInformationModal 
+} from "../ui";
+//COMMENT :: Internal modules CONFIG
 import {
   KERNEL_IDLE,
   KERNEL_INTERRUPTED,
@@ -46,21 +76,39 @@ import {
   MIN_HEIGHT_GROUP,
   PADDING
 } from "../../config/constants";
-import withReactContent from "sweetalert2-react-content";
-import Swal from "sweetalert2";
-import Spinner from 'react-bootstrap/Spinner';
+import {
+  lineStyle,
+  handleStyle,
+  initialModalStates,
+} from "../../config/config";
+import { InstalledPackages } from "../../config/types";
 
-const lineStyle = { borderColor: "white" }; // OPTIMIZE - externalize
-const handleStyle = { height: 8, width: 8 }; // OPTIMIZE - externalize
-const initialModalStates = { // OPTIMIZE - externalize
-  showConfirmModalRestart: false,
-  showConfirmModalShutdown: false,
-  showConfirmModalDelete: false,
-  showConfirmModalDetach: false,
-  showConfirmModalReconnect: false,
-  showConfirmModalRunAll: false,
-};
-
+/**
+ * Renders a group node on the canvas that allows a connection to the kernel in 
+ * order to execute code cells and may contain:
+ * - a number of simple nodes with or without the respecitve output nodes
+ * - a number of markdown nodes
+ *
+ * @param id The ID of the group node.
+ * @param data The data object of the group node - contains the websocket connection, session object, and predecessor
+ * 
+ *  It has functionalities like:
+ * - Websocket Connection: shows the status of the websocket connection and allows for code execution
+ * - Queueing: queue the execution of code cells
+ * - Kernel Info: shows information about the kernel and the installed packages
+ * - Knowledge Passing: allows for the passing of the kernel state from the parent to the child
+ * 
+ *  Toolbar above the node defines addtional functionalities like:
+ * - Delete Group: deletes the group node and all its child nodes
+ * - Delete Bubble: deletes the group node but keeps the child nodes
+ * - Branch Out: creates a new group node with the selected node as the predecessor
+ * - Restart Kernel: restarts the kernel
+ * - Shutdown Kernel: shuts down the kernel
+ * - Interrupt Kernel: interrupts the kernel
+ * - Reconnect Kernel: reconnects the kernel
+ * - Run All: runs all code cells in the group node
+ * - Export to Jupyter Notebook: exports the group node to a Jupyter Notebook
+ */
 
 function GroupNode({ id, data }: NodeProps) {
   const [nodeData, setNodeData] = useState(data);
@@ -75,9 +123,28 @@ function GroupNode({ id, data }: NodeProps) {
   const [isBranching, setIsBranching] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showKernelInfo, setShowKernelInfo] = useState(false);
-  const [installedPackages, setInstalledPackages] = useState({});
+  const [installedPackages, setInstalledPackages] = useState({} as InstalledPackages);
   const detachNodes = useDetachNodes();
   const removeGroupNode = useRemoveGroupNode();
+  const hasBusySucc = useHasBusySuccessors();
+  const hasBusyPred = useHasBusyPredecessor();
+  // INFO :: running ws and parents influence children functionality
+  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id]);
+  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? false);
+  const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
+  const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
+  // INFO :: 0️⃣ empty output type functionality
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
+  const executionState = useNodesStore((state) => state.groupNodesExecutionStates[id]); // can be undefined
+  const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
+  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
+  const deleteOutput = useDeleteOutput();
+  // INFO :: 🛑INTERRUPT KERNEL
+  const clearQueue = useNodesStore((state) => state.clearQueue);
+  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+  const resetExecCounts = useResetExecCounts();
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -100,25 +167,6 @@ function GroupNode({ id, data }: NodeProps) {
       };
     }
   }, isEqual);
-
-  // INFO :: running ws and parents influence children functionality
-  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id]);
-  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? false);
-  const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
-  const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
-
-// INFO :: 0️⃣ empty output type functionality
-  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
-
-  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
-  const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
-  const executionState = useNodesStore((state) => state.groupNodesExecutionStates[id]); // can be undefined
-  const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
-  const setCellIdToMsgId = useWebSocketStore((state) => state.setCellIdToMsgId);
-  const deleteOutput = useDeleteOutput();
-
-  const hasBusySucc = useHasBusySuccessors();
-  const hasBusyPred = useHasBusyPredecessor();
 
   // initially, set the ws state to true and execution state to IDLE (only needed bc sometimes, it's not immediately set)
   useEffect(() => {
@@ -333,9 +381,6 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   // INFO :: 🛑INTERRUPT KERNEL
-  const clearQueue = useNodesStore((state) => state.clearQueue);
-  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
-  const resetExecCounts = useResetExecCounts();
   const interruptKernel = () => {
     if (wsRunning && executionState && executionState.state !== KERNEL_IDLE) {
       onInterrupt(token, data.session.kernel.id);
@@ -438,7 +483,6 @@ function GroupNode({ id, data }: NodeProps) {
   }, [wsRunning, executionState, hasBusySucc, hasBusyPred]);
 
   return (
-    // <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minWidth: '100%', minHeight: '100%' }}></div>
      <div> 
       {displayExecutionState()}
       <NodeResizer

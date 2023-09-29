@@ -17,6 +17,7 @@ import { XYPosition } from "reactflow";
  * - NotebookOutput
  * - Kernel
  * - Session
+ * - InstalledPackages
  */
 export type ExecutionCount = {
     msg_id: string;
@@ -173,3 +174,7 @@ export type Session = {
         name: string;
     };
 };
+
+export type InstalledPackages = {
+    [key: string]: string;
+}

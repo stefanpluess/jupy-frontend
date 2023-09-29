@@ -1,15 +1,24 @@
+//COMMENT :: External modules/libraries
+import { 
+  DragEvent, 
+  useEffect, 
+  useState 
+} from "react";
+import { 
+  Node, 
+  Edge 
+} from "reactflow";
 import {
   faSave,
   faToggleOff,
   faToggleOn,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DragEvent, useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
-import { Node, Edge } from "reactflow";
+import { shallow } from "zustand/shallow";
+//COMMENT :: Internal modules HELPERS
 import { saveNotebook } from "../../helpers/utils";
 import { usePath } from "../../helpers/hooks";
-import { shallow } from "zustand/shallow";
 import { selectorHome, useWebSocketStore } from "../../helpers/websocket";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
@@ -23,6 +32,15 @@ type SidebarProps = {
   setShowSuccessAlert: any;
   setShowErrorAlert: any;
 };
+
+/**
+ * Sidebar component that displays a list of draggable nodes and provides functionality 
+ * for autosaving and manual saving of the current state of the nodes and edges.
+ * @param nodes - An array of Node objects representing the nodes present on the canvas.
+ * @param edges - An array of Edge objects representing the edges present on the canvas.
+ * @param setShowSuccessAlert - A function to set the state of the success alert.
+ * @param setShowErrorAlert - A function to set the state of the error alert.
+ */
 
 const Sidebar = ({
   nodes,
@@ -106,7 +124,6 @@ const Sidebar = ({
         <button
           title="Activate Autosave"
           onClick={changeAutoSave}
-          // className="fa-regular fa-toggle-off"
           className="sliderOff"
         >
           <div className="autoSave">OFF</div>
@@ -117,7 +134,6 @@ const Sidebar = ({
         <button
           title="Deactivate Autosave"
           onClick={changeAutoSave}
-          //className="fa-regular fa-toggle-on"
           className="sliderOn"
         >
           <div className="autoSave">ON</div>

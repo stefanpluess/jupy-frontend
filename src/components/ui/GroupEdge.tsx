@@ -1,13 +1,42 @@
-import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath } from 'reactflow';
-import "../../styles/ui/canvas.scss";
-import useNodesStore from '../../helpers/nodesStore';
-import { useEffect, useState } from 'react';
+//COMMENT :: External modules/libraries
+import { 
+  BaseEdge, 
+  EdgeLabelRenderer, 
+  EdgeProps, 
+  getBezierPath 
+} from 'reactflow';
+import { 
+  useEffect, 
+  useState 
+} from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScissors, faLink } from "@fortawesome/free-solid-svg-icons";
+//COMMENT :: Internal modules CONFIG
 import { 
   KERNEL_BUSY_FROM_PARENT 
 } from '../../config/constants';
+//COMMENT :: Internal modules HELPERS
 import { useHasBusyPredecessor } from '../../helpers/hooks';
+import useNodesStore from '../../helpers/nodesStore';
+//COMMENT :: Styles
+import "../../styles/ui/canvas.scss";
+
+/**
+ * Renders a group edge between two group nodes in a React Flow diagram.
+ * It has the functionality to decide whether the parent group node node should 
+ * pass its state to the child node. This is done by clicking on the icon of the edge.
+ * @param id - The ID of the edge.
+ * @param source - The ID of the source node.
+ * @param target - The ID of the target node.
+ * @param sourceX - The X coordinate of the source node.
+ * @param sourceY - The Y coordinate of the source node.
+ * @param targetX - The X coordinate of the target node.
+ * @param targetY - The Y coordinate of the target node.
+ * @param sourcePosition - The position of the source node.
+ * @param targetPosition - The position of the target node.
+ * @param style - The style of the edge.
+ * @param markerEnd - The marker at the end of the edge.
+ */
 
 export default function GroupEdge({
   id,

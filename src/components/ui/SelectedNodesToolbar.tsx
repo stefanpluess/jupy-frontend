@@ -1,16 +1,56 @@
-import { useNodes, Node, getRectOfNodes, NodeToolbar, useStoreApi, useReactFlow } from 'reactflow';
-import {GROUP_NODE, EXTENT_PARENT, PADDING, NORMAL_NODE, OUTPUT_NODE} from '../../config/constants';
-import { getConnectedNodeId, getId } from '../../helpers/utils';
-import { usePath, useRemoveGroupNode } from '../../helpers/hooks';
+//COMMENT :: External modules/libraries
+import { 
+  useCallback, 
+  useState 
+} from 'react';
+import { 
+  useNodes, 
+  Node, 
+  getRectOfNodes, 
+  NodeToolbar, 
+  useStoreApi, 
+  useReactFlow 
+} from 'reactflow';
 import { shallow } from 'zustand/shallow';
-import { useWebSocketStore, createSession, selectorBubbleBranch } from '../../helpers/websocket';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faObjectGroup, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
-import CustomConfirmModal from '../ui/CustomConfirmModal';
+import { 
+  faObjectGroup, 
+  faTrashAlt 
+} from '@fortawesome/free-solid-svg-icons';
 import withReactContent from "sweetalert2-react-content";
 import Swal from "sweetalert2";
-import { useCallback, useState } from 'react';
+//COMMENT :: Internal modules HELPERS
+import { 
+  getConnectedNodeId, 
+  getId 
+} from '../../helpers/utils';
+import { 
+  usePath, 
+  useRemoveGroupNode 
+} from '../../helpers/hooks';
+import { 
+  useWebSocketStore, 
+  createSession, 
+  selectorBubbleBranch 
+} from '../../helpers/websocket';
 import useNodesStore from '../../helpers/nodesStore';
+//COMMENT :: Internal modules UI
+import CustomConfirmModal from '../ui/CustomConfirmModal';
+//COMMENT :: Internal modules CONFIG
+import {
+  GROUP_NODE, 
+  EXTENT_PARENT, 
+  PADDING, 
+  NORMAL_NODE, 
+  OUTPUT_NODE
+} from '../../config/constants';
+
+/**
+ * This component renders a toolbar for selected nodes on the canvas space.
+ * Selection is done via holding SHIFT + mouse click and dragging a selection box.
+ * It allows the user to group selected nodes into a parent group node or delete them.
+ * It also handles websocket connections and sessions for group nodes.
+ */
 
 export default function SelectedNodesToolbar() {
   const nodes = useNodes();

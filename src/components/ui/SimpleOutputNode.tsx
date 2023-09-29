@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+//COMMENT :: External modules/libraries
+import { 
+  useState, 
+  useEffect, 
+  useRef 
+} from "react";
 import { memo } from "react";
 import {
   Handle,
@@ -16,16 +21,32 @@ import {
   faTriangleExclamation,
   faCheck
 } from "@fortawesome/free-solid-svg-icons";
-import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
-import useNodesStore from "../../helpers/nodesStore";
-import { getConnectedNodeId } from "../../helpers/utils";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { OutputNodeData } from "../../config/types";
 import * as clipboard from "clipboard-polyfill";
+//COMMENT :: Internal modules HELPERS
+import { 
+  useDetachNodes, 
+  useResizeBoundaries 
+} from "../../helpers/hooks";
+import useNodesStore from "../../helpers/nodesStore";
+import { getConnectedNodeId } from "../../helpers/utils";
+//COMMENT :: Internal modules CONFIG
+import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE } from "../../config/constants";
-import ResizeIcon from "./ResizeIcon";
+//COMMENT :: Internal modules UI
+import { ResizeIcon} from "../ui";
 
+/**
+ * A React component that represents an output node on the canvas.
+ * it is responsible for rendering the output of the code cell correctly.
+ * @param id The ID of the node.
+ * @param data The data associated with the node - in this case, the outputs.
+ * It has functionalities like:
+ * - Detaching the ouputd node from the parent group cell when edge is unlocked.
+ * - Copying the output to clipboard.
+ * - Saving the output as image.
+ */
 
 function SimpleOutputNode({
   id,

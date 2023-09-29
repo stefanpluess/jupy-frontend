@@ -1,5 +1,12 @@
 import { memo } from "react";
 
+/**
+ * Renders a resize icon as an SVG element.
+ * This icon is used in SimpleNode, MarkdownNode, 
+ * and SimpleOutputNode components inside NodeResizeControl.
+ * @param isSmaller - determines whether to render a smaller version of the icon.
+ */
+
 function ResizeIcon(
     // add a boolean as a param
     { isSmaller }: { isSmaller?: boolean }

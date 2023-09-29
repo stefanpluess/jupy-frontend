@@ -1,5 +1,9 @@
-import { useState, useCallback } from "react";
-import { memo } from "react";
+//COMMENT :: External modules/libraries
+import { 
+  useState, 
+  useCallback, 
+  memo 
+} from "react";
 import {
   NodeToolbar,
   NodeProps,
@@ -16,11 +20,18 @@ import {
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
+//COMMENT :: Internal modules
+import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import { CONTROL_STLYE, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
+
+/**
+ * A React component that represents a Markdown node used in the Home component.
+ * @param id The unique identifier of the node.
+ * @param data The data associated with the node - code and editMode.
+ */
 
 function MarkdownNode({ id, data }: NodeProps) {
   const hasParent = useStore(
@@ -129,14 +140,12 @@ function MarkdownNode({ id, data }: NodeProps) {
                 }
               }}
               style={{ textAlign: "left" }}
-              // TODO - export options to config file
               options={{
                 padding: { top: 3, bottom: 3 },
                 theme: "vs-dark",
                 selectOnLineNumbers: true,
                 roundedSelection: true,
                 automaticLayout: true,
-                // cursorStyle: 'line',
                 lineNumbersMinChars: 3,
                 lineNumbers: "on",
                 folding: false,
@@ -144,7 +153,6 @@ function MarkdownNode({ id, data }: NodeProps) {
                 scrollBeyondLastColumn: 0,
                 fontSize: 10,
                 wordWrap: "off",
-                // wrappingIndent: 'none',
                 minimap: { enabled: false },
                 renderLineHighlightOnlyWhenFocus: true,
                 scrollbar: {

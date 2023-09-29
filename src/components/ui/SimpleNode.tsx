@@ -1,3 +1,4 @@
+//COMMENT :: External modules/libraries
 import React, {
   useState,
   useEffect,
@@ -34,14 +35,30 @@ import {
 import MonacoEditor from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import useAddComment from "../../helpers/hooks/useAddComment";
-import { useDetachNodes, useExecuteOnSuccessors, useHasBusyPredecessor, useHasBusySuccessors, useInsertOutput, useResetExecCounts, useResizeBoundaries } from "../../helpers/hooks";
-import { analyzeCode, getConnectedNodeId } from "../../helpers/utils";
+//COMMENT :: Internal modules HELPERS
+import { 
+  useDetachNodes, 
+  useExecuteOnSuccessors, 
+  useHasBusyPredecessor, 
+  useHasBusySuccessors, 
+  useInsertOutput, 
+  useResetExecCounts, 
+  useResizeBoundaries,
+  useAddComment,
+  useDuplicateCell,
+  useAnalyzeStaleState
+} from "../../helpers/hooks";
+import { 
+  analyzeCode, 
+  getConnectedNodeId 
+} from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
-import useDuplicateCell from "../../helpers/hooks/useDuplicateCell";
+import { 
+  useWebSocketStore, 
+  onInterrupt 
+} from "../../helpers/websocket";
+//COMMENT :: Internal modules CONFIG
 import { OutputNodeData } from "../../config/types";
-import { useWebSocketStore } from "../../helpers/websocket";
-import { onInterrupt } from "../../helpers/websocket/websocketUtils";
 import {
   KERNEL_BUSY_FROM_PARENT,
   KERNEL_IDLE,
@@ -51,9 +68,22 @@ import {
   MIN_HEIGHT,
   CONTROL_STLYE
 } from "../../config/constants";
-import ResizeIcon from "./ResizeIcon";
-import useAnalyzeStaleState from "../../helpers/hooks/useAnalyzeStaleState";
+//COMMENT :: Internal modules UI
+import { ResizeIcon} from "../ui";
 
+/**
+ * A React component that represents a code cell node on the canvas.
+ * @param id - The unique identifier of the node.
+ * @param data - The data associated with the node - in this case the code.
+ * It has functionalities like:
+ * - run code
+ * - interrupt kernel
+ * - lock/unlock node
+ * - delete node
+ * - duplicate node
+ * - detach node
+ * - stale state indicator
+ */
 
 function SimpleNode({ id, data }: NodeProps) {
   const { deleteElements, getNode } = useReactFlow();
@@ -69,12 +99,30 @@ function SimpleNode({ id, data }: NodeProps) {
   const executionCount = useNodesStore((state) => state.executionCounts[id]?.execCount); // can be undefined
   const setExecutionCount = useNodesStore((state) => state.setExecutionCount);
   // INFO :: 😴 STALE STATE
-  const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
-  const setUsedIdentifiersForGroupNodes = useNodesStore((state) => state.setUsedIdentifiersForGroupNodes);
-  const deleteNodeFromUsedIdentifiersForGroupNodes = useNodesStore((state) => state.deleteNodeFromUsedIdentifiersForGroupNodes);
+  const deleteNodeFromUsedIdentifiersForGroupNodes = useNodesStore(
+    (state) => state.deleteNodeFromUsedIdentifiersForGroupNodes
+  );
   const staleState = useNodesStore((state) => state.staleState[id] ?? false);
   const setStaleState = useNodesStore((state) => state.setStaleState);
   const analyzeStaleState = useAnalyzeStaleState(id);
+  // INFO :: 0️⃣ empty output type functionality
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+  const addToQueue = useNodesStore((state) => state.addToQueue);
+  const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
+  const setExecutionStateForGroupNode = useNodesStore(
+    (state) => state.setExecutionStateForGroupNode
+  );
+  // INFO :: 🛑INTERRUPT KERNEL
+  const clearQueue = useNodesStore((state) => state.clearQueue);
+  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
+  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
+  // INFO :: 🔒lock functionality
+  const [transitioning, setTransitioning] = useState(false);
+  const toggleLock = useNodesStore((state) => state.toggleLock);
+  const isLocked = useNodesStore((state) => state.locks[id]);
+  // INFO :: DUPLICATE CELL
+  const handleDuplicateCell = useDuplicateCell(id);
   
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
@@ -98,18 +146,7 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
-  // INFO :: 0️⃣ empty output type functionality
-  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
-
-  // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
-  const addToQueue = useNodesStore((state) => state.addToQueue);
-  const getTopOfQueue = useNodesStore((state) => state.getTopOfQueue);
-  const removeFromQueue = useNodesStore((state) => state.removeFromQueue);
-  const setExecutionStateForGroupNode = useNodesStore(
-    (state) => state.setExecutionStateForGroupNode
-  );
-
-  // INFO :: 🚀 EXECUTION COUNT
+  // INFO :: 🚀 EXECUTION COUNT - updating the execution count
   useEffect(() => {
     const updateExecCount = async () => {
       setExecutionCount(id, data?.executionCount.execCount);
@@ -122,52 +159,11 @@ function SimpleNode({ id, data }: NodeProps) {
         removeFromQueue(groupId);
       }
       if (outputs && outputs.length === 0) {
-        setOutputTypeEmpty(id + "_output", true); // INFO :: 0️⃣ empty output type functionality
+        // INFO :: 0️⃣ empty output type functionality
+        setOutputTypeEmpty(id + "_output", true);
       }
     };
-    // const processStaleState = async () => {
-    //   if (parent){
-    //     const parentId = parent.id;
-    //     const queueTop = getTopOfQueue(parentId);
-    //     if (queueTop) {
-    //       // if current node has a stale state mark it as not stale as we just executed it
-    //       setStaleState(id, false);
-    //       const [nodeId, code] = queueTop;
-    //       const responseData = await analyzeCode(token, code); 
-    //       const assignedVariables: string[] = Object.keys(responseData.assigned);
-    //       const uniqueCombinedList = Array.from(new Set([...responseData.used, ...assignedVariables]));
-    //       // responseData.assigned is {}, responseData.used is []
-    //       /* alternative DICT approach:
-    //           comapre values of current code cell to its previous state from the store
-    //           procced if different*/
-    //       const dictUsedIdentifiersPerCell = getUsedIdentifiersForGroupNodes(parentId);
-    //       if (Object.keys(dictUsedIdentifiersPerCell).length === 0){
-    //         // there are no variables used across group node -> no need to check for stale nodes
-    //         console.log("No variables used in any other node.");
-    //         // update variablesUsedInGroupNodes
-    //         setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
-    //       }
-    //       else{
-    //         // filter out the current node from the dictUsedIdentifiersPerCell
-    //         delete dictUsedIdentifiersPerCell[nodeId];
-    //         // check if any variable that was assigned in the current node is used in any other node
-    //         const staleNodeIds: string[] = [];
-    //         for (const nodeId in dictUsedIdentifiersPerCell) {
-    //           const variablesUsedInNode = dictUsedIdentifiersPerCell[nodeId];
-    //           const hasCommonElement = assignedVariables.some(variable => variablesUsedInNode.includes(variable));
-    //           if (hasCommonElement) staleNodeIds.push(nodeId);
-    //         }
-    //         // update variablesUsedInGroupNodes
-    //         setUsedIdentifiersForGroupNodes(parentId, id, responseData.used);
-    //         // mark stale nodes
-    //         console.log("Marking nodes as stale: ", staleNodeIds);
-    //         staleNodeIds.forEach(nodeId => setStaleState(nodeId, true));
-    //       }
-    //     }
-    //   }
-    // };
-    // processStaleState();
-    analyzeStaleState(); // externalized version of processStaleState()
+    analyzeStaleState(); // INFO :: 😴 STALE STATE
     updateExecCount();
   }, [data?.executionCount]);
 
@@ -183,13 +179,9 @@ function SimpleNode({ id, data }: NodeProps) {
   }, [parent, data.code, addToQueue, insertOutput]);
 
   // INFO :: 🛑INTERRUPT KERNEL
-  const clearQueue = useNodesStore((state) => state.clearQueue);
-  const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
-  const parentExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[parentNode!]); // can be undefined
   const interruptKernel = useCallback(() => {
     if (parent) {
       onInterrupt(token, parent.data.session.kernel.id);
-      // OPTIMIZE - should it behave differently for group node and simple node?
       stopFurtherExecution(true);
     } else {
       console.warn("interruptKernel: parent is undefined");
@@ -206,7 +198,6 @@ function SimpleNode({ id, data }: NodeProps) {
     if (was_interrupted) setExecutionStateForGroupNode(parent.id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
     resetExecCounts(parent.id, nodeRunning);
   }, [parent, clearQueue, setExecutionStateForGroupNode, hasError]);
-
 
  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
@@ -275,15 +266,11 @@ function SimpleNode({ id, data }: NodeProps) {
   };
 
   // INFO :: DUPLICATE CELL
-  const handleDuplicateCell = useDuplicateCell(id);
   const duplicateCell = () => {
     handleDuplicateCell();
   };
 
   // INFO :: 🔒lock functionality
-  const [transitioning, setTransitioning] = useState(false);
-  const toggleLock = useNodesStore((state) => state.toggleLock);
-  const isLocked = useNodesStore((state) => state.locks[id]);
   const runLockUnlock = () => {
     setTransitioning(true);
     toggleLock(id);
@@ -371,14 +358,12 @@ function SimpleNode({ id, data }: NodeProps) {
               }
             }}
             style={{ textAlign: "left" }}
-            // TODO - export options to config file
             options={{
               padding: { top: 3, bottom: 3 },
               theme: "vs-dark",
               selectOnLineNumbers: true,
               roundedSelection: true,
               automaticLayout: true,
-              // cursorStyle: 'line',
               lineNumbersMinChars: 3,
               lineNumbers: "on",
               folding: false,
@@ -386,7 +371,6 @@ function SimpleNode({ id, data }: NodeProps) {
               scrollBeyondLastColumn: 0,
               fontSize: 10,
               wordWrap: "on",
-              // wrappingIndent: 'none',
               minimap: { enabled: false },
               renderLineHighlightOnlyWhenFocus: true,
               scrollbar: {

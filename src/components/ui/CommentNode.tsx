@@ -8,6 +8,13 @@ interface CommentNodeProps {
   onSaveComment: (comment: string) => void;
 }
 
+/**
+ * CommentNode component displays a textarea and a button to save the comment for SimpleNode, 
+ * meant to be used in the SimpleNode toolbar.
+ * @param nodeId - The id of the node.
+ * @param onClose - A function to close the comment node.
+ * @param onSaveComment - A function to save the comment.
+ */
 const CommentNode: React.FC<CommentNodeProps> = ({
   nodeId,
   onClose,
