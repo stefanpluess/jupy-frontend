@@ -388,8 +388,6 @@ function GroupNode({ id, data }: NodeProps) {
       const nodeRunning = getExecutionStateForGroupNode(id).nodeId;
       setExecutionStateForGroupNode(id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
       resetExecCounts(id, nodeRunning);
-    } else {
-      console.log("executionState.state: ", executionState.state)
     }
   };
 

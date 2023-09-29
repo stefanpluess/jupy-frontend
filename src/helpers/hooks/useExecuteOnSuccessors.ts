@@ -10,9 +10,10 @@ import {
 import { toast } from 'react-toastify';
 
 /**
- * Custom React hook that returns a function to execute a code on all successors of a given node.
- * @returns {Function} A function that takes a node ID as argument and executes the code on all its successors.
+ * Custom React hook that returns a function that takes a node ID 
+ * as argument and executes the code on all its successors.
  */
+
 function useExecuteOnSuccessors() {
     const { getNode } = useReactFlow();
     const allQueues = useNodesStore((state) => state.queues);
@@ -24,7 +25,6 @@ function useExecuteOnSuccessors() {
     /**
      * Returns an array of all successors of a given node that are influenced by a group node.
      * @param {string} node_id - The ID of the node to get the successors of.
-     * @returns {string[]} An array of all successors of the given node that are influenced by a group node.
      */
     const influencedSuccessors = useCallback((node_id: string): string[] => {
       const influencedSuccs = [] as string[];
@@ -44,7 +44,6 @@ function useExecuteOnSuccessors() {
     /**
      * Executes a code on all successors of a given node.
      * @param {string} node_id - The ID of the node to execute the code on its successors.
-     * @returns {Promise<void>} A promise that resolves when the code is executed on all successors.
      */
     // INFO :: version1 -> each child is run and awaited separately
     const executeOnSuccessors = useCallback(async (node_id: string) => {
@@ -55,7 +54,7 @@ function useExecuteOnSuccessors() {
       const succsToSkip = [] as string[]; // skip succs of succs that had an error
       for (const succ of influencedSuccs) {
         if (succsToSkip.includes(succ)) continue;
-        console.log("run code " + code + " on successor: " + succ);
+        // console.log("run code " + code + " on successor: " + succ);
         const succNode = getNode(succ);
         const requestBody = {
           "code": code,

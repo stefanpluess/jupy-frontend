@@ -208,11 +208,11 @@ function SimpleNode({ id, data }: NodeProps) {
     if (isLocked) {
       // if locked then detach the SimpleNode and the OutputNode
       const outputNodeId = getConnectedNodeId(id);
-      console.log("run detach for " + id + " and " + outputNodeId + "!");
+      // console.log("run detach for " + id + " and " + outputNodeId + "!");
       detachNodes([id, outputNodeId]);
     } else {
       // if unlocked then detach just the SimpleNode
-      console.log("run detach for " + id + "!");
+      // console.log("run detach for " + id + "!");
       detachNodes([id]);
     }
     // remove the node from the list of used identifiers for the group node
