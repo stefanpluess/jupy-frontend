@@ -44,6 +44,12 @@ npm run start-set-token
 ```
 You will be asked to enter the token from the backend.
 This will set the token in the `.env` file and start the project.
+To start the jupy-backend please refer to this [readme](https://github.com/Jupyter-Canvas/jupy-backend#readme)
+
+ℹ️ Please note that while it is feasible to start the application using a standard Jupyter Server, it may result in limited functionality. Certain features, such as branching, may not operate as expected in this mode.
+```bash
+jupyter server --NotebookApp.allow_origin='*'
+```
 
 ## 📝 Note
 If you plan to utilize the application in Safari, you're all set to proceed without any additional steps.
