@@ -73,6 +73,7 @@ import {
   proOptions,
   defaultEdgeOptions,
   onDragOver,
+  serverURL,
 } from "../../config/config";
 import {
   nodes as initialNodes,
@@ -136,7 +137,7 @@ function DynamicGrouping() {
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    axios.get(`http://localhost:8888/api/contents/${path}`).then((res) => {
+    axios.get(`${serverURL}/api/contents/${path}`).then((res) => {
       const notebookData = res.data;
       const { initialNodes, initialEdges } = createInitialElements(
         notebookData.content.cells

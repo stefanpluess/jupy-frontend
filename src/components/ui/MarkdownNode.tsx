@@ -51,6 +51,7 @@ function MarkdownNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
+  // INFO :: resizing logic
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = useStore((store) => {
     // isEqual needed for rerendering purposes

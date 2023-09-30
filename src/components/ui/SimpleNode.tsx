@@ -126,6 +126,7 @@ function SimpleNode({ id, data }: NodeProps) {
   
   const outputs = getNode(id + "_output")?.data.outputs;
   const [isHovered, setIsHovered] = useState(false);
+  // INFO :: resizing logic
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = useStore((store) => {
     // isEqual needed for rerendering purposes
@@ -190,7 +191,7 @@ function SimpleNode({ id, data }: NodeProps) {
 
   const resetExecCounts = useResetExecCounts();
 
-  /* In case en error appears / kernel was interrupted, stop the further execution (setting to "INTERRUPTED" will reset the execCounts of the stopped nodes) */
+  /* In case en error appears / kernel was interrupted, stop the further execution */
   const stopFurtherExecution = useCallback((was_interrupted: boolean) => {
     if (!parent) return;
     clearQueue(parent.id); // in case of interrupt: queue most likely was already cleared

@@ -17,6 +17,25 @@ type CustomConfirmModalProps = {
   variants?: string[];
 };
 
+/**
+ * A Custom Confirm Modal that can have up to 3 different confirm buttons
+ * with different onClick functions and different text. Mainly used in the
+ * GroupNode component.
+ * @param title the title of the modal
+ * @param message the message to be displayed in the modal
+ * @param show a boolean that determines whether the modal is shown or not
+ * @param denyText the text to be displayed in the deny button
+ * @param onHide the function to be called when the modal is hidden
+ * @param onConfirm the function to be called when the first confirm button is clicked
+ * @param confirmText the text to be displayed in the first confirm button
+ * @param onConfirm2 the function to be called when the second confirm button is clicked
+ * @param confirmText2 the text to be displayed in the second confirm button
+ * @param onConfirm3 the function to be called when the third confirm button is clicked
+ * @param confirmText3 the text to be displayed in the third confirm button
+ * @param variants the variants of the confirm buttons
+ * @constructor
+ * @return {JSX.Element}
+ */
 function CustomConfirmModal({
   title,
   message,

@@ -34,6 +34,11 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         const latestExecutionOutput = useWebSocketStore((state) => state.latestExecutionOutput);
         const cellIdToMsgId = useWebSocketStore((state) => state.cellIdToMsgId);
     */
+   
+    /**
+     * This useEffect is triggered whenever a websocket message updates the latestExecutionCount.
+     * It then fetches the corresponding cell_id and sets the execution count of that node in another state.
+     */
     useEffect(() => {
 		// do not trigger on first render
         if (firstRenderExecCount.current) {
@@ -54,7 +59,10 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         setExecCount(updatedExecCounts);
     }, [latestExecutionCount]);
 
-
+    /**
+     * This useEffect is triggered whenever a websocket message updates the latestExecutionOutput.
+     * It then fetches the corresponding cell_id and sets the outputs of that node in another state.
+     */
     useEffect(() => {
         if (firstRenderOutput.current) {
             firstRenderOutput.current = false;
@@ -79,6 +87,11 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
     }, [latestExecutionOutput]);
 
 
+    /** 
+     * This useEffect is triggered whenever the cellIdToOutputs state is updated.
+     * It then updates the data prop of the corresponding output node, which results in
+     * the node being rerendered with the new outputs.
+     */
     useEffect(() => {
         if (Object.keys(cellIdToOutputs).length === 0) return;
         // console.log("cellIdToOutputs changed: ", cellIdToOutputs)
@@ -89,7 +102,8 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         // go through all the nodes and set the outputs of the changed node
         setNodes((prevNodes) => {
             const updatedNodes = prevNodes.map((node) => {
-                // if the node.id has empty outputs, return the node while setting output to be empty (to fix edge case with long waiting outputs)
+                // if the node.id has empty outputs, return the node while setting output to be empty
+                // (to fix edge case with long waiting outputs)
                 if (cellIdToOutputs[node.id] && cellIdToOutputs[node.id].length === 0) {
                     return {
                         ...node,
@@ -125,7 +139,11 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         });
     }, [cellIdToOutputs]);
 
-
+    /**
+     * This useEffect is triggered whenever the execution count state is updated.
+     * It then updates the data prop of the corresponding node, which results in
+     * the node being rerendered with the new execution count.
+     */
     useEffect(() => {
         // console.log("execCount changed: ", execCount)
         const msg_id_execCount = latestExecutionCount.msg_id;

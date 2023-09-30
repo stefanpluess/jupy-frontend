@@ -66,6 +66,9 @@ function SimpleOutputNode({
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = getResizeBoundaries(id);
 
+  /**
+   * This useEffect is responsible for grouping the outputs of the code cell
+   */
   useEffect(() => {
     if (!data.outputs) return;
     // console.log(`OutputNode ${id}: `, data.outputs);
@@ -93,11 +96,9 @@ function SimpleOutputNode({
               ? "error"
               : "stream",
           timestamp: output.timestamp,
-          // containsBackslashB: false,
         };
         grouped.push(currentGroup);
       }
-      // if (output.output.includes("\b")) currentGroup.containsBackslashB = true;
       // in case of live updates (f.ex. training a model), \b is used to delete the previous output
       // display the output in a way that the \b is respected (removing from prevous output, replacing with '' in current output)
       const strippedOutput = output.output.split("\b");
@@ -109,6 +110,7 @@ function SimpleOutputNode({
         );
       }
 
+      // TODO :: correctly handle \r in output
       // before adding to the output, if a \r is present, remove everything before it from the end of currentGroup.output
       // const indexOfCarriageReturn = strippedOutput[indexOfCorrectOutput].indexOf("\r");
       // if (indexOfCarriageReturn >= 0) {
@@ -120,12 +122,12 @@ function SimpleOutputNode({
       // }
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
-    // grouped = grouped.filter(output => output.timestamp !== undefined);
     setGroupedOutputs(grouped);
   }, [data.outputs]);
 
   const onDetach = () => detachNodes([id]);
 
+  /* Method used to copy the selected (or all) outputs */
   const copyOutput = async (index: number = -1) => {
     // if index is -1, copy all outputs to clipboard
     if (index === -1) {
@@ -159,6 +161,7 @@ function SimpleOutputNode({
     }
   };
 
+  /* Method used for saving of images (convert b64 string to blob object) */
   function b64toBlob(
     b64Data: string,
     contentType = "image/png",
@@ -178,6 +181,7 @@ function SimpleOutputNode({
     return new Blob(byteArrays, { type: contentType });
   }
 
+  /* Method used to save the output (only in case of images) */
   const saveOutput = (index: number) => {
     // return if there is no output yet
     if (groupedOutputs[index]?.output === "") return;
@@ -212,6 +216,7 @@ function SimpleOutputNode({
     });
   };
 
+  /* Method used to get the html output */
   function getHtmlOutput(output: OutputNodeData) {
     if (output.isImage) {
       return '<img src="data:image/png;base64,' + output.output + '">';

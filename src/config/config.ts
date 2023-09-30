@@ -29,3 +29,8 @@ export const initialModalStates = {
   showConfirmModalReconnect: false,
   showConfirmModalRunAll: false,
 };
+
+// COMMENT - URL of the Jupyter Server
+const serverBase = "localhost:8888";
+export const serverURL = "http://" + serverBase;
+export const serverWSURL = "ws://" + serverBase;

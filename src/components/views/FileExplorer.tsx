@@ -49,6 +49,7 @@ import { CustomConfirmModal } from "../ui";
 import Error from "../views/Error";
 //COMMENT :: Styles
 import "../../styles/views/FileExplorer.scss";
+import { serverURL } from "../../config/config";
 
 /**
  *  A component that displays the contents of a directory and allows the user to:
@@ -56,7 +57,7 @@ import "../../styles/views/FileExplorer.scss";
  *  - create new files and folders, 
  *  - rename and delete files and folders, 
  *  - and open files for editing.
- *  - see if a file has a running session and shut down the session
+ *  - see if a file has running sessions and shut down those sessions
  */
 
 export default function FileExplorer() {
@@ -90,7 +91,7 @@ export default function FileExplorer() {
   const getContentsFromPath = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
-      .get(`http://localhost:8888/api/contents/${path}`)
+      .get(`${serverURL}/api/contents/${path}`)
       .then(async (res) => {
         const files: Content[] = res.data.content.map((file: Content) => ({
           name: file.name,
@@ -133,6 +134,7 @@ export default function FileExplorer() {
     return () => clearInterval(interval);
   }, [path]);
 
+  /* Check if a file has running sessions */
   const hasRunningSession = (
     file_path: string,
     session_path: string
@@ -166,6 +168,7 @@ export default function FileExplorer() {
     return "seconds ago";
   };
 
+  /* Display size in bytes, KB, MB or GB */
   const displayAsBytes = (size: number) => {
     if (size < 1000) return size + " B";
     if (size < 1000000) return (size / 1000).toFixed(2) + " KB";
@@ -173,10 +176,11 @@ export default function FileExplorer() {
     return (size / 1000000000).toFixed(2) + " GB";
   };
 
+  /* Create a new notebook in the current directory */
   const createNotebook = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
-      .post(`http://localhost:8888/api/contents/${path}`, { type: "notebook" })
+      .post(`${serverURL}/api/contents/${path}`, { type: "notebook" })
       .then((res) => {
         const newPath = res.data.path;
         openFile(newPath);
@@ -186,10 +190,11 @@ export default function FileExplorer() {
       });
   };
 
+  /* Duplicate a notebook in the current directory */
   const duplicateNotebook = async (file: Content) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
-      .post(`http://localhost:8888/api/contents/${path}`, { copy_from: file.path })
+      .post(`${serverURL}/api/contents/${path}`, { copy_from: file.path })
       .then((res) => {
         setTimeout(() => {
           getContentsFromPath();
@@ -205,10 +210,11 @@ export default function FileExplorer() {
     setShowConfirmModalDelete(true);
   }
 
+  /* Delete a file or folder */
   const deleteFile = async (file: Content) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
-      .delete(`http://localhost:8888/api/contents/${file.path}`)
+      .delete(`${serverURL}/api/contents/${file.path}`)
       .then((res) => {
         setTimeout(() => {
           getContentsFromPath();
@@ -220,11 +226,12 @@ export default function FileExplorer() {
     setShowConfirmModalDelete(false);
   }
 
+  /* Create a new folder in the current directory */
   const createFolder = async () => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     try {
       const response = await axios.post(
-        `http://localhost:8888/api/contents/${path}`,
+        `${serverURL}/api/contents/${path}`,
         {
           type: "directory",
         }
@@ -237,8 +244,9 @@ export default function FileExplorer() {
     }
   };
 
+  /* Open a notebook for editing */
   const openFile = (path: string) => {
-    const completePath = "http://localhost:3000/notebooks/" + path;
+    const completePath = 'http://localhost:3000/notebooks/' + path;
     window.open(completePath, "_blank");
     // wait for the session to be created before refreshing the page
     setTimeout(() => {
@@ -246,11 +254,12 @@ export default function FileExplorer() {
     }, 1000);
   };
 
+  /* Shut down all sessions for a file */
   const shutdownSessions = async (file: Content) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     setShuttingFiles([...shuttingFiles, file.path]);
     file.sessions?.forEach(async (session_id: string) => {
-      await axios.delete(`http://localhost:8888/api/sessions/${session_id}`);
+      await axios.delete(`${serverURL}/api/sessions/${session_id}`);
     });
     // wait for the sessions to be shut down before refreshing the page
     setTimeout(() => {
@@ -262,7 +271,7 @@ export default function FileExplorer() {
     console.log("Sessions shut down");
   };
 
-  // Sort function based on the current sort column and direction
+  /* Sort function based on the current sort column and direction */
   const sortFunction = (a: Content, b: Content) => {
     const columnA = a[sortColumn];
     const columnB = b[sortColumn];
@@ -281,7 +290,7 @@ export default function FileExplorer() {
     }
   };
 
-  // Function to handle header click and trigger sorting
+  /* Function to handle header click and trigger sorting */
   const handleSort = (column: string) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -291,7 +300,7 @@ export default function FileExplorer() {
     }
   };
 
-  // Icon to indicate sorting direction
+  /* Icon to indicate sorting direction */
   const sortIcon = (column: string) => {
     if (column === sortColumn)
       return sortDirection === "asc" ? (
@@ -311,6 +320,7 @@ export default function FileExplorer() {
 
   const stopRenaming = () => setRenamingInfo({ fileToRename: null, newFileName: "" });  
 
+  /* Rename a file or folder */
   const handleRename = async () => {
     const { fileToRename, newFileName } = renamingInfo;
     if (!fileToRename) return;
@@ -322,7 +332,7 @@ export default function FileExplorer() {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     const pathToAdd = path === "" ? "" : "/" + path;
     await axios
-      .patch(`http://localhost:8888/api/contents${pathToAdd}/${fileToRename.name}`, {
+      .patch(`${serverURL}/api/contents${pathToAdd}/${fileToRename.name}`, {
         path: pathToAdd + "/" + newFileName
       })
       .then((res) => {
@@ -337,6 +347,7 @@ export default function FileExplorer() {
       stopRenaming();
   };
 
+  /* Render the rename button and input field */
   const renderRenameButtonAndInput = (file: Content) => {
     if (renamingInfo.fileToRename?.name === file.name) {
       return (
@@ -386,6 +397,7 @@ export default function FileExplorer() {
     }
   };
 
+  /* Render the copy button for notebooks */
   const copyButton = (file: Content) => {
     return (
       <Button
@@ -400,6 +412,7 @@ export default function FileExplorer() {
     )
   }
 
+  /* Render the delete button for files and folders */
   const deleteButton = (file: Content) => {
     return (
       <Button
@@ -413,6 +426,7 @@ export default function FileExplorer() {
     )
   }
 
+  /* Function to convert a string and make the first letter uppercase */
   const firstLetterUpperCase = (text: string) => {
     if (!text) return;
     return text.charAt(0).toUpperCase() + text.slice(1)

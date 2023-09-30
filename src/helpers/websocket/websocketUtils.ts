@@ -2,6 +2,7 @@ import axios from 'axios';
 import { removeEscapeCodes } from '../utils';
 import { WebSocketState } from './webSocketStore';
 import { Session } from '../../config/types';
+import { serverURL, serverWSURL } from '../../config/config';
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];
@@ -31,7 +32,7 @@ export async function startSession(token: string, path: string): Promise<Session
             "name": "python3"
         },
     }
-    const res = await axios.post('http://localhost:8888/api/sessions', requestBody)
+    const res = await axios.post(`${serverURL}/api/sessions`, requestBody)
     const session: Session = res.data
     return session
 }
@@ -39,7 +40,7 @@ export async function startSession(token: string, path: string): Promise<Session
 export async function startWebsocket(session_id: string, kernel_id: string, token: string, 
                                      setLatestExecutionOutput: setLEOType,
                                      setLatestExecutionCount: setLECType): Promise<WebSocket> {
-    const websocketUrl = `ws://localhost:8888/api/kernels/${kernel_id}/channels?
+    const websocketUrl = `${serverWSURL}/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);
     // WebSocket event handlers
@@ -129,5 +130,5 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
 export const onInterrupt = async (token: string, kernelId: string) => {
     console.log("Interrupting kernel...");
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${kernelId}/interrupt`)
+    await axios.post(`${serverURL}/api/kernels/${kernelId}/interrupt`)
 };

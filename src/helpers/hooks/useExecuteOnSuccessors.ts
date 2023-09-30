@@ -8,6 +8,7 @@ import {
   KERNEL_BUSY_FROM_PARENT 
 } from '../../config/constants';
 import { toast } from 'react-toastify';
+import { serverURL } from '../../config/config';
 
 /**
  * Custom React hook that returns a function that takes a node ID 
@@ -62,7 +63,7 @@ function useExecuteOnSuccessors() {
         }
         setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        await axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
+        await axios.post(`${serverURL}/canvas_ext/execute`, requestBody)
         .then((res) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
           if (res.data.status === "error") {
@@ -95,14 +96,14 @@ function useExecuteOnSuccessors() {
     //     setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
     //     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     //     axiosRequests.push(
-    //       axios.post('http://localhost:8888/canvas_ext/execute', requestBody)
+    //       axios.post(`${serverURL}/canvas_ext/execute`, requestBody)
     //         .then((res) => {
     //           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
     //         })
     //         .catch((err) => {
     //           console.error(err);
     //           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
-    //           // TODO: show to the user that there was an error
+    //           // show to the user that there was an error
     //         })
     //     );
     //   }

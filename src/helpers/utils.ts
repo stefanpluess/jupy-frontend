@@ -2,6 +2,7 @@ import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
 import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
+import { serverURL } from '../config/config';
 
 
 /** Method to create the nodes given the JSON upon rendering a notebook for the first time */
@@ -279,7 +280,7 @@ export async function saveNotebook(nodes: Node[], edges: Edge[], token: string,
 /** Method to update the notebook given the data */
 export async function updateNotebook(token: string, notebookData: NotebookPUT, path: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  axios.put(`http://localhost:8888/api/contents/${path}`, notebookData)
+  axios.put(`${serverURL}/api/contents/${path}`, notebookData)
     .then((res) => console.log('notebook updated'))
     .catch((err) => console.log(err));
 }
@@ -287,35 +288,35 @@ export async function updateNotebook(token: string, notebookData: NotebookPUT, p
 /** Method to get all running sessions */
 export async function getSessions(token: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  const res = await axios.get('http://localhost:8888/api/sessions')
+  const res = await axios.get(`${serverURL}/api/sessions`)
   return res.data
 }
 
 /** Method to get the kernelspecs */
 export async function getKernelspecs(token: string) {
   axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  const res = await axios.get('http://localhost:8888/api/kernelspecs')
+  const res = await axios.get(`${serverURL}/api/kernelspecs`)
   return res.data;
 }
 
 /** Method to pass the parent state to a child */
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  await axios.post('http://localhost:8888/canvas_ext/export', { 'kernel_id': parent_kernel_id })
+  await axios.post(`${serverURL}/canvas_ext/export`, { 'kernel_id': parent_kernel_id })
     .catch((err) => console.log(err));
   // wait for 200ms to ensure the state was actually saved
   await new Promise(resolve => setTimeout(resolve, 200));
-  await axios.post('http://localhost:8888/canvas_ext/import', { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+  await axios.post(`${serverURL}/canvas_ext/import`, { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
     .catch((err) => console.log(err));
   // delete the dill file that was saved
-  await axios.delete(`http://localhost:8888/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
+  await axios.delete(`${serverURL}/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
     .catch((err) => console.log(err));
 }
 
 /** Method to analyze code (static analysis) after executing a code cell */
 export async function analyzeCode(token: string, code: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  return axios.post('http://localhost:8888/canvas_ext/analyze', { 'code': code, 'use_dict': false })
+  return axios.post(`${serverURL}/canvas_ext/analyze`, { 'code': code, 'use_dict': false })
     .then(res => res.data)
     .catch(error => {
       console.error("Error analyzing code:", error);

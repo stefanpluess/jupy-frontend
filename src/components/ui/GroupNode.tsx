@@ -80,6 +80,7 @@ import {
   lineStyle,
   handleStyle,
   initialModalStates,
+  serverURL,
 } from "../../config/config";
 import { InstalledPackages } from "../../config/types";
 
@@ -289,7 +290,7 @@ function GroupNode({ id, data }: NodeProps) {
   const restartKernel = async (fetchParent: boolean = false) => {
     console.log('Restarting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`http://localhost:8888/api/kernels/${nodeData.session.kernel.id}/restart`)
+    await axios.post(`${serverURL}/api/kernels/${nodeData.session.kernel.id}/restart`)
     // and also restart the websocket connection
     nodeData.ws.close();
     data.ws.close();
@@ -334,7 +335,7 @@ function GroupNode({ id, data }: NodeProps) {
     nodeData.ws.close();
     data.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete('http://localhost:8888/api/sessions/'+nodeData.session.id);
+    await axios.delete(`${serverURL}/api/sessions/`+nodeData.session.id);
     setModalState("showConfirmModalShutdown", false);
   };
 
@@ -401,7 +402,7 @@ function GroupNode({ id, data }: NodeProps) {
     setInstalledPackages({});
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     const requestBody = { "kernel_id": data.session?.kernel.id };
-    const response = await axios.post('http://localhost:8888/canvas_ext/installed', requestBody);
+    const response = await axios.post(`${serverURL}/canvas_ext/installed`, requestBody);
     setInstalledPackages(response.data);
   }
 

@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
 import { useWebSocketStore } from '../websocket';
+import { serverURL } from '../../config/config';
 
 /**
  * Returns a function to remove a group node from the React Flow graph, ensuring that predecessors 
@@ -39,7 +40,7 @@ function useRemoveGroupNode() {
         if (wsRunning) {
             groupNode.data.ws.close();
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-            await axios.delete('http://localhost:8888/api/sessions/'+groupNode.data.session.id)
+            await axios.delete(`${serverURL}/api/sessions/`+ groupNode.data.session.id)
         }
     }, [getNode, deleteElements, groupNodesWsStates, token]);
 
