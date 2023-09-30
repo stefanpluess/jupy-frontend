@@ -87,7 +87,7 @@ import { InstalledPackages } from "../../config/types";
 /**
  * Renders a group node on the canvas that allows a connection to the kernel in 
  * order to execute code cells and may contain:
- * - a number of simple nodes with or without the respecitve output nodes
+ * - a number of simple nodes with or without the respective output nodes
  * - a number of markdown nodes
  *
  * @param id The ID of the group node.

@@ -11,6 +11,7 @@ export type NodesStore = {
     executionCounts: NodeIdToExecCount;
     setExecutionCount: (id: string, count: number | string) => void;
 
+    // INFO :: lock functionality
     locks: { [id: string]: boolean };
     toggleLock: (id: string) => void;
     getIsLockedForId: (id: string) => boolean;

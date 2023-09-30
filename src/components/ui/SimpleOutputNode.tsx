@@ -43,7 +43,7 @@ import { ResizeIcon} from "../ui";
  * @param id The ID of the node.
  * @param data The data associated with the node - in this case, the outputs.
  * It has functionalities like:
- * - Detaching the ouputd node from the parent group cell when edge is unlocked.
+ * - Detaching the output node from the parent group cell when edge is unlocked.
  * - Copying the output to clipboard.
  * - Saving the output as image.
  */

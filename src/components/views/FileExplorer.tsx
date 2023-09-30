@@ -54,10 +54,12 @@ import { serverURL } from "../../config/config";
 /**
  *  A component that displays the contents of a directory and allows the user to:
  *  - navigate through the directory, 
- *  - create new files and folders, 
- *  - rename and delete files and folders, 
- *  - and open files for editing.
- *  - see if a file has running sessions and shut down those sessions
+ *  - create new notebooks and folders, 
+ *  - rename notebooks, 
+ *  - duplicate notebooks,
+ *  - delete notebooks and folders,
+ *  - open notebooks for editing,
+ *  - see if a notebooks has a running session and shut down the session
  */
 
 export default function FileExplorer() {

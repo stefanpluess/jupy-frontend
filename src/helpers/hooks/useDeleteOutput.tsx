@@ -4,7 +4,7 @@ import { selectorDeleteOutput, useWebSocketStore } from '../websocket';
 import { shallow } from "zustand/shallow";
 
 /**
- * A custom React hook that takes an `output_node_id` string parameter and deletes the respective node.
+ * A custom React hook that takes an `output_node_id` string parameter and deletes the output of the respective node.
  */
 function useDeleteOutput() {
     const { setNodes } = useReactFlow();

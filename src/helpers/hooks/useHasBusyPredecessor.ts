@@ -5,7 +5,7 @@ import { KERNEL_BUSY } from '../../config/constants';
 
 /**
  * Returns a function that takes a node_id string and an optional consider_influence 
- * boolean and returns a boolean indicating whether the node has any busy successors.
+ * boolean and returns a boolean indicating whether the node has any busy predecessor.
  */
 function useHasBusyPredecessor() {
     const { getNode } = useReactFlow();
