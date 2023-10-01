@@ -1,3 +1,6 @@
+/*
+  🌍 Global styles for the entire application.
+*/
 body {
   height: 100%;
   width: 100%;
@@ -17,6 +20,7 @@ body {
   font-family: sans-serif;
 }
 
+// style for monaco editor
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

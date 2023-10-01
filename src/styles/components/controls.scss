@@ -1,0 +1,28 @@
+@import '../variables';
+/*
+  Defines the style for the controls component in the bottom right corner
+*/
+.react-flow__controls button {
+    background-color: $shared-bg-color;
+    color: $shared-text-color;
+    border: $minimap-controls-border;
+    border-bottom: none;
+    box-shadow: $minimap-controls-box-shadow;
+  }
+  
+.react-flow__controls button:hover {
+  background-color: rgb(37, 37, 37);
+}
+
+.react-flow__controls button:first-child {
+  border-radius: 5px 5px 0 0;
+}
+
+.react-flow__controls button:last-child {
+  border-bottom: $minimap-controls-border;
+  border-radius: 0 0 5px 5px;
+}
+
+.react-flow__controls button path {
+  fill: $shared-text-color;
+}

@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
 import { useReactFlow, useStoreApi } from 'reactflow';
 
+/**
+ * Returns a function that detaches nodes from their parent group node in the React Flow graph.
+ */
 function useDetachNodes() {
   const { setNodes } = useReactFlow();
   const store = useStoreApi();
