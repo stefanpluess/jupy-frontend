@@ -1,5 +1,5 @@
 //COMMENT :: External modules/libraries
-import React, {
+import {
   useState,
   useEffect,
   useCallback,
@@ -28,7 +28,6 @@ import {
   faXmarkCircle,
   faLockOpen,
   faStopCircle,
-  faUpRightAndDownLeftFromCenter,
   faHourglass,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
@@ -96,8 +95,8 @@ function SimpleNode({ id, data }: NodeProps) {
   const parent = getNode(parentNode!);
   const detachNodes = useDetachNodes();
   const insertOutput = useInsertOutput();
-  const executionCount = useNodesStore((state) => state.executionCounts[id]?.execCount); // can be undefined
-  const setExecutionCount = useNodesStore((state) => state.setExecutionCount);
+  const executionCount = useNodesStore((state) => state.nodeIdToExecCount[id]?.execCount); // can be undefined
+  const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
   // INFO :: 😴 STALE STATE
   const deleteNodeFromUsedIdentifiersForGroupNodes = useNodesStore(
     (state) => state.deleteNodeFromUsedIdentifiersForGroupNodes
@@ -124,7 +123,7 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: DUPLICATE CELL
   const handleDuplicateCell = useDuplicateCell(id);
   
-  const outputs = getNode(id + "_output")?.data.outputs;
+  const outputs = useNodesStore((state) => state.nodeIdToOutputs[id+"_output"]);
   const [isHovered, setIsHovered] = useState(false);
   // INFO :: resizing logic
   const getResizeBoundaries = useResizeBoundaries();
@@ -147,26 +146,27 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
-  // INFO :: 🚀 EXECUTION COUNT - updating the execution count
+  const handleExecCountChange = useCallback(async () => {
+    if (executionCount === "*") return; // if cell just got busy, don't do anything
+    if (hasParent) {
+      data.executionCount.execCount = executionCount; // set it to the data prop
+      const groupId = parent!.id;
+      if (hasError()) stopFurtherExecution(false);
+      else await executeOnSuccessors(parent!.id);
+      setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
+      removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
+    }
+    if (outputs && outputs.length === 0) {
+      // INFO :: 0️⃣ empty output type functionality
+      setOutputTypeEmpty(id + "_output", true);
+    }
+  }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
+
+  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
   useEffect(() => {
-    const updateExecCount = async () => {
-      setExecutionCount(id, data?.executionCount.execCount);
-      // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
-      if (hasParent) {
-        const groupId = parent!.id;
-        if (hasError()) stopFurtherExecution(false);
-        else await executeOnSuccessors(parent!.id);
-        setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
-        removeFromQueue(groupId);
-      }
-      if (outputs && outputs.length === 0) {
-        // INFO :: 0️⃣ empty output type functionality
-        setOutputTypeEmpty(id + "_output", true);
-      }
-    };
     analyzeStaleState(); // INFO :: 😴 STALE STATE
-    updateExecCount();
-  }, [data?.executionCount]);
+    handleExecCountChange();
+  }, [executionCount]);
 
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
@@ -174,10 +174,10 @@ function SimpleNode({ id, data }: NodeProps) {
     if (executionCount === "") await insertOutput([id]); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
-      setExecutionCount(id, "*");
+      setNodeIdToExecCount(id, "*");
       addToQueue(groupId, id, data.code); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
-  }, [parent, data.code, addToQueue, insertOutput]);
+  }, [parent, data.code, addToQueue, insertOutput, executionCount, setNodeIdToExecCount]);
 
   // INFO :: 🛑INTERRUPT KERNEL
   const interruptKernel = useCallback(() => {
@@ -481,7 +481,7 @@ function SimpleNode({ id, data }: NodeProps) {
             <>
               {/* INFO :: 🔢 execution count */}
               <div className="rinputCentered cellButton rbottom">
-                [{executionCount != null ? executionCount : "0"}]
+                [{executionCount ?? ""}]
               </div>
               {/* INFO :: lock button */}
               <button

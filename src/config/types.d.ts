@@ -4,10 +4,10 @@ import { XYPosition } from "reactflow";
  * This file contains types that are used throughout the application:
  * - ExecutionCount
  * - ExecutionOutput
- * - CellIdToOutputs
+ * - NodeIdToOutputs
  * - NodeIdToExecCount
  * - OutputNodeData
- * - CellIdToMsgId
+ * - NodeIdToMsgId
  * - Cell
  * - Content
  * - Kernelspecs
@@ -32,7 +32,7 @@ export type ExecutionOutput = {
     isImage: boolean;
 };
 
-export type CellIdToOutputs = {
+export type NodeIdToOutputs = {
     [cellId: string]: OutputNodeData[];
 };
 
@@ -49,10 +49,9 @@ export type OutputNodeData = {
     isImage: boolean;
     outputType: string;
     timestamp?: Date;
-    // containsBackslashB?: boolean; 
 };
 
-export type CellIdToMsgId = {
+export type NodeIdToMsgId = {
     [msgId: string]: string;
 };
 

@@ -35,7 +35,7 @@ import { getConnectedNodeId } from "../../helpers/utils";
 import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE } from "../../config/constants";
 //COMMENT :: Internal modules UI
-import { ResizeIcon} from "../ui";
+import { ResizeIcon } from "../ui";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -66,16 +66,18 @@ function SimpleOutputNode({
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = getResizeBoundaries(id);
 
+  const outputs = useNodesStore((state) => state.nodeIdToOutputs[id]);
+
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
    */
   useEffect(() => {
-    if (!data.outputs) return;
-    // console.log(`OutputNode ${id}: `, data.outputs);
+    if (!outputs) return;
+    // console.log(`OutputNode ${id}: `, outputs);
     setSelectedOutputIndex(-1);
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
-    data.outputs.forEach((output) => {
+    outputs.forEach((output) => {
       // group execute_result and stream outputs together. Images, display_data and errors are always in their own group.
       if (
         !currentGroup ||
@@ -123,7 +125,8 @@ function SimpleOutputNode({
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
     setGroupedOutputs(grouped);
-  }, [data.outputs]);
+    data.outputs = grouped; // save the outputs grouped in the data object
+  }, [outputs]);
 
   const onDetach = () => detachNodes([id]);
 
@@ -303,7 +306,7 @@ function SimpleOutputNode({
           >
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
-          {data.outputs[0]?.isImage && (
+          {outputs && outputs[0]?.isImage && (
             <button
               className={`obuttonArea oLower ${
                 isSaveClicked ? "oClickedSave" : ""
@@ -332,7 +335,7 @@ function SimpleOutputNode({
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
-          {data.outputs[selectedOutputIndex]?.isImage && (
+          {outputs && outputs[selectedOutputIndex]?.isImage && (
             <button
               className={`obuttonArea oLower ${
                 isSaveClicked ? "oClickedSave" : ""
