@@ -147,7 +147,6 @@ function SimpleNode({ id, data }: NodeProps) {
   }, [outputs]);
 
   const handleExecCountChange = useCallback(async () => {
-    if (executionCount === "*") return; // if cell just got busy, don't do anything
     if (hasParent) {
       data.executionCount.execCount = executionCount; // set it to the data prop
       const groupId = parent!.id;
@@ -156,16 +155,16 @@ function SimpleNode({ id, data }: NodeProps) {
       setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
-    if (outputs && outputs.length === 0) {
-      // INFO :: 0️⃣ empty output type functionality
-      setOutputTypeEmpty(id + "_output", true);
-    }
+    // INFO :: 0️⃣ empty output type functionality
+    if (outputs && outputs.length === 0) setOutputTypeEmpty(id + "_output", true);
   }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
 
   // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
   useEffect(() => {
-    analyzeStaleState(); // INFO :: 😴 STALE STATE
-    handleExecCountChange();
+    if (executionCount !== "*") {
+      analyzeStaleState(); // INFO :: 😴 STALE STATE
+      handleExecCountChange();
+    } 
   }, [executionCount]);
 
   // INFO :: 🟢 RUN CODE

@@ -67,12 +67,16 @@ function SimpleOutputNode({
   const { maxWidth, maxHeight } = getResizeBoundaries(id);
 
   const outputs = useNodesStore((state) => state.nodeIdToOutputs[id]);
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+  const outputTypeEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
 
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
    */
   useEffect(() => {
     if (!outputs) return;
+    // solve bug in case output was received before execution count
+    if (outputTypeEmpty && outputs.length > 0) setOutputTypeEmpty(id, false);
     // console.log(`OutputNode ${id}: `, outputs);
     setSelectedOutputIndex(-1);
     const grouped = [] as OutputNodeData[];
