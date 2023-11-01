@@ -100,7 +100,7 @@ function SimpleOutputNode({
               ? "display_data"
               : output.outputType === "error"
               ? "error"
-              : "stream",
+              : "execute_result",
           timestamp: output.timestamp,
         };
         grouped.push(currentGroup);
