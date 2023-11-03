@@ -11,6 +11,8 @@ import useNodesStore from '../nodesStore';
 export function useDuplicateCell(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getNode, getIntersectingNodes } = useReactFlow();
     const store = useStoreApi();
+    const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
+    const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const toggleLock = useNodesStore((state) => state.toggleLock);
 
     const onDuplicateCell= useCallback(async () => {
@@ -37,6 +39,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
             width: deepCopyOfSimpleNode.width,
             height: deepCopyOfSimpleNode.height,
         };
+        setNodeIdToExecCount(duplicateSimpleNode.id, duplicateSimpleNode.data.executionCount.execCount); // put the exec count into the store
         /* if original node has a parent the new node should have the same parent
         - check if new position is inside the group node 
         - adjust the position in case position adjustment made it go out of bounds of group node*/
@@ -64,7 +67,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 .concat(duplicateSimpleNode)
                 .sort(sortNodes);
             setNodes(sortedNodes);
-        } else{
+        } else {
             let deepCopyOfOutputNode;
             try {
                 deepCopyOfOutputNode = JSON.parse(JSON.stringify(getNode(getConnectedNodeId(id))));
@@ -84,6 +87,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 width: deepCopyOfOutputNode.width,
                 height: deepCopyOfOutputNode.height,
             };
+            setNodeIdToOutputs({[duplicateOutputNode.id]: duplicateOutputNode.data.outputs}); // put the outputs into the store
             /* if original node has a parent the new node should have the same parent
                 - check if new position is inside the group node 
                 - adjust the position in case position adjustment made it go out of bounds of group node*/
