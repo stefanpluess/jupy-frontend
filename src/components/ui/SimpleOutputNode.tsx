@@ -55,7 +55,7 @@ function SimpleOutputNode({
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
-
+  
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
@@ -64,7 +64,16 @@ function SimpleOutputNode({
   const [isSaveClicked, setIsSaveClicked] = useState(false);
 
   const getResizeBoundaries = useResizeBoundaries();
-  const { maxWidth, maxHeight } = getResizeBoundaries(id);
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
+  // outerDivMaxSize & setOuterDivMaxSize neede for proper resizing of the node at the initial render
+  const OFFSET = 10; // this is the offset caused by the border width and padding of the our outer div comapred to react flow node
+  const [outerDivMaxSize, setOuterDivMaxSize] = useState({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
+  const onResizeStart = () => {
+    setOuterDivMaxSize({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
+  }
 
   const outputs = useNodesStore((state) => state.nodeIdToOutputs[id]);
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
@@ -258,14 +267,17 @@ function SimpleOutputNode({
   const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
 
   return (
-    <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
+    <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}
+      style={outerDivMaxSize} // needed to maintain the size of the outer div
+    >
       {/* {!canRenderEmpty && */}
         <NodeResizeControl
           style={CONTROL_STLYE}
           minWidth={35}
           minHeight={35}
-          maxWidth={maxWidth}
-          maxHeight={maxHeight}
+          maxWidth={maxWidth} // this is only triggered after the node is resized
+          maxHeight={maxHeight} // this is only triggered after the node is resized
+          onResizeStart={onResizeStart}
         >
           <ResizeIcon isSmaller />
         </NodeResizeControl>
@@ -388,4 +400,15 @@ function SimpleOutputNode({
   );
 }
 
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
+  );
+}
 export default memo(SimpleOutputNode);

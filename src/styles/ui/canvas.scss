@@ -221,6 +221,18 @@
     flex-direction: column;
 }
 
+// .rfWrapper .react-flow__node-outputNode .outputContent::-webkit-scrollbar {
+//     width: 8px;
+//     height: 8px;
+//     background-color: #aaa; /* or add it to the track */
+// }
+// /* Add a thumb */
+// .rfWrapper .react-flow__node-outputNode .outputContent::-webkit-scrollbar-thumb {
+//     background: #000;
+// }
+
+
+
 .rfWrapper .react-flow__node-outputNode .outputNode {
     flex: 1;
     display: flex;
