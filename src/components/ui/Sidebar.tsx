@@ -49,14 +49,12 @@ const Sidebar = ({
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
-  const [isAutosave, setIsAutosave] = useState(false);
+  const [isAutosave, setIsAutosave] = useState(localStorage.getItem("autosave") === "true");
 
   const changeAutoSave = () => {
-    if (isAutosave) {
-      setIsAutosave(false);
-    } else {
-      setIsAutosave(true);
-    }
+    const newValue = !isAutosave;
+    setIsAutosave(newValue);
+    localStorage.setItem("autosave", JSON.stringify(newValue)); // save this choice to localstorage
   };
 
   const performAutosave = () => {
@@ -70,18 +68,25 @@ const Sidebar = ({
     );
   };
 
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (isAutosave) performAutosave();
+  };
+
   useEffect(() => {
     let autosaveInterval: string | number | NodeJS.Timer | undefined;
 
     if (isAutosave) {
-      autosaveInterval = setInterval(performAutosave, 30000); // 30 seconds=30000 milliseconds
+      autosaveInterval = setInterval(performAutosave, 20000); // 20 seconds=20000 milliseconds
     } else {
       clearInterval(autosaveInterval);
     }
 
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     // Clean up the interval when component unmounts or when isAutosave changes
     return () => {
       clearInterval(autosaveInterval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
     isAutosave,
