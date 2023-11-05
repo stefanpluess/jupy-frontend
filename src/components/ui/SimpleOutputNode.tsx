@@ -71,7 +71,7 @@ function SimpleOutputNode({
   // outerDivMaxSize & setOuterDivMaxSize neede for proper resizing of the node at the initial render
   const OFFSET = 10; // this is the offset caused by the border width and padding of the our outer div comapred to react flow node
   const [outerDivMaxSize, setOuterDivMaxSize] = useState({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
-  const onResizeStart = () => {
+  const onResize = () => {
     setOuterDivMaxSize({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
   }
 
@@ -277,7 +277,7 @@ function SimpleOutputNode({
           minHeight={35}
           maxWidth={maxWidth} // this is only triggered after the node is resized
           maxHeight={maxHeight} // this is only triggered after the node is resized
-          onResizeStart={onResizeStart}
+          onResize={onResize}
         >
           <ResizeIcon isSmaller />
         </NodeResizeControl>
