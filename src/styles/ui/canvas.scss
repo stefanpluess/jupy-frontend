@@ -166,6 +166,29 @@
     }
 }
 
+// Scrollbars style
+.rfWrapper ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.rfWrapper ::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background: rgba(0,0,0,0.1);
+}
+.rfWrapper ::-webkit-scrollbar-thumb{
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:hover{
+    background: rgba(0,0,0,0.4);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:active{
+    background: rgba(0, 0, 0, 0.6);
+}
+.rfWrapper ::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
 /* INFO :: canvas area - ouput node*/
 // react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
@@ -220,18 +243,6 @@
     display: flex;
     flex-direction: column;
 }
-
-// .rfWrapper .react-flow__node-outputNode .outputContent::-webkit-scrollbar {
-//     width: 8px;
-//     height: 8px;
-//     background-color: #aaa; /* or add it to the track */
-// }
-// /* Add a thumb */
-// .rfWrapper .react-flow__node-outputNode .outputContent::-webkit-scrollbar-thumb {
-//     background: #000;
-// }
-
-
 
 .rfWrapper .react-flow__node-outputNode .outputNode {
     flex: 1;
