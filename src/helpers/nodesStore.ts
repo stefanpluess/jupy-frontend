@@ -1,15 +1,16 @@
 import { create } from 'zustand';
-import { 
-  DEFAULT_LOCK_STATUS,   
-  KERNEL_IDLE
- } from '../config/constants';
-import { NodeIdToExecCount } from '../config/types';
+import { DEFAULT_LOCK_STATUS, KERNEL_IDLE } from '../config/constants';
+import { NodeIdToOutputs, NodeIdToExecCount } from '../config/types';
 
 export type NodesStore = {
 
     // INFO :: execution count
-    executionCounts: NodeIdToExecCount;
-    setExecutionCount: (id: string, count: number | string) => void;
+    nodeIdToExecCount: NodeIdToExecCount;
+    setNodeIdToExecCount: (id: string, count: number | string) => void;
+
+    // INFO :: outputs
+    nodeIdToOutputs: NodeIdToOutputs;
+    setNodeIdToOutputs: (newObj: NodeIdToOutputs) => void;
 
     // INFO :: lock functionality
     locks: { [id: string]: boolean };
@@ -53,11 +54,12 @@ export type NodesStore = {
 
 const useNodesStore = create<NodesStore>((set, get) => ({
   // INFO :: execution count
-  executionCounts: {},
-  setExecutionCount: (id: string, count: number | string) => {
+  nodeIdToExecCount: {} as NodeIdToExecCount,
+  setNodeIdToExecCount: (id: string, count: number | string) => {
+    // using the previous state, we can update the nodeIdToExecCount mapping
     set((state) => ({
-        executionCounts: {
-          ...state.executionCounts,
+      nodeIdToExecCount: {
+          ...state.nodeIdToExecCount,
           [id]: {
             execCount: count,
             timestamp: new Date(),
@@ -65,6 +67,18 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         },
     }))
   },
+  // INFO :: outputs
+  nodeIdToOutputs: {} as NodeIdToOutputs,
+  setNodeIdToOutputs: (newObj: NodeIdToOutputs) => {
+    // using the previous state, we can update the nodeIdToOutputs mapping
+    set((state) => ({
+        nodeIdToOutputs: {
+            ...state.nodeIdToOutputs,
+            ...newObj,
+        },
+    }));
+  },
+  // INFO :: lock functionality
   locks: {},
   toggleLock: (id: string) => {
     set((state) => ({
@@ -84,10 +98,8 @@ const useNodesStore = create<NodesStore>((set, get) => ({
                 [id]: DEFAULT_LOCK_STATUS
             }
         }))
-        // console.log("returining default status...")
         return DEFAULT_LOCK_STATUS;
     }
-    // console.log("returining current status...")
     return get().locks[id];
   },
 
@@ -137,10 +149,8 @@ const useNodesStore = create<NodesStore>((set, get) => ({
               [groupId]: {nodeId: "", state: KERNEL_IDLE}
             }
         }))
-        // console.log("returining default status...")
         return {nodeId: "", state: KERNEL_IDLE};
     }
-    // console.log("returining current status...")
     return get().groupNodesExecutionStates[groupId];
   },
 

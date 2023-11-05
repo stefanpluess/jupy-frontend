@@ -35,7 +35,7 @@ import { getConnectedNodeId } from "../../helpers/utils";
 import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE } from "../../config/constants";
 //COMMENT :: Internal modules UI
-import { ResizeIcon} from "../ui";
+import { ResizeIcon } from "../ui";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -55,7 +55,7 @@ function SimpleOutputNode({
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
-
+  
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
@@ -64,18 +64,33 @@ function SimpleOutputNode({
   const [isSaveClicked, setIsSaveClicked] = useState(false);
 
   const getResizeBoundaries = useResizeBoundaries();
-  const { maxWidth, maxHeight } = getResizeBoundaries(id);
+  const { maxWidth, maxHeight } = useStore((store) => {
+    // isEqual needed for rerendering purposes
+    return getResizeBoundaries(id);
+  }, isEqual);
+  // outerDivMaxSize & setOuterDivMaxSize neede for proper resizing of the node at the initial render
+  const OFFSET = 10; // this is the offset caused by the border width and padding of the our outer div comapred to react flow node
+  const [outerDivMaxSize, setOuterDivMaxSize] = useState({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
+  const onResize = () => {
+    setOuterDivMaxSize({ maxWidth: maxWidth-OFFSET, maxHeight: maxHeight-OFFSET});
+  }
+
+  const outputs = useNodesStore((state) => state.nodeIdToOutputs[id]);
+  const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
+  const outputTypeEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
 
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
    */
   useEffect(() => {
-    if (!data.outputs) return;
-    // console.log(`OutputNode ${id}: `, data.outputs);
+    if (!outputs) return;
+    // solve bug in case output was received before execution count
+    if (outputTypeEmpty && outputs.length > 0) setOutputTypeEmpty(id, false);
+    // console.log(`OutputNode ${id}: `, outputs);
     setSelectedOutputIndex(-1);
     const grouped = [] as OutputNodeData[];
     let currentGroup = null as OutputNodeData | null;
-    data.outputs.forEach((output) => {
+    outputs.forEach((output) => {
       // group execute_result and stream outputs together. Images, display_data and errors are always in their own group.
       if (
         !currentGroup ||
@@ -94,7 +109,7 @@ function SimpleOutputNode({
               ? "display_data"
               : output.outputType === "error"
               ? "error"
-              : "stream",
+              : "execute_result",
           timestamp: output.timestamp,
         };
         grouped.push(currentGroup);
@@ -123,7 +138,8 @@ function SimpleOutputNode({
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
     setGroupedOutputs(grouped);
-  }, [data.outputs]);
+    data.outputs = grouped; // save the outputs grouped in the data object
+  }, [outputs]);
 
   const onDetach = () => detachNodes([id]);
 
@@ -251,14 +267,17 @@ function SimpleOutputNode({
   const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
 
   return (
-    <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}>
+    <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}
+      style={outerDivMaxSize} // needed to maintain the size of the outer div
+    >
       {/* {!canRenderEmpty && */}
         <NodeResizeControl
           style={CONTROL_STLYE}
           minWidth={35}
           minHeight={35}
-          maxWidth={maxWidth}
-          maxHeight={maxHeight}
+          maxWidth={maxWidth} // this is only triggered after the node is resized
+          maxHeight={maxHeight} // this is only triggered after the node is resized
+          onResize={onResize}
         >
           <ResizeIcon isSmaller />
         </NodeResizeControl>
@@ -303,7 +322,7 @@ function SimpleOutputNode({
           >
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
-          {data.outputs[0]?.isImage && (
+          {outputs && outputs[0]?.isImage && (
             <button
               className={`obuttonArea oLower ${
                 isSaveClicked ? "oClickedSave" : ""
@@ -332,7 +351,7 @@ function SimpleOutputNode({
             <FontAwesomeIcon className="icon" icon={faCopy} />
           </button>
 
-          {data.outputs[selectedOutputIndex]?.isImage && (
+          {outputs && outputs[selectedOutputIndex]?.isImage && (
             <button
               className={`obuttonArea oLower ${
                 isSaveClicked ? "oClickedSave" : ""
@@ -381,4 +400,15 @@ function SimpleOutputNode({
   );
 }
 
+type IsEqualCompareObj = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+function isEqual(prev: IsEqualCompareObj, next: IsEqualCompareObj): boolean {
+  return (
+    prev.maxWidth === next.maxWidth &&
+    prev.maxHeight === next.maxHeight
+  );
+}
 export default memo(SimpleOutputNode);

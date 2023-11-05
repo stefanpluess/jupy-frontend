@@ -1,43 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import { useReactFlow } from 'reactflow';
-import { NodeIdToExecCount, CellIdToMsgId, CellIdToOutputs, ExecutionCount, ExecutionOutput, OutputNodeData } from '../../config/types';
-import { WebSocketState } from '../websocket/webSocketStore';
-// access the type from WebSocketState
-type setCITOType = WebSocketState['setCellIdToOutputs'];
+import { useEffect, useRef } from 'react';
+import { OutputNodeData } from '../../config/types';
+import useWebSocketStore from '../websocket/webSocketStore';
+import useNodesStore from '../nodesStore';
 
-interface UpdateNodesProps {
-    latestExecutionCount: ExecutionCount;
-    latestExecutionOutput: ExecutionOutput;
-    cellIdToOutputs: CellIdToOutputs;
-    setCellIdToOutputs: setCITOType;
-  }
 /**
- * A custom hook that updates the nodes in the React Flow graph based on the latest execution count and output.
- * @param latestExecutionCount The latest execution count.
- * @param latestExecutionOutput The latest execution output.
- * @param cellIdToOutputs A mapping of cell IDs to outputs.
- * @param setCellIdToOutputs A setter function for the cellIdToOutputs mapping.
- * Additional helper function:
- * @param cellIdToMsgId A mapping of cell IDs to message IDs.
+ * A custom hook that updates the nodesStore based on the latest execution count and output (from webSocketStore).
  */
-const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOutput, 
-                                         cellIdToOutputs, setCellIdToOutputs} : UpdateNodesProps, 
-                                         cellIdToMsgId: CellIdToMsgId): void => {
-    const { setNodes } = useReactFlow();
+const useUpdateNodesExeCountAndOuput = (): void => {
+
+    const latestExecutionCount = useWebSocketStore((state) => state.latestExecutionCount);
+    const latestExecutionOutput = useWebSocketStore((state) => state.latestExecutionOutput);
+
+    const nodeIdToOutputs = useNodesStore((state) => state.nodeIdToOutputs);
+    const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
+    const nodeIdToMsgId = useWebSocketStore((state) => state.nodeIdToMsgId);
+    const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const firstRenderExecCount = useRef(true);
     const firstRenderOutput = useRef(true);
-    const [execCount, setExecCount] = useState<NodeIdToExecCount>({});
-    /* 
-     Another approach: instead of passing arguments we could use the useWebSocketStore
-        import useWebSocketStore from './websocket/useWebSocketStore';
-        const latestExecutionCount = useWebSocketStore((state) => state.latestExecutionCount);
-        const latestExecutionOutput = useWebSocketStore((state) => state.latestExecutionOutput);
-        const cellIdToMsgId = useWebSocketStore((state) => state.cellIdToMsgId);
-    */
    
     /**
      * This useEffect is triggered whenever a websocket message updates the latestExecutionCount.
-     * It then fetches the corresponding cell_id and sets the execution count of that node in another state.
+     * It then fetches the corresponding cell_id and updates the nodesStore.
      */
     useEffect(() => {
 		// do not trigger on first render
@@ -48,20 +31,13 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         // console.log("LATEST EXECUTION COUNT")
         const executionCount = latestExecutionCount.execution_count;
         const msg_id_execCount = latestExecutionCount.msg_id;
-        const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
-        const updatedExecCounts = {
-            ...execCount,
-            [cell_id_execCount]: {
-                execCount: executionCount,
-                timestamp: new Date()
-            },
-        }
-        setExecCount(updatedExecCounts);
+        const node_id_execCount = nodeIdToMsgId[msg_id_execCount];
+        setNodeIdToExecCount(node_id_execCount, executionCount);
     }, [latestExecutionCount]);
 
     /**
      * This useEffect is triggered whenever a websocket message updates the latestExecutionOutput.
-     * It then fetches the corresponding cell_id and sets the outputs of that node in another state.
+     * It then fetches the corresponding cell_id and updates the nodesStore.
      */
     useEffect(() => {
         if (firstRenderOutput.current) {
@@ -70,12 +46,11 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
         }
         // console.log("OUTPUT")
         const msg_id_output= latestExecutionOutput.msg_id;
-        const cell_id_output = cellIdToMsgId[msg_id_output]+"_output";
+        const node_id_output = nodeIdToMsgId[msg_id_output]+"_output";
         // create the new mapping (add if it doesn't exist, otherwise append to the existing array)
-        const updatedCellIdToOutputs = {
-            ...cellIdToOutputs,
-            [cell_id_output]: [
-                ...(cellIdToOutputs[cell_id_output] || []), {
+        const newOutputsMapping = {
+            [node_id_output]: [
+                ...(nodeIdToOutputs[node_id_output] || []), {
                     output: latestExecutionOutput.output,
                     outputHTML: latestExecutionOutput.outputHTML,
                     isImage: latestExecutionOutput.isImage,
@@ -83,90 +58,8 @@ const useUpdateNodesExeCountAndOuput = ({latestExecutionCount, latestExecutionOu
                 } as OutputNodeData,
             ],
         }
-        setCellIdToOutputs(updatedCellIdToOutputs);
+        setNodeIdToOutputs(newOutputsMapping);
     }, [latestExecutionOutput]);
-
-
-    /** 
-     * This useEffect is triggered whenever the cellIdToOutputs state is updated.
-     * It then updates the data prop of the corresponding output node, which results in
-     * the node being rerendered with the new outputs.
-     */
-    useEffect(() => {
-        if (Object.keys(cellIdToOutputs).length === 0) return;
-        // console.log("cellIdToOutputs changed: ", cellIdToOutputs)
-        const msg_id_output= latestExecutionOutput.msg_id;
-        const cell_id_output = cellIdToMsgId[msg_id_output]+"_output";
-        if (cellIdToOutputs[cell_id_output] === undefined || !cellIdToOutputs[cell_id_output]) return;
-
-        // go through all the nodes and set the outputs of the changed node
-        setNodes((prevNodes) => {
-            const updatedNodes = prevNodes.map((node) => {
-                // if the node.id has empty outputs, return the node while setting output to be empty
-                // (to fix edge case with long waiting outputs)
-                if (cellIdToOutputs[node.id] && cellIdToOutputs[node.id].length === 0) {
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            outputs: [],
-                        },
-                    };
-                } else if (node.id === cell_id_output) {
-                    const allOutputs = [] as OutputNodeData[];
-                    // console.log("OUTPUT OF MATCHING NODE: ", cellIdToOutputs[cell_id_output])
-                    cellIdToOutputs[cell_id_output].forEach((output) => {
-                        const newOutputData: OutputNodeData = {
-                            output: output.output,
-                            outputHTML: output.outputHTML,
-                            isImage: output.isImage,
-                            outputType: output.outputType,
-                        }
-                        allOutputs.push(newOutputData);
-                    })
-                    // console.log("OUTPUT: ", allOutputs)
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            outputs: allOutputs,
-                        },
-                    };
-                // if nothing matches, return the node without modification
-                } else return node;
-            });
-            return updatedNodes;
-        });
-    }, [cellIdToOutputs]);
-
-    /**
-     * This useEffect is triggered whenever the execution count state is updated.
-     * It then updates the data prop of the corresponding node, which results in
-     * the node being rerendered with the new execution count.
-     */
-    useEffect(() => {
-        // console.log("execCount changed: ", execCount)
-        const msg_id_execCount = latestExecutionCount.msg_id;
-        const cell_id_execCount = cellIdToMsgId[msg_id_execCount];
-
-        setNodes((prevNodes) => {
-            const updatedNodes = prevNodes.map((node) => {
-                // if it matches, update the execution count
-                if (node.id === cell_id_execCount) {
-                    // console.log("EXECUTION COUNT MATCHING: ", execCount[cell_id_execCount])
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            executionCount: execCount[cell_id_execCount]
-                        },
-                    };
-                // if nothing matches, return the node without modification
-                } else return node;
-            });
-            return updatedNodes;
-        });
-    }, [execCount]);
 
 }
 

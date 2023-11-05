@@ -23,9 +23,10 @@ function useResizeBoundaries() {
       };
     // otherwise, restrict resizing outside of the parent
     } else {
+      // COMMENT - in case a SimpleNode is close to the group node boundry(e.g. max to the right) then the created output node will be outside the bounds of group node
       return {
-        maxWidth: Math.min(parent.width! - node!.position.x, MAX_WIDTH),
-        maxHeight: Math.min(parent.height! - node!.position.y, MAX_HEIGHT),
+        maxWidth: Math.min((parent.width! - node!.position.x), MAX_WIDTH),
+        maxHeight: Math.min((parent.height! - node!.position.y), MAX_HEIGHT),
       };
     }
   }, [getNode]);
