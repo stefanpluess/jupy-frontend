@@ -2,6 +2,7 @@ import { NodeProps, useReactFlow, useStoreApi, Node, Edge } from 'reactflow';
 import { useCallback } from 'react';
 import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } from '../utils';
 import useNodesStore from '../nodesStore';
+import { FLOATING_EDGE } from '../../config/constants';
 
 /**
  * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.
@@ -118,6 +119,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 id: getId("edge"),
                 source: duplicateSimpleNode.id,
                 target: duplicateOutputNode.id,
+                type: FLOATING_EDGE,
             };
             setEdges((edges) =>
             edges.concat([newEdge])

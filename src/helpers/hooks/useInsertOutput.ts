@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Edge, Node, useReactFlow } from 'reactflow';
 import { createOutputNode } from '../utils';
-import { EXTENT_PARENT } from '../../config/constants';
+import { EXTENT_PARENT, FLOATING_EDGE } from '../../config/constants';
 import useSettingsStore from '../settingsStore';
 
 /**
@@ -24,7 +24,8 @@ function useInsertOutput() {
             const edge = {
                 id: node_id + "_edge",
                 source: node_id,
-                target: node_id + "_output"
+                target: node_id + "_output",
+                type: FLOATING_EDGE,
             };
             newNodes.push(outputNode);
             newEdges.push(edge);

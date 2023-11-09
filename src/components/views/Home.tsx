@@ -109,7 +109,7 @@ function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const onConnect = useCallback(
+  const onConnect = useCallback( // not needed as long as we don't allow for dragging of edges
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
@@ -422,7 +422,7 @@ function DynamicGrouping() {
           edges={edges}
           onEdgesChange={onEdgesChange}
           onNodesChange={onNodesChange}
-          onConnect={onConnect}
+          onConnect={onConnect} // not needed as long as we don't allow for dragging of edges
           onNodeDrag={onNodeDrag}
           onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}

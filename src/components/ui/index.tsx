@@ -3,6 +3,7 @@ export { default as CommentNode } from "./CommentNode";
 export { default as CustomConfirmModal } from "./CustomConfirmModal";
 export { default as CustomInformationModal } from "./CustomInformationModal";
 export { default as GroupEdge } from "./GroupEdge";
+export { default as FloatingEdge } from "./FloatingEdge";
 export { default as GroupNode } from "./GroupNode";
 export { default as MarkdownNode } from "./MarkdownNode";
 export { default as ResizeIcon } from "./ResizeIcon";
