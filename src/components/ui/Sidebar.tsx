@@ -19,6 +19,7 @@ import { Button } from "react-bootstrap";
 import { saveNotebook } from "../../helpers/utils";
 import { usePath } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
+import useSettingsStore from "../../helpers/settingsStore";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -49,12 +50,17 @@ const Sidebar = ({
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
-  const [isAutosave, setIsAutosave] = useState(localStorage.getItem("autosave") === "true");
+  const autoSaveSetting = useSettingsStore((state) => state.autoSave);
+  const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const setExpandParentSetting = useSettingsStore((state) => state.setExpandParent);
 
   const changeAutoSave = () => {
-    const newValue = !isAutosave;
-    setIsAutosave(newValue);
-    localStorage.setItem("autosave", JSON.stringify(newValue)); // save this choice to localstorage
+    setAutoSaveSetting(!autoSaveSetting);
+  };
+
+  const changeExpandParent = () => {
+    setExpandParentSetting(!expandParentSetting);
   };
 
   const performAutosave = () => {
@@ -69,13 +75,13 @@ const Sidebar = ({
   };
 
   const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-    if (isAutosave) performAutosave();
+    if (autoSaveSetting) performAutosave();
   };
 
   useEffect(() => {
     let autosaveInterval: string | number | NodeJS.Timer | undefined;
 
-    if (isAutosave) {
+    if (autoSaveSetting) {
       autosaveInterval = setInterval(performAutosave, 20000); // 20 seconds=20000 milliseconds
     } else {
       clearInterval(autosaveInterval);
@@ -89,7 +95,7 @@ const Sidebar = ({
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
-    isAutosave,
+    autoSaveSetting,
     nodes,
     edges,
     token,
@@ -122,11 +128,34 @@ const Sidebar = ({
         <div className="label">Markdown</div>
       </div>
 
+      <div className="autoSave">AutoExpand</div>
+
+      {!expandParentSetting ? (
+        <button
+          title="Activate AutoExpand"
+          onClick={changeExpandParent}
+          className="sliderOff"
+        >
+          <div className="autoSave">OFF</div>
+
+          <FontAwesomeIcon className="" icon={faToggleOff} />
+        </button>
+      ) : (
+        <button
+          title="Deactivate AutoExpand"
+          onClick={changeExpandParent}
+          className="sliderOn"
+        >
+          <div className="autoSave">ON</div>
+          <FontAwesomeIcon icon={faToggleOn} />
+        </button>
+      )}
+
       <div className="autoSave">AutoSave</div>
 
-      {!isAutosave ? (
+      {!autoSaveSetting ? (
         <button
-          title="Activate Autosave"
+          title="Activate AutoSave"
           onClick={changeAutoSave}
           className="sliderOff"
         >
@@ -136,7 +165,7 @@ const Sidebar = ({
         </button>
       ) : (
         <button
-          title="Deactivate Autosave"
+          title="Deactivate AutoSave"
           onClick={changeAutoSave}
           className="sliderOn"
         >

@@ -14,3 +14,4 @@ export { default as useResizeBoundaries } from './useResizeBoundaries';
 export { default as useRemoveGroupNode } from './useRemoveGroupNode';
 export { default as useDuplicateCell } from './useDuplicateCell';
 export { default as useAnalyzeStaleState } from './useAnalyzeStaleState';
+export { default as useChangeExpandParent } from './useChangeExpandParent';

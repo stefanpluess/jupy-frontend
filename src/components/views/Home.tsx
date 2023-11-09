@@ -50,7 +50,8 @@ import {
 } from "../../helpers/utils";
 import { 
   useUpdateNodesExeCountAndOuput, 
-  usePath 
+  usePath, 
+  useChangeExpandParent
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -58,6 +59,7 @@ import {
   selectorGeneral,
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
+import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
@@ -119,6 +121,7 @@ function DynamicGrouping() {
   const { token, setLatestExecutionCount, setLatestExecutionOutput } = useWebSocketStore(selectorGeneral, shallow);
   const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
   const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -126,27 +129,29 @@ function DynamicGrouping() {
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
-  //INFO :: useEffect -> update execution count and output of nodes
+  //INFO :: useEffects -> update execution count and output of nodes / changing of expandParent
   useUpdateNodesExeCountAndOuput();
+  useChangeExpandParent();
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     axios.get(`${serverURL}/api/contents/${path}`).then((res) => {
       const notebookData = res.data;
-      const { initialNodes, initialEdges } = createInitialElements(
-        notebookData.content.cells
-      );
+      const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
-        } else if (node.type === NORMAL_NODE) {
-          setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
-        } else if (node.type === OUTPUT_NODE) {
-          setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+        } else {
+          expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
+          if (node.type === NORMAL_NODE) {
+            setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
+          } else if (node.type === OUTPUT_NODE) {
+            setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+          }
         }
       });
       const sortedNodes = initialNodes.sort(sortNodes);
@@ -225,7 +230,7 @@ function DynamicGrouping() {
           groupNode
         ) ?? { x: 0, y: 0 };
         newNode.parentNode = groupNode?.id;
-        newNode.extent = groupNode ? EXTENT_PARENT : undefined;
+        expandParentSetting ? newNode.expandParent = true : newNode.extent = EXTENT_PARENT;
       }
 
       // we need to make sure that the parents are sorted before the children
@@ -263,22 +268,24 @@ function DynamicGrouping() {
             } else if (n.id === node.id) {
               const position = getNodePositionInsideParent(n, groupNode) 
                                ?? { x: 0, y: 0 };
-              return { 
+              const updatedNode = { 
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             // if 🔒 lock is ✅ then update also connected node
             else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-              return {
+              const updatedNode = {
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             return n;
           })

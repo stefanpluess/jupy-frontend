@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { Edge, Node } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
 import { serverURL } from '../config/config';
 
 
@@ -39,7 +39,6 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
-      node.extent = EXTENT_PARENT;
     };
     // for each code node, create an output node (if it has been executed before)
     if (cell.cell_type === 'code' && node.data.executionCount.execCount !== "") {
@@ -382,10 +381,8 @@ export function createOutputNode(node: Node, outputParent?: string) {
   if (typeof(outputParent) === 'string') {
     // COMMENT - same part of code used in useDuplicateCell.ts
     newOutputNode.parentNode = outputParent;
-    newOutputNode.extent = EXTENT_PARENT;
   } else if (node.parentNode) {
     newOutputNode.parentNode = node.parentNode;
-    newOutputNode.extent = EXTENT_PARENT;
   }
   return newOutputNode;
 }
