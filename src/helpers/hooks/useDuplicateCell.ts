@@ -2,7 +2,8 @@ import { NodeProps, useReactFlow, useStoreApi, Node, Edge } from 'reactflow';
 import { useCallback } from 'react';
 import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } from '../utils';
 import useNodesStore from '../nodesStore';
-import { FLOATING_EDGE } from '../../config/constants';
+import { FLOATING_EDGE, NORMAL_EDGE } from '../../config/constants';
+import useSettingsStore from '../settingsStore';
 
 /**
  * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.
@@ -14,6 +15,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
     const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
     const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const toggleLock = useNodesStore((state) => state.toggleLock);
+    const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
     const onDuplicateCell= useCallback(async () => {
         // COMMENT - create a deep copy of the code node
@@ -119,7 +121,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 id: getId("edge"),
                 source: duplicateSimpleNode.id,
                 target: duplicateOutputNode.id,
-                type: FLOATING_EDGE,
+                type: floatingEdgesSetting ? FLOATING_EDGE : NORMAL_EDGE,
             };
             setEdges((edges) =>
             edges.concat([newEdge])
@@ -127,7 +129,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
             // lock the new node, since it is first call with this id it will make it locked
             toggleLock(new_id);
         }
-    }, [getNode, getNodes, id, setEdges, setNodes, getIntersectingNodes]);
+    }, [getNode, getNodes, id, setEdges, setNodes, getIntersectingNodes, floatingEdgesSetting, toggleLock]);
 
   return onDuplicateCell;
 }

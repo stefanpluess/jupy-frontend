@@ -36,6 +36,7 @@ import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon } from "../ui";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -78,6 +79,7 @@ function SimpleOutputNode({
   const outputs = useNodesStore((state) => state.nodeIdToOutputs[id]);
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   const outputTypeEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
+  const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
@@ -394,7 +396,7 @@ function SimpleOutputNode({
         type="target"
         position={Position.Left}
         isConnectableStart={false}
-        style={{ height: "6px", width: "6px" }}
+        style={{ height: "6px", width: "6px", opacity: floatingEdgesSetting ? 0 : 1 }}
       />
     </div>
   );

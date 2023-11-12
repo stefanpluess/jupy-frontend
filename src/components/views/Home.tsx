@@ -33,7 +33,8 @@ import {
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
-  SelectedNodesToolbar 
+  SelectedNodesToolbar,
+  SettingsPopup,
 } from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
@@ -51,7 +52,8 @@ import {
 import { 
   useUpdateNodesExeCountAndOuput, 
   usePath, 
-  useChangeExpandParent
+  useChangeExpandParent,
+  useChangeFloatingEdges
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -68,6 +70,8 @@ import {
   EXTENT_PARENT,
   DEFAULT_LOCK_STATUS,
   OUTPUT_NODE,
+  FLOATING_EDGE,
+  NORMAL_EDGE,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -121,7 +125,10 @@ function DynamicGrouping() {
   const { token, setLatestExecutionCount, setLatestExecutionOutput } = useWebSocketStore(selectorGeneral, shallow);
   const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
   const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
+  const showSettings = useSettingsStore((state) => state.showSettings);
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -129,9 +136,10 @@ function DynamicGrouping() {
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
-  //INFO :: useEffects -> update execution count and output of nodes / changing of expandParent
+  //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
   useChangeExpandParent();
+  useChangeFloatingEdges();
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
@@ -154,6 +162,7 @@ function DynamicGrouping() {
           }
         }
       });
+      initialEdges.forEach((edge) => floatingEdgesSetting ? edge.type = FLOATING_EDGE : edge.type = NORMAL_EDGE);
       const sortedNodes = initialNodes.sort(sortNodes);
       setNodes(sortedNodes);
       setEdges(initialEdges);
@@ -466,6 +475,7 @@ function DynamicGrouping() {
               style={{marginLeft: "80px"}}
             />
           </Panel>
+          <SettingsPopup show={showSettings} onClose={() => setShowSettings(false)} />
         </ReactFlow>
       </div>
     </div>

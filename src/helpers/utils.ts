@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
 import { Position } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, FLOATING_EDGE, ID_LENGTH } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
 import { serverURL } from '../config/config';
 
 
@@ -71,7 +71,6 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         id: `${node.id}-${outputNode.id}`,
         source: node.id,
         target: outputNode.id,
-        type: FLOATING_EDGE,
       });
     }
     initialNodes.push(node);

@@ -486,3 +486,26 @@
       opacity: 1;
     }
 }
+
+/* INFO :: styles for the settings popup */
+.settingSliderOn {
+    background-color: white;
+    border: none;
+    color: rgb(0, 128, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(0, 128, 0, 0.7);
+    }
+}
+
+.settingSliderOff {
+    background-color: white;
+    border: none;
+    color: rgb(255, 0, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(255, 0, 0, 0.6);
+    }
+}

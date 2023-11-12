@@ -2,6 +2,9 @@ import { create } from 'zustand';
 
 export type SettingsStore = {
 
+    showSettings: boolean;
+    setShowSettings: (showSettings: boolean) => void;
+
     // INFO :: auto save setting
     autoSave: boolean;
     setAutoSave: (autoSave: boolean) => void;
@@ -10,9 +13,16 @@ export type SettingsStore = {
     expandParent: boolean;
     setExpandParent: (expandParent: boolean) => void;
 
+    // INFO :: floating edges setting
+    floatingEdges: boolean;
+    setFloatingEdges: (floatingEdges: boolean) => void;
+
 };
 
 const useSettingsStore = create<SettingsStore>((set, get) => ({
+
+    showSettings: false,
+    setShowSettings: (showSettings: boolean) => set({ showSettings }),
 
     // INFO :: auto save setting
     autoSave: localStorage.getItem('autoSave') === 'true',
@@ -26,6 +36,13 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     setExpandParent: (expandParent: boolean) => {
         set({ expandParent });
         localStorage.setItem('expandParent', expandParent.toString());
+    },
+
+    // INFO :: floating edges setting
+    floatingEdges: localStorage.getItem('floatingEdges') === 'true',
+    setFloatingEdges: (floatingEdges: boolean) => {
+        set({ floatingEdges });
+        localStorage.setItem('floatingEdges', floatingEdges.toString());
     },
 
 }));

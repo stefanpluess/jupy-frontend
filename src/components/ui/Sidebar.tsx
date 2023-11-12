@@ -1,8 +1,7 @@
 //COMMENT :: External modules/libraries
 import { 
   DragEvent, 
-  useEffect, 
-  useState 
+  useEffect,
 } from "react";
 import { 
   Node, 
@@ -12,6 +11,7 @@ import {
   faSave,
   faToggleOff,
   faToggleOn,
+  faGear,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
@@ -50,17 +50,12 @@ const Sidebar = ({
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const autoSaveSetting = useSettingsStore((state) => state.autoSave);
   const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
-  const expandParentSetting = useSettingsStore((state) => state.expandParent);
-  const setExpandParentSetting = useSettingsStore((state) => state.setExpandParent);
 
   const changeAutoSave = () => {
     setAutoSaveSetting(!autoSaveSetting);
-  };
-
-  const changeExpandParent = () => {
-    setExpandParentSetting(!expandParentSetting);
   };
 
   const performAutosave = () => {
@@ -128,29 +123,6 @@ const Sidebar = ({
         <div className="label">Markdown</div>
       </div>
 
-      <div className="autoSave">AutoExpand</div>
-
-      {!expandParentSetting ? (
-        <button
-          title="Activate AutoExpand"
-          onClick={changeExpandParent}
-          className="sliderOff"
-        >
-          <div className="autoSave">OFF</div>
-
-          <FontAwesomeIcon className="" icon={faToggleOff} />
-        </button>
-      ) : (
-        <button
-          title="Deactivate AutoExpand"
-          onClick={changeExpandParent}
-          className="sliderOn"
-        >
-          <div className="autoSave">ON</div>
-          <FontAwesomeIcon icon={faToggleOn} />
-        </button>
-      )}
-
       <div className="autoSave">AutoSave</div>
 
       {!autoSaveSetting ? (
@@ -174,9 +146,20 @@ const Sidebar = ({
         </button>
       )}
 
+      {/* Settings Button */}
+      <Button 
+        className="my-1"
+        title="Settings"
+        variant="secondary"
+        onClick={() => setShowSettings(true)}
+      >
+        <FontAwesomeIcon icon={faGear} />
+      </Button>
+
       <Button
         variant="success"
         className="saveButton"
+        title="Save Notebook"
         onClick={() => {
           saveNotebook(
             nodes,

@@ -11,3 +11,4 @@ export { default as SelectedNodesToolbar } from "./SelectedNodesToolbar";
 export { default as Sidebar } from "./Sidebar";
 export { default as SimpleNode } from "./SimpleNode";
 export { default as SimpleOutputNode } from "./SimpleOutputNode";
+export { default as SettingsPopup } from "./SettingsPopup";
