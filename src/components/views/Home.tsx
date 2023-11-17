@@ -162,7 +162,9 @@ function DynamicGrouping() {
           }
         }
       });
-      initialEdges.forEach((edge) => floatingEdgesSetting ? edge.type = FLOATING_EDGE : edge.type = NORMAL_EDGE);
+      initialEdges.forEach((edge) => {
+        if (!edge.type) floatingEdgesSetting ? edge.type = FLOATING_EDGE : edge.type = NORMAL_EDGE;
+      });
       const sortedNodes = initialNodes.sort(sortNodes);
       setNodes(sortedNodes);
       setEdges(initialEdges);
