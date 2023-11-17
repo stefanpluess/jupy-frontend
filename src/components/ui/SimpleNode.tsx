@@ -103,7 +103,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const staleState = useNodesStore((state) => state.staleState[id] ?? false);
   const setStaleState = useNodesStore((state) => state.setStaleState);
-  const analyzeStaleState = useAnalyzeStaleState(id);
+  const analyzeStaleState = useAnalyzeStaleState();
   // INFO :: 0️⃣ empty output type functionality
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -146,26 +146,29 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
-  const handleExecCountChange = useCallback(async () => {
+  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
+  useEffect(() => {
+    const handleStaleStateAndExecCountChange = async () => {
+      if (executionCount !== "*") {
+        const assignedVariables = await analyzeStaleState(id); // INFO :: 😴 STALE STATE
+        handleExecCountChange(assignedVariables);
+      }
+    };
+    handleStaleStateAndExecCountChange();
+  }, [executionCount]);
+
+  const handleExecCountChange = useCallback(async (assignedVariables: string[] | undefined) => {
     if (hasParent) {
       data.executionCount.execCount = executionCount; // set it to the data prop
       const groupId = parent!.id;
       if (hasError()) stopFurtherExecution(false);
-      else await executeOnSuccessors(parent!.id);
+      else await executeOnSuccessors(parent!.id, assignedVariables);
       setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
     // INFO :: 0️⃣ empty output type functionality
     if (outputs && outputs.length === 0) setOutputTypeEmpty(id + "_output", true);
   }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
-
-  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
-  useEffect(() => {
-    if (executionCount !== "*") {
-      analyzeStaleState(); // INFO :: 😴 STALE STATE
-      handleExecCountChange();
-    } 
-  }, [executionCount]);
 
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
