@@ -458,7 +458,6 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Error: Fix your Code and then let's try it again mate"
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />
