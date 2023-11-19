@@ -1,9 +1,10 @@
 //COMMENT :: Styles
-import { Button, Modal, Row, Col, Container } from "react-bootstrap";
+import { Button, Modal, Row, Col, Container, Dropdown } from "react-bootstrap";
 import "../../styles/ui/canvas.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear, faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons";
 import useSettingsStore from "../../helpers/settingsStore";
+import { INSERTION_ORDER, TOP_DOWN_ORDER } from "../../config/constants";
 
 type SettingsPopupProps = {
     show: boolean;
@@ -21,6 +22,18 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 	const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 	const setFloatingEdgesSetting = useSettingsStore((state) => state.setFloatingEdges);
 	const changeFloatingEdges = () => setFloatingEdgesSetting(!floatingEdgesSetting);
+
+	// INFO :: Order settings
+	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+	const setRunAllOrderSetting = useSettingsStore((state) => state.setRunAllOrder);
+	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+	const setExportOrderSetting = useSettingsStore((state) => state.setExportOrder);
+	const handleRunAllSelect = (eventKey: string | null) => {
+		if (eventKey) setRunAllOrderSetting(eventKey);
+	}
+	const handleExportSelect = (eventKey: string | null) => {
+		if (eventKey) setExportOrderSetting(eventKey);
+	}
 
 	return (
 		<Modal
@@ -71,6 +84,44 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							>
 								<FontAwesomeIcon icon={floatingEdgesSetting ? faToggleOn : faToggleOff} />
 							</button>
+						</Col>
+					</Row>
+					<Row>
+						<Col md={10}>
+							<strong>Run All-Order</strong><br />
+							<p style={{fontSize: 'smaller'}}>
+								Decide on the order of cell execution when running all cells.
+							</p>
+						</Col>
+						<Col md={2}>
+							<Dropdown onSelect={handleRunAllSelect}>
+								<Dropdown.Toggle variant="success" id="dropdown-basic" size="sm">
+									{runAllOrderSetting}
+								</Dropdown.Toggle>
+								<Dropdown.Menu>
+									<Dropdown.Item eventKey={INSERTION_ORDER}>{INSERTION_ORDER}</Dropdown.Item>
+									<Dropdown.Item eventKey={TOP_DOWN_ORDER}>{TOP_DOWN_ORDER}</Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
+						</Col>
+					</Row>
+					<Row>
+						<Col md={10}>
+							<strong>Export-Order</strong><br />
+							<p style={{fontSize: 'smaller'}}>
+								Decide on the order in which the cells are exported to a traditional notebook.
+							</p>
+						</Col>
+						<Col md={2}>
+							<Dropdown onSelect={handleExportSelect}>
+								<Dropdown.Toggle variant="success" id="dropdown-basic" size="sm">
+									{exportOrderSetting}
+								</Dropdown.Toggle>
+								<Dropdown.Menu>
+									<Dropdown.Item eventKey={INSERTION_ORDER}>{INSERTION_ORDER}</Dropdown.Item>
+									<Dropdown.Item eventKey={TOP_DOWN_ORDER}>{TOP_DOWN_ORDER}</Dropdown.Item>
+								</Dropdown.Menu>
+							</Dropdown>
 						</Col>
 					</Row>
 				</Container>

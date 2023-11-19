@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
 import { Position } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, RUNALL_ACTION } from '../config/constants';
 import { serverURL } from '../config/config';
 
 
@@ -170,8 +170,9 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 }
 
 /** Method to export to a normal .ipynb (getting rid of all additional fields) */
-export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string) {
-
+export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string, order: string) {
+  // if the order is top-down, sort the nodes by their y position
+  if (order === TOP_DOWN_ORDER) nodes.sort((a, b) => a.position.y - b.position.y);
   const cells: NotebookCell[] = [];
   nodes.forEach((node: Node) => {
     if (node.parentNode !== groupNodeId) return;
@@ -580,4 +581,16 @@ export function getEdgeParams(source: Node, target: Node) {
     sourcePos,
     targetPos,
   };
+}
+
+/* ================== helpers for ordering of nodes ================== */
+export function getNodeOrder(node_id: string, parent_id: string, allNodes: Node[], order: string, action: string) {
+  // fetch all NORMAL_NODES and MARKDOWN_NODES (from specified parent) in the order they are in the graph.
+  var simpleNodes = allNodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === parent_id);
+  // if action is RUNALL_ACTION, remove all MARKDOWN_NODES
+  if (action === RUNALL_ACTION) simpleNodes = simpleNodes.filter((node: Node) => node.type !== MARKDOWN_NODE);
+  // if order is based on y-value, sort accodingly
+  if (order === TOP_DOWN_ORDER) simpleNodes.sort((a: Node, b: Node) => a.position.y - b.position.y);
+  const index = simpleNodes.findIndex((node: Node) => node.id === node_id);
+  return index + 1;
 }

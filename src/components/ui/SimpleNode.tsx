@@ -48,8 +48,8 @@ import {
   useAnalyzeStaleState
 } from "../../helpers/hooks";
 import { 
-  analyzeCode, 
-  getConnectedNodeId 
+  getConnectedNodeId,
+  getNodeOrder,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -65,10 +65,12 @@ import {
   EXEC_CELL_NOT_YET_RUN,
   MIN_WIDTH,
   MIN_HEIGHT,
-  CONTROL_STLYE
+  CONTROL_STLYE,
+  RUNALL_ACTION
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * A React component that represents a code cell node on the canvas.
@@ -85,7 +87,7 @@ import { ResizeIcon} from "../ui";
  */
 
 function SimpleNode({ id, data }: NodeProps) {
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, getNodes } = useReactFlow();
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -131,6 +133,16 @@ function SimpleNode({ id, data }: NodeProps) {
     // isEqual needed for rerendering purposes
     return getResizeBoundaries(id);
   }, isEqual);
+
+  // INFO :: show order
+  const showOrder = useNodesStore((state) => state.showOrder);
+	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  const fetchNodeOrder = useCallback(() => {
+    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    return number;
+  }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
@@ -346,7 +358,7 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner">
+        <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
           <MonacoEditor
             key={data}
             className="textareaNode nodrag"
@@ -407,6 +419,10 @@ function SimpleNode({ id, data }: NodeProps) {
             <div style={{width: "20px"}}/>
           </div>
         </div>
+        {showOrder.node === parentNode && (
+        <div className="innerOrder">
+          {fetchNodeOrder()}
+        </div>)}
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
