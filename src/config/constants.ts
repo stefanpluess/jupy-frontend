@@ -8,7 +8,9 @@ export const OUTPUT_NODE = 'outputNode';
 export const MARKDOWN_NODE = 'mdNode'
 export const COMMENT_NODE = 'comment';
 
+export const NORMAL_EDGE = 'default';
 export const GROUP_EDGE = 'groupEdge';
+export const FLOATING_EDGE = 'floatingEdge';
 
 export const ID_LENGTH = 8;
 export const DEFAULT_LOCK_STATUS = false;
@@ -28,6 +30,13 @@ export const MIN_HEIGHT_GROUP = 50;
 export const MAX_WIDTH = 600;
 export const MAX_HEIGHT = 500;
 export const PADDING = 15;
+
+// INFO :: order functionality
+export const EXPORT_ACTION = 'export';
+export const RUNALL_ACTION = 'runall';
+export const INSERTION_ORDER = 'insertion';
+export const TOP_DOWN_ORDER = 'top-down';
+// export const LEFT_RIGHT_ORDER = 'left-right';
 
 export const CONTROL_STLYE = {
     background: 'transparent',

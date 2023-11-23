@@ -50,6 +50,10 @@ export type NodesStore = {
     deleteNodeFromUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string) => void;
     staleState: { [nodeId: string]: boolean };
     setStaleState: (nodeId: string, isStale: boolean) => void;
+
+    // INFO :: showing order
+    showOrder: { node: string, action: string }
+    setShowOrder: (node_id: string, action: string) => void;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -220,6 +224,16 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         staleState: {
           ...state.staleState,
           [nodeId]: isStale
+        }
+    }))
+  },
+  // INFO :: showing order
+  showOrder: { node: "", action: "" },
+  setShowOrder: (node_id: string, action: string) => {
+    set((state) => ({
+        showOrder: {
+          node: node_id,
+          action: action
         }
     }))
   },

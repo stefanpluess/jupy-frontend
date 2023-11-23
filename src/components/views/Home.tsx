@@ -33,7 +33,8 @@ import {
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
-  SelectedNodesToolbar 
+  SelectedNodesToolbar,
+  SettingsPopup,
 } from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
@@ -50,7 +51,9 @@ import {
 } from "../../helpers/utils";
 import { 
   useUpdateNodesExeCountAndOuput, 
-  usePath 
+  usePath, 
+  useChangeExpandParent,
+  useChangeFloatingEdges
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -58,6 +61,7 @@ import {
   selectorGeneral,
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
+import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
@@ -66,6 +70,8 @@ import {
   EXTENT_PARENT,
   DEFAULT_LOCK_STATUS,
   OUTPUT_NODE,
+  FLOATING_EDGE,
+  NORMAL_EDGE,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -107,7 +113,7 @@ function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const onConnect = useCallback(
+  const onConnect = useCallback( // not needed as long as we don't allow for dragging of edges
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
@@ -119,6 +125,10 @@ function DynamicGrouping() {
   const { token, setLatestExecutionCount, setLatestExecutionOutput } = useWebSocketStore(selectorGeneral, shallow);
   const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
   const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
+  const showSettings = useSettingsStore((state) => state.showSettings);
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -126,28 +136,34 @@ function DynamicGrouping() {
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
-  //INFO :: useEffect -> update execution count and output of nodes
+  //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
+  useChangeExpandParent();
+  useChangeFloatingEdges();
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     axios.get(`${serverURL}/api/contents/${path}`).then((res) => {
       const notebookData = res.data;
-      const { initialNodes, initialEdges } = createInitialElements(
-        notebookData.content.cells
-      );
+      const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
-        } else if (node.type === NORMAL_NODE) {
-          setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
-        } else if (node.type === OUTPUT_NODE) {
-          setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+        } else {
+          expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
+          if (node.type === NORMAL_NODE) {
+            setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
+          } else if (node.type === OUTPUT_NODE) {
+            setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+          }
         }
+      });
+      initialEdges.forEach((edge) => {
+        if (!edge.type) floatingEdgesSetting ? edge.type = FLOATING_EDGE : edge.type = NORMAL_EDGE;
       });
       const sortedNodes = initialNodes.sort(sortNodes);
       setNodes(sortedNodes);
@@ -225,7 +241,7 @@ function DynamicGrouping() {
           groupNode
         ) ?? { x: 0, y: 0 };
         newNode.parentNode = groupNode?.id;
-        newNode.extent = groupNode ? EXTENT_PARENT : undefined;
+        expandParentSetting ? newNode.expandParent = true : newNode.extent = EXTENT_PARENT;
       }
 
       // we need to make sure that the parents are sorted before the children
@@ -263,22 +279,24 @@ function DynamicGrouping() {
             } else if (n.id === node.id) {
               const position = getNodePositionInsideParent(n, groupNode) 
                                ?? { x: 0, y: 0 };
-              return { 
+              const updatedNode = { 
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             // if 🔒 lock is ✅ then update also connected node
             else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-              return {
+              const updatedNode = {
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             return n;
           })
@@ -415,7 +433,7 @@ function DynamicGrouping() {
           edges={edges}
           onEdgesChange={onEdgesChange}
           onNodesChange={onNodesChange}
-          onConnect={onConnect}
+          onConnect={onConnect} // not needed as long as we don't allow for dragging of edges
           onNodeDrag={onNodeDrag}
           onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
@@ -459,6 +477,7 @@ function DynamicGrouping() {
               style={{marginLeft: "80px"}}
             />
           </Panel>
+          <SettingsPopup show={showSettings} onClose={() => setShowSettings(false)} />
         </ReactFlow>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { NodeProps, useReactFlow, useStoreApi, Node, Edge } from 'reactflow';
 import { useCallback } from 'react';
 import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } from '../utils';
-import { EXTENT_PARENT } from '../../config/constants';
 import useNodesStore from '../nodesStore';
+import { FLOATING_EDGE, NORMAL_EDGE } from '../../config/constants';
+import useSettingsStore from '../settingsStore';
 
 /**
  * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.
@@ -14,6 +15,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
     const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
     const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const toggleLock = useNodesStore((state) => state.toggleLock);
+    const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
     const onDuplicateCell= useCallback(async () => {
         // COMMENT - create a deep copy of the code node
@@ -38,12 +40,14 @@ export function useDuplicateCell(id: NodeProps['id']) {
             style: deepCopyOfSimpleNode.style,
             width: deepCopyOfSimpleNode.width,
             height: deepCopyOfSimpleNode.height,
+            extent: deepCopyOfSimpleNode.extent,
+            expandParent: deepCopyOfSimpleNode.expandParent,
         };
         setNodeIdToExecCount(duplicateSimpleNode.id, duplicateSimpleNode.data.executionCount.execCount); // put the exec count into the store
         /* if original node has a parent the new node should have the same parent
         - check if new position is inside the group node 
         - adjust the position in case position adjustment made it go out of bounds of group node*/
-        if (deepCopyOfSimpleNode.extent === EXTENT_PARENT) {
+        if (deepCopyOfSimpleNode.parentNode) {
             const groupNode = getNode(deepCopyOfSimpleNode.parentNode);
             if (groupNode) {
                 // COMMENT - adjustment for simple node
@@ -51,8 +55,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 duplicateSimpleNode.position = getNodePositionInsideParent(duplicateSimpleNode, groupNode) 
                                             ?? { x: 0, y: 0 }; */
                 duplicateSimpleNode.parentNode = groupNode?.id;
-                duplicateSimpleNode.extent = groupNode ? EXTENT_PARENT : undefined;
-            } else{
+            } else {
                 console.error("[useDuplicateCell] no group node found.");
             }
         }
@@ -86,22 +89,23 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 data: deepCopyOfOutputNode.data,
                 width: deepCopyOfOutputNode.width,
                 height: deepCopyOfOutputNode.height,
+                extent: deepCopyOfOutputNode.extent,
+                expandParent: deepCopyOfOutputNode.expandParent,
             };
             setNodeIdToOutputs({[duplicateOutputNode.id]: duplicateOutputNode.data.outputs}); // put the outputs into the store
             /* if original node has a parent the new node should have the same parent
                 - check if new position is inside the group node 
                 - adjust the position in case position adjustment made it go out of bounds of group node*/
-            if (deepCopyOfSimpleNode.extent === EXTENT_PARENT) {
-                const groupNode = getNode(deepCopyOfSimpleNode.parentNode);
+            if (deepCopyOfOutputNode.parentNode) {
+                const groupNode = getNode(deepCopyOfOutputNode.parentNode);
                 if (groupNode) {
                     // COMMENT - adjustment for output node
                     // in case the node has a parent, we want to make sure that the output node has the same parent
-                    duplicateOutputNode.parentNode = duplicateSimpleNode.parentNode;
-                    duplicateOutputNode.extent = EXTENT_PARENT;
+                    duplicateOutputNode.parentNode = groupNode?.id;
                     /* adjust the position of the output node in case it is outside of the parent node
                     duplicateOutputNode.position = getNodePositionInsideParent(duplicateOutputNode, groupNode) 
                                                 ?? { x: 0, y: 0 }; */
-                } else{
+                } else {
                     console.error("[useDuplicateCell] no group node found.");
                 }
             }
@@ -117,6 +121,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 id: getId("edge"),
                 source: duplicateSimpleNode.id,
                 target: duplicateOutputNode.id,
+                type: floatingEdgesSetting ? FLOATING_EDGE : NORMAL_EDGE,
             };
             setEdges((edges) =>
             edges.concat([newEdge])
@@ -124,7 +129,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
             // lock the new node, since it is first call with this id it will make it locked
             toggleLock(new_id);
         }
-    }, [getNode, getNodes, id, setEdges, setNodes, getIntersectingNodes]);
+    }, [getNode, getNodes, id, setEdges, setNodes, getIntersectingNodes, floatingEdgesSetting, toggleLock]);
 
   return onDuplicateCell;
 }

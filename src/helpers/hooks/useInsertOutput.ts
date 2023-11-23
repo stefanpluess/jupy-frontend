@@ -1,12 +1,16 @@
 import { useCallback } from 'react';
 import { Edge, Node, useReactFlow } from 'reactflow';
 import { createOutputNode } from '../utils';
+import { EXTENT_PARENT, FLOATING_EDGE, NORMAL_EDGE } from '../../config/constants';
+import useSettingsStore from '../settingsStore';
 
 /**
  * Returns a function that inserts output nodes and edges into the React Flow graph.
  */
 function useInsertOutput() {
     const { getNode, setNodes, setEdges } = useReactFlow();
+    const expandParentSetting = useSettingsStore((state) => state.expandParent);
+    const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
     /**
      * Inserts output nodes and edges into the React Flow graph.
      * @param node_ids - An array of node IDs to insert output nodes and edges for.
@@ -17,10 +21,12 @@ function useInsertOutput() {
         const newEdges = [] as Edge[];
         node_ids.forEach((node_id) => {
             const outputNode = createOutputNode(getNode(node_id)!);
+            expandParentSetting ? outputNode.expandParent = true : outputNode.extent = EXTENT_PARENT;
             const edge = {
                 id: node_id + "_edge",
                 source: node_id,
-                target: node_id + "_output"
+                target: node_id + "_output",
+                type: floatingEdgesSetting ? FLOATING_EDGE : NORMAL_EDGE,
             };
             newNodes.push(outputNode);
             newEdges.push(edge);
@@ -28,7 +34,7 @@ function useInsertOutput() {
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
 
-    }, [getNode, setNodes, setEdges, createOutputNode]);
+    }, [getNode, setNodes, setEdges, createOutputNode, expandParentSetting, floatingEdgesSetting]);
 
     return insertOutput;
 }
