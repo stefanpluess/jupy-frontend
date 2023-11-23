@@ -10,8 +10,8 @@ import { useInsertOutput } from '.';
 function useRunAll() {
     const { getNode, getNodes } = useReactFlow();
     const addToQueue = useNodesStore((state) => state.addToQueue);
-    const executionCounts = useNodesStore((state) => state.executionCounts);
-    const setExecutionCount = useNodesStore((state) => state.setExecutionCount);
+    const nodeIdToExecCount = useNodesStore((state) => state.nodeIdToExecCount);
+    const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
     const insertOutput = useInsertOutput();
 
@@ -30,14 +30,14 @@ function useRunAll() {
         // filter the child nodes to only include those that have code and insert the output nodes
         const executableChildNodes = sortedChildNodes.filter((node) => node.data.code && node.data.code.trim() !== '');
         // for all executable child nodes with execution count being "", insert the output node
-        const noOutputNodes = executableChildNodes.filter((node) => executionCounts[node.id]?.execCount === "");
+        const noOutputNodes = executableChildNodes.filter((node) => nodeIdToExecCount[node.id]?.execCount === "");
         await insertOutput(noOutputNodes.map((node) => node.id));
         // for each child node with code, add it to the queue and set the execution count to *
         executableChildNodes.forEach((node) => {
-            setExecutionCount(node.id, '*');
+            setNodeIdToExecCount(node.id, '*');
             addToQueue(group_node_id, node.id, node.data.code);
         });
-      }, [addToQueue, getNodes, setExecutionCount, executionCounts, getNode, setInfluenceStateForGroupNode, insertOutput]);
+      }, [addToQueue, getNodes, setNodeIdToExecCount, nodeIdToExecCount, getNode, setInfluenceStateForGroupNode, insertOutput]);
 
     return runAll;
 }

@@ -31,7 +31,7 @@ import {
 import { 
   useWebSocketStore, 
   createSession, 
-  selectorBubbleBranch 
+  selectorGeneral
 } from '../../helpers/websocket';
 import useNodesStore from '../../helpers/nodesStore';
 //COMMENT :: Internal modules UI
@@ -61,7 +61,7 @@ export default function SelectedNodesToolbar() {
   const selectedNodes = nodes.filter((node) => node.selected);
   const groupableNodes = selectedNodes.filter((node) => !node.parentNode && node.type !== GROUP_NODE);
   const path = usePath();
-  const { setLatestExecutionOutput, setLatestExecutionCount, token } = useWebSocketStore(selectorBubbleBranch, shallow);
+  const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
   const selectedNodeIds = selectedNodes.map((node) => node.id);
   const removeGroupNode = useRemoveGroupNode();
   const isVisible = selectedNodeIds.length > 1;

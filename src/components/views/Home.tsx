@@ -28,8 +28,7 @@ import { shallow } from "zustand/shallow";
 import { ToastContainer } from 'react-toastify';
 import axios from "axios";
 import { 
-  Alert, 
-  Button 
+  Alert
 } from "react-bootstrap";
 //COMMENT :: Internal modules UI
 import { 
@@ -56,7 +55,7 @@ import {
 import {
   useWebSocketStore,
   createSession,
-  selectorHome,
+  selectorGeneral,
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
 //COMMENT :: Internal modules CONFIG
@@ -66,6 +65,7 @@ import {
   MARKDOWN_NODE,
   EXTENT_PARENT,
   DEFAULT_LOCK_STATUS,
+  OUTPUT_NODE,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -115,13 +115,11 @@ function DynamicGrouping() {
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
-  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0
-  const { cellIdToMsgId,
-    latestExecutionCount, setLatestExecutionOutput, 
-    latestExecutionOutput, setLatestExecutionCount,
-    cellIdToOutputs, setCellIdToOutputs,
-    token
-  } = useWebSocketStore(selectorHome, shallow);
+  const isMac = navigator?.platform.toUpperCase().indexOf('MAC') >= 0;
+  const { token, setLatestExecutionCount, setLatestExecutionOutput } = useWebSocketStore(selectorGeneral, shallow);
+  const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
+  const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
+
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   // INFO :: needed for lock functionality and moving nodes together:
@@ -129,10 +127,7 @@ function DynamicGrouping() {
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
 
   //INFO :: useEffect -> update execution count and output of nodes
-  useUpdateNodesExeCountAndOuput(
-    { latestExecutionCount, latestExecutionOutput, cellIdToOutputs, setCellIdToOutputs },
-    cellIdToMsgId
-  );
+  useUpdateNodesExeCountAndOuput();
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
@@ -148,6 +143,10 @@ function DynamicGrouping() {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
+        } else if (node.type === NORMAL_NODE) {
+          setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
+        } else if (node.type === OUTPUT_NODE) {
+          setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
         }
       });
       const sortedNodes = initialNodes.sort(sortNodes);
@@ -210,6 +209,7 @@ function DynamicGrouping() {
           execCount: '',
           timestamp: new Date()
         };
+        setNodeIdToExecCount(newNode.id, ""); // put the exec count into the store
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
       }

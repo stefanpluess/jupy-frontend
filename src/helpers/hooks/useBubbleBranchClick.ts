@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
 import { getId, passParentState, sortNodes } from '../utils';
 import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
-import { useWebSocketStore, createSession, selectorBubbleBranch } from '../websocket';
+import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 
 /**
@@ -16,9 +16,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const { setEdges, setNodes, getNodes, getEdges, getNode } = useReactFlow();
     const store = useStoreApi();
     const path = usePath();
-    const { setLatestExecutionOutput, setLatestExecutionCount,
-        token
-      } = useWebSocketStore(selectorBubbleBranch, shallow);
+    const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
 
     const onBranchOut = useCallback(async () => {
         // we need the parent node object for getting its position

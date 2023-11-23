@@ -15,11 +15,10 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
-import { shallow } from "zustand/shallow";
 //COMMENT :: Internal modules HELPERS
 import { saveNotebook } from "../../helpers/utils";
 import { usePath } from "../../helpers/hooks";
-import { selectorHome, useWebSocketStore } from "../../helpers/websocket";
+import { useWebSocketStore } from "../../helpers/websocket";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -49,7 +48,7 @@ const Sidebar = ({
   setShowErrorAlert,
 }: SidebarProps) => {
   const path = usePath();
-  const { token } = useWebSocketStore(selectorHome, shallow);
+  const token = useWebSocketStore((state) => state.token)
   const [isAutosave, setIsAutosave] = useState(false);
 
   const changeAutoSave = () => {

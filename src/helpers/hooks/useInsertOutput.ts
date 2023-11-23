@@ -27,7 +27,6 @@ function useInsertOutput() {
         });
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-        await new Promise((resolve) => setTimeout(resolve, 10));
 
     }, [getNode, setNodes, setEdges, createOutputNode]);
 
