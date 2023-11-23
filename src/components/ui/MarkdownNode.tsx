@@ -3,6 +3,7 @@ import {
   useState, 
   useCallback, 
   memo, 
+  useRef,
   useEffect
 } from "react";
 import {
@@ -23,7 +24,7 @@ import {
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import MonacoEditor from "@uiw/react-monacoeditor";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
 //COMMENT :: Internal modules
 import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
@@ -76,6 +77,15 @@ function MarkdownNode({ id, data }: NodeProps) {
     const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
+
+  /* right after insertion, allow the user to immediately type */
+  const editorRef = useRef<RefEditorInstance | null>(null);
+  useEffect(() => {
+    if (!data.typeable) return;
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.editor?.focus();
+    }, 10); // TODO: check whether 10ms is fine
+  }, []);
 
   // INFO :: resizing logic
   const getResizeBoundaries = useResizeBoundaries();
@@ -186,6 +196,7 @@ function MarkdownNode({ id, data }: NodeProps) {
         <div className="simpleNodewrapper">
           <div className="inner" style={{ opacity: showOrder.node === parentNode && showOrder.action === EXPORT_ACTION ? 0.5 : 1 }}>
             <MonacoEditor
+              ref={editorRef}
               key={data}
               className="textareaNode nodrag"
               language="markdown"
@@ -230,7 +241,7 @@ function MarkdownNode({ id, data }: NodeProps) {
         </div>
         <Handle type="source" position={Position.Right}>
           <button
-            title="Run CodeCell"
+            title="Run Markdown"
             className="rinputCentered playButton rcentral"
             onClick={createMarkdown}
           >

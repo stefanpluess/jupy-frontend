@@ -32,7 +32,7 @@ import {
   faHourglass,
   faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
-import MonacoEditor from "@uiw/react-monacoeditor";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 //COMMENT :: Internal modules HELPERS
@@ -162,6 +162,15 @@ function SimpleNode({ id, data }: NodeProps) {
       (output: OutputNodeData) => output.outputType === "error"
     );
   }, [outputs]);
+
+  /* right after insertion, allow the user to immediately type */
+  const editorRef = useRef<RefEditorInstance | null>(null);
+  useEffect(() => {
+    if (!data.typeable) return;
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.editor?.focus();
+    }, 10); // TODO: check whether 10ms is fine
+  }, []);
 
   // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
   useEffect(() => {
@@ -362,7 +371,7 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
 
           {hasParent && (
-            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
+            <button title="Ungroup Code Cell from Bubble Cell" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
@@ -393,6 +402,7 @@ function SimpleNode({ id, data }: NodeProps) {
       >
         <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
           <MonacoEditor
+            ref={editorRef}
             key={data}
             className="textareaNode nodrag"
             language="python"
