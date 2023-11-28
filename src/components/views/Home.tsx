@@ -28,8 +28,14 @@ import { shallow } from "zustand/shallow";
 import { ToastContainer } from 'react-toastify';
 import axios from "axios";
 import { 
-  Alert
+  Alert, Button
 } from "react-bootstrap";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCircleQuestion
+} from "@fortawesome/free-solid-svg-icons";
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
@@ -53,7 +59,8 @@ import {
   useUpdateNodesExeCountAndOuput, 
   usePath, 
   useChangeExpandParent,
-  useChangeFloatingEdges
+  useChangeFloatingEdges,
+  useCellBranchReset
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -135,6 +142,13 @@ function DynamicGrouping() {
   // INFO :: needed for lock functionality and moving nodes together:
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
+  // INFO :: 🧫 CELL BRANCH
+  const toggleNode = useNodesStore((state) => state.toggleNode);
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const setConfirmCellBranch = useNodesStore((state) => state.setConfirmCellBranch);
+  const resetCellBranch= useCellBranchReset();
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [isVideoVisible, setIsVideoVisible] = useState(false);
 
   //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
@@ -391,7 +405,58 @@ function DynamicGrouping() {
     },
     [getIntersectingNodes, setNodes, onDragStartData]
   );
-  
+
+  // INFO :: 🧫 CELL BRANCH
+  const MySwal = withReactContent(Swal);
+  const showAlertCellBranchOut = () => {
+    MySwal.fire({
+      title: <strong>Branch out warning!</strong>,
+      html: <i>Select only nodes that belong to the indicated group node!</i>,
+      icon: "warning",
+    });
+  };
+
+  const onNodeClick = useCallback(
+    (_: MouseEvent, node: Node) => {
+      if (!isCellBranchActive.isActive || node.type === GROUP_NODE) return;
+      if (node.parentNode !== isCellBranchActive.id) {
+        showAlertCellBranchOut();
+        return;
+      }
+      toggleNode(node.id);
+      // check if the node has a node connected (output or code node) to it
+      let connectedNode: Node | undefined = undefined;
+      if (node.type === NORMAL_NODE || node.type === OUTPUT_NODE) {
+        connectedNode = store.getState().getNodes()
+                          .find(n => n.id === getConnectedNodeId(node.id));
+        if (connectedNode) {
+          toggleNode(connectedNode.id);
+        }
+      }
+      // update the nodes
+      setNodes((nds) => {
+        return nds.map((n) => {
+          if (n.id === node.id || (connectedNode && n.id === connectedNode.id)) {
+            if (n.className === 'selected') {
+              return { ...n, className: undefined, selected: false };
+            }
+            return { ...n, className: 'selected', selected: false };
+          }
+          return { ...n };
+        });
+      });
+    },
+    [setNodes, toggleNode, store, isCellBranchActive]
+  );
+
+  const confirmCellBranch = () => {
+    // proceed to next step of branching out
+    setConfirmCellBranch(true);
+  }
+
+  const cancelCellBranch = () => {
+    resetCellBranch();
+  }
 
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
@@ -421,6 +486,38 @@ function DynamicGrouping() {
     }
   }, [showErrorAlert]);
 
+  // INFO :: 🧫 CELL BRANCH
+  const toggleHelpCellBranch = () => {
+    if (!isVideoVisible) {
+      setIsVideoVisible(true);
+    } else{
+      setIsVideoVisible(false);
+    }
+  }
+
+  const CellBranchAlert = () => {
+    const filteredIds = clickedNodeOrder.filter((id) => !id.includes('output'));
+    return (
+      <Alert show={isCellBranchActive.isActive && !isCellBranchActive.isConfirmed} variant="secondary">
+        <Alert.Heading>Pick code cells and split the bubble ✂️</Alert.Heading>
+        <p> <u>New bubble cell</u> will be created as a parent of this bubble.<br/>
+        The chosen code cells will run in the specified order on <u>new parent</u>.<br/>
+        Output cells are selected automatically. </p>
+        <p><strong>Cells selected: {filteredIds.length}</strong></p>
+        {isVideoVisible &&  <iframe src="https://www.youtube.com/embed/YjH5eYDD9mI?showinfo=0&autohide=1" style={{ width: '100%', height: '35vh'}} allowFullScreen></iframe>}
+        <div className="buttonsAreaCellBranch">
+          <Button onClick={cancelCellBranch} as="input" type="button" value="Cancel" variant="danger"/>
+          <button
+            className="cellButton"
+            onClick = {toggleHelpCellBranch}
+          >
+            <FontAwesomeIcon className="cellBranchHelp-icon" icon={faCircleQuestion} />
+          </button>
+          <Button onClick={confirmCellBranch} as="input" type="button" value="Confirm" variant="success"/>
+        </div>
+      </Alert>
+    );
+  }
 
   return (
     <div className={"wrapper"}>
@@ -438,6 +535,10 @@ function DynamicGrouping() {
           onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
+          onNodeClick={onNodeClick}
+          nodesDraggable={!isCellBranchActive.isActive}
+          elementsSelectable={!isCellBranchActive.isActive}
+          zoomOnDoubleClick={!isCellBranchActive.isActive}
           onDragOver={onDragOver}
           proOptions={proOptions}
           fitView
@@ -462,6 +563,7 @@ function DynamicGrouping() {
           <Panel position="top-center">
             <SuccessAlert />
             <ErrorAlert />
+            <CellBranchAlert />
           </Panel>
           <Panel position="top-left">
             <ToastContainer 
