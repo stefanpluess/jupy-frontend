@@ -25,7 +25,6 @@ export function useDuplicateCell(id: NodeProps['id']) {
             return;
         }
         const data = JSON.parse(JSON.stringify(simpleNode?.data));
-        if (data.typeable) delete data.typeable; // do not allow immediate typing in copied node
         const deepCopyOfSimpleNode = JSON.parse(JSON.stringify(simpleNode));
         // create a duplicate of the simple node
         const new_id = getId(deepCopyOfSimpleNode.type);
