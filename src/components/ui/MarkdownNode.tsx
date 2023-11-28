@@ -2,7 +2,8 @@
 import { 
   useState, 
   useCallback, 
-  memo 
+  memo, 
+  useEffect
 } from "react";
 import {
   NodeToolbar,
@@ -12,8 +13,10 @@ import {
   Handle,
   Position,
   NodeResizeControl,
+  Panel,
 } from "reactflow";
 import {
+  faCheck,
   faCopy,
   faObjectUngroup,
   faPlayCircle,
@@ -26,6 +29,7 @@ import ReactMarkdown from "react-markdown";
 import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
 import { CONTROL_STLYE, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
+import useNodesStore from "../../helpers/nodesStore";
 
 /**
  * A React component that represents a Markdown node used in the Home component.
@@ -40,6 +44,13 @@ function MarkdownNode({ id, data }: NodeProps) {
   const { deleteElements } = useReactFlow();
   const detachNodes = useDetachNodes();
   const [editMode, setEditMode] = useState(data?.editMode || false);
+  // INFO :: 🧫 CELL BRANCH
+  const parentNodeId = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
+  );
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [isPicked, setIsPicked] = useState(false);
 
   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
@@ -100,12 +111,38 @@ function MarkdownNode({ id, data }: NodeProps) {
       <ResizeIcon />
     </NodeResizeControl>
   );
+  
+  // INFO :: 🧫 CELL BRANCH
+  useEffect( () => {
+    // find the position of the id inside clickedNodeOrder
+    const position = clickedNodeOrder.indexOf(id);
+    // set the node number
+    if (position === -1) {
+      setIsPicked(false);
+    }
+    else{
+      setIsPicked(true);
+    }
+  }, [clickedNodeOrder]);
+
+  const selectorCellBranch = (
+    isCellBranchActive.isActive && isCellBranchActive.id === parentNodeId && (
+    <Panel position="top-left" style={{ position: "absolute", top: "-1.5em", left: "-1.5em"}}>
+      {isPicked === false ? (
+        <span className="dotNumberEmpty">{'\u00A0'}</span>
+        ) : (
+          <span className="dotNumberSelected"><FontAwesomeIcon icon={faCheck}/></span>
+        )
+      }
+    </Panel>)
+  );
 
   if (!editMode)
     return (
       <>
         {nodeResizer}
         {toolbar}
+        {selectorCellBranch}
         <div className="simpleNodewrapper">
           <div className="inner">
             <div
@@ -126,6 +163,7 @@ function MarkdownNode({ id, data }: NodeProps) {
       <>
         {nodeResizer}
         {toolbar}
+        {selectorCellBranch}
         <div className="simpleNodewrapper">
           <div className="inner">
             <MonacoEditor

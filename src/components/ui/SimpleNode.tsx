@@ -13,7 +13,8 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
-  NodeResizeControl
+  NodeResizeControl,
+  Panel
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -29,7 +30,7 @@ import {
   faLockOpen,
   faStopCircle,
   faHourglass,
-  faTriangleExclamation,
+  faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
@@ -48,8 +49,7 @@ import {
   useAnalyzeStaleState
 } from "../../helpers/hooks";
 import { 
-  analyzeCode, 
-  getConnectedNodeId 
+  getConnectedNodeId
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -120,6 +120,10 @@ function SimpleNode({ id, data }: NodeProps) {
   const [transitioning, setTransitioning] = useState(false);
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
+  // INFO :: 🧫 CELL BRANCH
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [nodeNumber, setNodeNumber] = useState('');
   // INFO :: DUPLICATE CELL
   const handleDuplicateCell = useDuplicateCell(id);
   
@@ -279,6 +283,33 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  // INFO :: 🧫 CELL BRANCH
+  useEffect( () => {
+    // filter to exclude the output node ids and markdown node ids
+    const clickedNodeOrderFiltered = clickedNodeOrder.filter((id) => !id.includes("_output") && !id.includes("mdNode"));
+    // find the position of the id inside clickedNodeOrder
+    const position = clickedNodeOrderFiltered.indexOf(id);
+    // set the node number
+    if (position === -1) {
+      setNodeNumber('');
+    }
+    else{
+      setNodeNumber((position + 1).toString());
+    }
+  }, [clickedNodeOrder]);
+
+  const selectorCellBranch = (
+    isCellBranchActive.isActive && isCellBranchActive.id === parentNode && (
+      <Panel position="top-left" style={{ position: "absolute", top: "-1.5em", left: "-1.5em"}}>
+        {nodeNumber === '' ? (
+          <span className="dotNumberEmpty">{'\u00A0'}</span>
+          ) : (
+            <span className="dotNumberSelected">{nodeNumber}</span>
+          )
+        }
+      </Panel>)
+  );
+
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
 
@@ -294,6 +325,7 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
+      {selectorCellBranch}
       <NodeResizeControl
         style={CONTROL_STLYE}
         minWidth={MIN_WIDTH}
@@ -326,7 +358,7 @@ function SimpleNode({ id, data }: NodeProps) {
           >
             <FontAwesomeIcon className="icon" icon={faCommentAlt} />
           </button>
-
+          
           <button
             title="Additonal cell settings"
             onClick={onAdditionalSettings}

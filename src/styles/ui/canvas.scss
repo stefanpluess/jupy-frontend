@@ -486,3 +486,49 @@
       opacity: 1;
     }
 }
+
+/* INFO :: styles for the user selecting the nodes - CELL BRANCH */
+@mixin spanCommon {
+    border-radius: 0.8em;
+    -moz-border-radius: 0.8em;
+    -webkit-border-radius: 0.8em;
+    color: #ffffff;
+    display: inline-block;
+    font-weight: bold;
+    line-height: 1.6em;
+    margin-right: 15px;
+    text-align: center;
+    width: 1.6em;
+    -webkit-box-shadow: 0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    -moz-box-shadow:    0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    box-shadow:         0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    border: 1px solid rgb(255, 255, 255);
+    transition: background 0.2s ease; 
+}
+
+.dotNumberEmpty {
+    background: transparent;
+    @include spanCommon;
+}
+
+.dotNumberSelected {
+    background: #3589F9; 
+    @include spanCommon;
+}
+
+.buttonsAreaCellBranch{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.rfWrapper .cellBranchHelp-icon {
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 25px;
+    &:hover{
+        color: rgba(0, 0, 0, 0.3);
+    }
+    &:active{
+        transform: scale(0.8);
+    }
+}
