@@ -74,7 +74,7 @@ const Sidebar = ({
   };
 
   useEffect(() => {
-    let autosaveInterval: string | number | NodeJS.Timer | undefined;
+    let autosaveInterval: NodeJS.Timeout | undefined;
 
     if (autoSaveSetting) {
       autosaveInterval = setInterval(performAutosave, 20000); // 20 seconds=20000 milliseconds

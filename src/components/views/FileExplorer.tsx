@@ -132,7 +132,7 @@ export default function FileExplorer() {
   };
 
   const goBack = () => {
-    navigate(path.split("/").slice(0, -1).join("/"));
+    navigate("..", { relative: "path" });
   };
 
   /* useEffect to initially fetch the contents / sessions and setup polling */
