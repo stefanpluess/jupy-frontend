@@ -123,6 +123,17 @@
                     }
                 }
             }
+
+            .innerOrder {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 3em;
+                color: white;
+                // opacity: 1;
+                // z-index: 10;
+            }
         }
     }
 }
@@ -323,6 +334,17 @@
             .bottomCodeCellButtons {
                 @include commonBottomCodeCellButtons;
             }
+        }
+
+        .innerOrder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: white;
+            // opacity: 1;
+            // z-index: 10;
         }
     }
 }
@@ -530,5 +552,27 @@
     }
     &:active{
         transform: scale(0.8);
+    }
+}
+/* INFO :: styles for the settings popup */
+.settingSliderOn {
+    background-color: white;
+    border: none;
+    color: rgb(0, 128, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(0, 128, 0, 0.7);
+    }
+}
+
+.settingSliderOff {
+    background-color: white;
+    border: none;
+    color: rgb(255, 0, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(255, 0, 0, 0.6);
     }
 }

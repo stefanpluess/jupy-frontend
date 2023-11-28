@@ -79,7 +79,9 @@ import {
   KERNEL_BUSY_FROM_PARENT,
   MIN_WIDTH_GROUP,
   MIN_HEIGHT_GROUP,
-  PADDING
+  PADDING,
+  RUNALL_ACTION,
+  EXPORT_ACTION
 } from "../../config/constants";
 import {
   lineStyle,
@@ -88,6 +90,7 @@ import {
   serverURL,
 } from "../../config/config";
 import { InstalledPackages } from "../../config/types";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * Renders a group node on the canvas that allows a connection to the kernel in 
@@ -151,6 +154,9 @@ function GroupNode({ id, data }: NodeProps) {
   const clearQueue = useNodesStore((state) => state.clearQueue);
   const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
   const resetExecCounts = useResetExecCounts();
+  // INFO :: show order
+  const setShowOrder = useNodesStore((state) => state.setShowOrder);
+  const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   // INFO :: 🧫 CELL BRANCH
   const onCellBranchOut = useCellBranch(id);
   const resetCellBranch= useCellBranchReset();
@@ -418,7 +424,7 @@ function GroupNode({ id, data }: NodeProps) {
   /* EXPORT */
   const onExporting = async () => {
     const fileName = path.split('/').pop()!;
-    await exportToJupyterNotebook(getNodes(), id, fileName);
+    await exportToJupyterNotebook(getNodes(), id, fileName, exportOrderSetting);
   };
 
   /* Cancel method for all modals */
@@ -563,7 +569,8 @@ function GroupNode({ id, data }: NodeProps) {
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
         </button>}
-        {wsRunning && <button onClick={onRunAll} title="Run All ⏩">
+        {wsRunning && <button onClick={onRunAll} title="Run All ⏩"
+        onMouseEnter={() => setShowOrder(id, RUNALL_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
@@ -591,7 +598,8 @@ function GroupNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon" icon={faArrowDownUpAcrossLine}/>
           </button>
         )}
-        <button onClick={onExporting} title="Export to Jupyter Notebook 📩"> 
+        <button onClick={onExporting} title="Export to Jupyter Notebook 📩"
+        onMouseEnter={() => setShowOrder(id, EXPORT_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faFileExport}/>
         </button>
       </NodeToolbar>

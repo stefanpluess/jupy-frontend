@@ -49,7 +49,8 @@ import {
   useAnalyzeStaleState
 } from "../../helpers/hooks";
 import { 
-  getConnectedNodeId
+  getConnectedNodeId,
+  getNodeOrder,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -65,10 +66,12 @@ import {
   EXEC_CELL_NOT_YET_RUN,
   MIN_WIDTH,
   MIN_HEIGHT,
-  CONTROL_STLYE
+  CONTROL_STLYE,
+  RUNALL_ACTION
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * A React component that represents a code cell node on the canvas.
@@ -85,7 +88,7 @@ import { ResizeIcon} from "../ui";
  */
 
 function SimpleNode({ id, data }: NodeProps) {
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, getNodes } = useReactFlow();
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -103,7 +106,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const staleState = useNodesStore((state) => state.staleState[id] ?? false);
   const setStaleState = useNodesStore((state) => state.setStaleState);
-  const analyzeStaleState = useAnalyzeStaleState(id);
+  const analyzeStaleState = useAnalyzeStaleState();
   // INFO :: 0️⃣ empty output type functionality
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -136,6 +139,16 @@ function SimpleNode({ id, data }: NodeProps) {
     return getResizeBoundaries(id);
   }, isEqual);
 
+  // INFO :: show order
+  const showOrder = useNodesStore((state) => state.showOrder);
+	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  const fetchNodeOrder = useCallback(() => {
+    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    return number;
+  }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
+
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
     (state) => state.groupNodesWsStates[parentNode!] ?? true
@@ -150,26 +163,29 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
-  const handleExecCountChange = useCallback(async () => {
+  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
+  useEffect(() => {
+    const handleStaleStateAndExecCountChange = async () => {
+      if (executionCount !== "*") {
+        const assignedVariables = await analyzeStaleState(id); // INFO :: 😴 STALE STATE
+        handleExecCountChange(assignedVariables);
+      }
+    };
+    handleStaleStateAndExecCountChange();
+  }, [executionCount]);
+
+  const handleExecCountChange = useCallback(async (assignedVariables: string[] | undefined) => {
     if (hasParent) {
       data.executionCount.execCount = executionCount; // set it to the data prop
       const groupId = parent!.id;
       if (hasError()) stopFurtherExecution(false);
-      else await executeOnSuccessors(parent!.id);
+      else await executeOnSuccessors(parent!.id, assignedVariables);
       setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
     // INFO :: 0️⃣ empty output type functionality
     if (outputs && outputs.length === 0) setOutputTypeEmpty(id + "_output", true);
   }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
-
-  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
-  useEffect(() => {
-    if (executionCount !== "*") {
-      analyzeStaleState(); // INFO :: 😴 STALE STATE
-      handleExecCountChange();
-    } 
-  }, [executionCount]);
 
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
@@ -375,7 +391,7 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner">
+        <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
           <MonacoEditor
             key={data}
             className="textareaNode nodrag"
@@ -436,6 +452,10 @@ function SimpleNode({ id, data }: NodeProps) {
             <div style={{width: "20px"}}/>
           </div>
         </div>
+        {showOrder.node === parentNode && (
+        <div className="innerOrder">
+          {fetchNodeOrder()}
+        </div>)}
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
@@ -487,7 +507,6 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Error: Fix your Code and then let's try it again mate"
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />

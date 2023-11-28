@@ -21,6 +21,7 @@ function useDetachNodes() {
               y: n.position.y + (parentNode?.positionAbsolute?.y ?? 0),
             },
             extent: undefined,
+            expandParent: false,
             parentNode: undefined,
           };
         }
