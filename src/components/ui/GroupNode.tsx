@@ -14,6 +14,7 @@ import {
   useReactFlow,
   useStore,
   useStoreApi,
+  Node
 } from "reactflow";
 import { NodeResizer } from "@reactflow/node-resizer";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -31,6 +32,7 @@ import {
   faSpinner,
   faForward,
   faCircleInfo,
+  faArrowDownUpAcrossLine
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -47,12 +49,15 @@ import {
   useHasBusyPredecessor, 
   useResetExecCounts, 
   useRunAll, 
-  useRemoveGroupNode 
+  useRemoveGroupNode, 
+  useCellBranch,
+  useCellBranchReset
 } from "../../helpers/hooks";
 import { 
   exportToJupyterNotebook, 
-  generateMessage, 
-  passParentState 
+  generateMessage,
+  passParentState, 
+  sortNodes
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { useWebSocketStore } from "../../helpers/websocket";
@@ -74,7 +79,9 @@ import {
   KERNEL_BUSY_FROM_PARENT,
   MIN_WIDTH_GROUP,
   MIN_HEIGHT_GROUP,
-  PADDING
+  PADDING,
+  RUNALL_ACTION,
+  EXPORT_ACTION
 } from "../../config/constants";
 import {
   lineStyle,
@@ -83,6 +90,7 @@ import {
   serverURL,
 } from "../../config/config";
 import { InstalledPackages } from "../../config/types";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * Renders a group node on the canvas that allows a connection to the kernel in 
@@ -118,7 +126,7 @@ function GroupNode({ id, data }: NodeProps) {
   const path = usePath();
   const setLatestExecutionCount = useWebSocketStore((state) => state.setLatestExecutionCount);
   const setLatestExecutionOutput = useWebSocketStore((state) => state.setLatestExecutionOutput);
-  const { getNode, getNodes } = useReactFlow();
+  const { getNode, getNodes, setNodes, fitView} = useReactFlow();
   const predecessor = getNode(data.predecessor);
   const [modalStates, setModalStates] = useState(initialModalStates);
   const [isBranching, setIsBranching] = useState(false);
@@ -146,6 +154,15 @@ function GroupNode({ id, data }: NodeProps) {
   const clearQueue = useNodesStore((state) => state.clearQueue);
   const getExecutionStateForGroupNode = useNodesStore((state) => state.getExecutionStateForGroupNode);
   const resetExecCounts = useResetExecCounts();
+  // INFO :: show order
+  const setShowOrder = useNodesStore((state) => state.setShowOrder);
+  const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  // INFO :: 🧫 CELL BRANCH
+  const onCellBranchOut = useCellBranch(id);
+  const resetCellBranch= useCellBranchReset();
+  const setIsCellBranchActive = useNodesStore((state) => state.setIsCellBranchActive);
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const getClickedNodeOrder = useNodesStore((state) => state.getClickedNodeOrder);
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -273,6 +290,64 @@ function GroupNode({ id, data }: NodeProps) {
     });
   };
 
+  // INFO :: 🧫 CELL BRANCH
+  useEffect(() => {
+    const onCellBranchEnd = async () => {
+      setIsBranching(true);
+      const pickedNodeIds: NodeProps['id'][] = getClickedNodeOrder();
+      // create new group node
+      try{
+        const newGroupNodeId: string = await onCellBranchOut();
+        if (newGroupNodeId === '') return;
+        // assignment of picked nodes to the new group node 
+        await new Promise(resolve => setTimeout(resolve, 500)); // wait until branching is done
+        // if some nodes were picked then proceed
+        if (pickedNodeIds.length !== 0) {
+          // assign the picked nodes to the new group node
+          const allNodes: Node[] = store.getState().getNodes()
+              .map((n) => {
+                  if (pickedNodeIds.includes(n.id)) {
+                      return {...n, parentNode: newGroupNodeId};
+                  }
+                  return n;
+              })
+              .sort(sortNodes);
+          setNodes(allNodes);
+          // execute selected nodes on the new group node
+          await new Promise(resolve => setTimeout(resolve, 1000)); // wait until websocket is connected
+          runAllInGroup(newGroupNodeId, pickedNodeIds, false);
+          // zoom to the new group node
+          fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] });
+        }
+      } catch (error) {
+          console.error("An error occurred during the cell branch:", error);
+      }
+      // end of cell branch
+      setIsBranching(false);
+      // reset cell branch state back to default
+      resetCellBranch();
+    };
+    // check if this group node is eligible to conduct cell branch
+    if (isCellBranchActive.id === id){
+      // start branching out
+      onCellBranchEnd();
+    }
+  }, [isCellBranchActive.isConfirmed]);
+
+  const onCellBranchStart = useCallback(async () => {
+    setIsCellBranchActive(id, true);
+    fitView({ padding: 0.4, duration: 800, nodes: [{ id: id }] });
+    // make the group node not selected to get rid of the toolbar above it
+    setNodes((nds) => {
+      return nds.map((n) => {
+        if (n.id === id) {
+          return { ...n, selected: false };
+        }
+        return { ...n };
+      });
+    });
+  }, [setIsCellBranchActive, fitView, setNodes]);
+
   /* RESTART */
   const onRestart = async () => setModalState("showConfirmModalRestart", true);
 
@@ -341,14 +416,15 @@ function GroupNode({ id, data }: NodeProps) {
 
   const runAll = async (restart: boolean = false, fetchParent: boolean = false) => {
     if (restart) await restartKernel(fetchParent);
+    await new Promise(resolve => setTimeout(resolve, 500)); // wait until kernel is restarted
     setModalState("showConfirmModalRunAll", false);
-    runAllInGroup(id);
+    runAllInGroup(id, [], true);
   };
 
   /* EXPORT */
   const onExporting = async () => {
     const fileName = path.split('/').pop()!;
-    await exportToJupyterNotebook(getNodes(), id, fileName);
+    await exportToJupyterNotebook(getNodes(), id, fileName, exportOrderSetting);
   };
 
   /* Cancel method for all modals */
@@ -493,7 +569,8 @@ function GroupNode({ id, data }: NodeProps) {
         {wsRunning && <button onClick={onRestart} title={"Restart Kernel 🔄"}> 
           <FontAwesomeIcon className="icon" icon={faArrowRotateRight} />
         </button>}
-        {wsRunning && <button onClick={onRunAll} title="Run All ⏩">
+        {wsRunning && <button onClick={onRunAll} title="Run All ⏩"
+        onMouseEnter={() => setShowOrder(id, RUNALL_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
@@ -510,7 +587,19 @@ function GroupNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
           </button>
         )}
-        <button onClick={onExporting} title="Export to Jupyter Notebook 📩"> 
+        {/* Disable branching out functionality when code is running */}
+        {((wsRunning && executionState?.state !== KERNEL_IDLE) || 
+            (hasBusyPred(id))) ? (
+          <button onClick={showAlertBranchOutOff} title="Code is running ➡️ Cell branch disabled 🚫">
+            <FontAwesomeIcon className="icon-disabled" icon={faArrowDownUpAcrossLine}/>
+          </button>
+        ) : (
+          <button onClick={onCellBranchStart} title="Cell branch: pick code cells and split the bubble ✂️">
+            <FontAwesomeIcon className="icon" icon={faArrowDownUpAcrossLine}/>
+          </button>
+        )}
+        <button onClick={onExporting} title="Export to Jupyter Notebook 📩"
+        onMouseEnter={() => setShowOrder(id, EXPORT_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faFileExport}/>
         </button>
       </NodeToolbar>

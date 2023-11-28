@@ -44,6 +44,7 @@ import {
   NORMAL_NODE, 
   OUTPUT_NODE
 } from '../../config/constants';
+import useSettingsStore from '../../helpers/settingsStore';
 
 /**
  * This component renders a toolbar for selected nodes on the canvas space.
@@ -67,6 +68,7 @@ export default function SelectedNodesToolbar() {
   const isVisible = selectedNodeIds.length > 1;
   const isVisibleGroup = groupableNodes.length > 1;
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
 
   let hasRunningGroupNodeSelected = useCallback(() => {
     let hasRunningGroupNodeSelected = false;
@@ -103,15 +105,16 @@ export default function SelectedNodesToolbar() {
 
     const nextNodes: Node[] = nodes.map((node) => {
       if (selectedNodeIds.includes(node.id)) {
-        return {
+        const updatedNode = {
           ...node,
           position: {
             x: node.position.x - parentPosition.x + PADDING * 2,
             y: node.position.y - parentPosition.y + PADDING * 2,
           },
-          extent: EXTENT_PARENT,
           parentNode: groupId,
         };
+        expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT;
+        return updatedNode;
       }
 
       return node;

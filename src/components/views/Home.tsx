@@ -28,12 +28,19 @@ import { shallow } from "zustand/shallow";
 import { ToastContainer } from 'react-toastify';
 import axios from "axios";
 import { 
-  Alert
+  Alert, Button
 } from "react-bootstrap";
+import withReactContent from "sweetalert2-react-content";
+import Swal from "sweetalert2";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCircleQuestion
+} from "@fortawesome/free-solid-svg-icons";
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
-  SelectedNodesToolbar 
+  SelectedNodesToolbar,
+  SettingsPopup,
 } from "../ui";
 //COMMENT :: Internal modules HELPERS
 import {
@@ -50,7 +57,10 @@ import {
 } from "../../helpers/utils";
 import { 
   useUpdateNodesExeCountAndOuput, 
-  usePath 
+  usePath, 
+  useChangeExpandParent,
+  useChangeFloatingEdges,
+  useCellBranchReset
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -58,6 +68,7 @@ import {
   selectorGeneral,
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
+import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
@@ -66,6 +77,8 @@ import {
   EXTENT_PARENT,
   DEFAULT_LOCK_STATUS,
   OUTPUT_NODE,
+  FLOATING_EDGE,
+  NORMAL_EDGE,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -107,7 +120,7 @@ function DynamicGrouping() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const onConnect = useCallback(
+  const onConnect = useCallback( // not needed as long as we don't allow for dragging of edges
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
@@ -119,35 +132,52 @@ function DynamicGrouping() {
   const { token, setLatestExecutionCount, setLatestExecutionOutput } = useWebSocketStore(selectorGeneral, shallow);
   const setNodeIdToOutputs = useNodesStore((state) => state.setNodeIdToOutputs);
   const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
+  const showSettings = useSettingsStore((state) => state.showSettings);
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   // INFO :: needed for lock functionality and moving nodes together:
   const [onDragStartData, setOnDragStartData] = useState({ nodePosition: {x: 0, y: 0}, nodeId: "", connectedNodePosition: {x: 0, y: 0}, connectedNodeId: "", isLockOn: DEFAULT_LOCK_STATUS});
   const getIsLockedForId = useNodesStore((state) => state.getIsLockedForId);
+  // INFO :: 🧫 CELL BRANCH
+  const toggleNode = useNodesStore((state) => state.toggleNode);
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const setConfirmCellBranch = useNodesStore((state) => state.setConfirmCellBranch);
+  const resetCellBranch= useCellBranchReset();
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [isVideoVisible, setIsVideoVisible] = useState(false);
 
-  //INFO :: useEffect -> update execution count and output of nodes
+  //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
+  useChangeExpandParent();
+  useChangeFloatingEdges();
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     axios.get(`${serverURL}/api/contents/${path}`).then((res) => {
       const notebookData = res.data;
-      const { initialNodes, initialEdges } = createInitialElements(
-        notebookData.content.cells
-      );
+      const { initialNodes, initialEdges } = createInitialElements(notebookData.content.cells);
       // For each group node, start a websocket connection
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           node.data.ws = ws;
           node.data.session = session;
-        } else if (node.type === NORMAL_NODE) {
-          setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
-        } else if (node.type === OUTPUT_NODE) {
-          setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+        } else {
+          expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
+          if (node.type === NORMAL_NODE) {
+            setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
+          } else if (node.type === OUTPUT_NODE) {
+            setNodeIdToOutputs({[node.id]: node.data.outputs}); // put the outputs into the store
+          }
         }
+      });
+      initialEdges.forEach((edge) => {
+        if (!edge.type) floatingEdgesSetting ? edge.type = FLOATING_EDGE : edge.type = NORMAL_EDGE;
       });
       const sortedNodes = initialNodes.sort(sortNodes);
       setNodes(sortedNodes);
@@ -227,7 +257,7 @@ function DynamicGrouping() {
           groupNode
         ) ?? { x: 0, y: 0 };
         newNode.parentNode = groupNode?.id;
-        newNode.extent = groupNode ? EXTENT_PARENT : undefined;
+        expandParentSetting ? newNode.expandParent = true : newNode.extent = EXTENT_PARENT;
       }
 
       // we need to make sure that the parents are sorted before the children
@@ -265,22 +295,24 @@ function DynamicGrouping() {
             } else if (n.id === node.id) {
               const position = getNodePositionInsideParent(n, groupNode) 
                                ?? { x: 0, y: 0 };
-              return { 
+              const updatedNode = { 
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             // if 🔒 lock is ✅ then update also connected node
             else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
               const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
-              return {
+              const updatedNode = {
                 ...n,
                 position,
                 parentNode: groupNode.id,
-                extent: EXTENT_PARENT as 'parent',
               };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
             }
             return n;
           })
@@ -375,7 +407,58 @@ function DynamicGrouping() {
     },
     [getIntersectingNodes, setNodes, onDragStartData]
   );
-  
+
+  // INFO :: 🧫 CELL BRANCH
+  const MySwal = withReactContent(Swal);
+  const showAlertCellBranchOut = () => {
+    MySwal.fire({
+      title: <strong>Branch out warning!</strong>,
+      html: <i>Select only nodes that belong to the indicated group node!</i>,
+      icon: "warning",
+    });
+  };
+
+  const onNodeClick = useCallback(
+    (_: MouseEvent, node: Node) => {
+      if (!isCellBranchActive.isActive || node.type === GROUP_NODE) return;
+      if (node.parentNode !== isCellBranchActive.id) {
+        showAlertCellBranchOut();
+        return;
+      }
+      toggleNode(node.id);
+      // check if the node has a node connected (output or code node) to it
+      let connectedNode: Node | undefined = undefined;
+      if (node.type === NORMAL_NODE || node.type === OUTPUT_NODE) {
+        connectedNode = store.getState().getNodes()
+                          .find(n => n.id === getConnectedNodeId(node.id));
+        if (connectedNode) {
+          toggleNode(connectedNode.id);
+        }
+      }
+      // update the nodes
+      setNodes((nds) => {
+        return nds.map((n) => {
+          if (n.id === node.id || (connectedNode && n.id === connectedNode.id)) {
+            if (n.className === 'selected') {
+              return { ...n, className: undefined, selected: false };
+            }
+            return { ...n, className: 'selected', selected: false };
+          }
+          return { ...n };
+        });
+      });
+    },
+    [setNodes, toggleNode, store, isCellBranchActive]
+  );
+
+  const confirmCellBranch = () => {
+    // proceed to next step of branching out
+    setConfirmCellBranch(true);
+  }
+
+  const cancelCellBranch = () => {
+    resetCellBranch();
+  }
 
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
@@ -405,6 +488,38 @@ function DynamicGrouping() {
     }
   }, [showErrorAlert]);
 
+  // INFO :: 🧫 CELL BRANCH
+  const toggleHelpCellBranch = () => {
+    if (!isVideoVisible) {
+      setIsVideoVisible(true);
+    } else{
+      setIsVideoVisible(false);
+    }
+  }
+
+  const CellBranchAlert = () => {
+    const filteredIds = clickedNodeOrder.filter((id) => !id.includes('output'));
+    return (
+      <Alert show={isCellBranchActive.isActive && !isCellBranchActive.isConfirmed} variant="secondary">
+        <Alert.Heading>Pick code cells and split the bubble ✂️</Alert.Heading>
+        <p> <u>New bubble cell</u> will be created as a parent of this bubble.<br/>
+        The chosen code cells will run in the specified order on <u>new parent</u>.<br/>
+        Output cells are selected automatically. </p>
+        <p><strong>Cells selected: {filteredIds.length}</strong></p>
+        {isVideoVisible &&  <iframe src="https://www.youtube.com/embed/YjH5eYDD9mI?showinfo=0&autohide=1" style={{ width: '100%', height: '35vh'}} allowFullScreen></iframe>}
+        <div className="buttonsAreaCellBranch">
+          <Button onClick={cancelCellBranch} as="input" type="button" value="Cancel" variant="danger"/>
+          <button
+            className="cellButton"
+            onClick = {toggleHelpCellBranch}
+          >
+            <FontAwesomeIcon className="cellBranchHelp-icon" icon={faCircleQuestion} />
+          </button>
+          <Button onClick={confirmCellBranch} as="input" type="button" value="Confirm" variant="success"/>
+        </div>
+      </Alert>
+    );
+  }
 
   return (
     <div className={"wrapper"}>
@@ -417,11 +532,15 @@ function DynamicGrouping() {
           edges={edges}
           onEdgesChange={onEdgesChange}
           onNodesChange={onNodesChange}
-          onConnect={onConnect}
+          onConnect={onConnect} // not needed as long as we don't allow for dragging of edges
           onNodeDrag={onNodeDrag}
           onNodeDragStart={onNodeDragStart}
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
+          onNodeClick={onNodeClick}
+          nodesDraggable={!isCellBranchActive.isActive}
+          elementsSelectable={!isCellBranchActive.isActive}
+          zoomOnDoubleClick={!isCellBranchActive.isActive}
           onDragOver={onDragOver}
           proOptions={proOptions}
           fitView
@@ -446,6 +565,7 @@ function DynamicGrouping() {
           <Panel position="top-center">
             <SuccessAlert />
             <ErrorAlert />
+            <CellBranchAlert />
           </Panel>
           <Panel position="top-left">
             <ToastContainer 
@@ -461,6 +581,7 @@ function DynamicGrouping() {
               style={{marginLeft: "80px"}}
             />
           </Panel>
+          <SettingsPopup show={showSettings} onClose={() => setShowSettings(false)} />
         </ReactFlow>
       </div>
     </div>

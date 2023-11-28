@@ -1,8 +1,7 @@
 //COMMENT :: External modules/libraries
 import { 
   DragEvent, 
-  useEffect, 
-  useState 
+  useEffect,
 } from "react";
 import { 
   Node, 
@@ -12,6 +11,7 @@ import {
   faSave,
   faToggleOff,
   faToggleOn,
+  faGear,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
@@ -19,6 +19,7 @@ import { Button } from "react-bootstrap";
 import { saveNotebook } from "../../helpers/utils";
 import { usePath } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
+import useSettingsStore from "../../helpers/settingsStore";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -49,14 +50,12 @@ const Sidebar = ({
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
-  const [isAutosave, setIsAutosave] = useState(false);
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
+  const autoSaveSetting = useSettingsStore((state) => state.autoSave);
+  const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
 
   const changeAutoSave = () => {
-    if (isAutosave) {
-      setIsAutosave(false);
-    } else {
-      setIsAutosave(true);
-    }
+    setAutoSaveSetting(!autoSaveSetting);
   };
 
   const performAutosave = () => {
@@ -70,21 +69,28 @@ const Sidebar = ({
     );
   };
 
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (autoSaveSetting) performAutosave();
+  };
+
   useEffect(() => {
     let autosaveInterval: string | number | NodeJS.Timer | undefined;
 
-    if (isAutosave) {
-      autosaveInterval = setInterval(performAutosave, 30000); // 30 seconds=30000 milliseconds
+    if (autoSaveSetting) {
+      autosaveInterval = setInterval(performAutosave, 20000); // 20 seconds=20000 milliseconds
     } else {
       clearInterval(autosaveInterval);
     }
 
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     // Clean up the interval when component unmounts or when isAutosave changes
     return () => {
       clearInterval(autosaveInterval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
-    isAutosave,
+    autoSaveSetting,
     nodes,
     edges,
     token,
@@ -119,9 +125,9 @@ const Sidebar = ({
 
       <div className="autoSave">AutoSave</div>
 
-      {!isAutosave ? (
+      {!autoSaveSetting ? (
         <button
-          title="Activate Autosave"
+          title="Activate AutoSave"
           onClick={changeAutoSave}
           className="sliderOff"
         >
@@ -131,7 +137,7 @@ const Sidebar = ({
         </button>
       ) : (
         <button
-          title="Deactivate Autosave"
+          title="Deactivate AutoSave"
           onClick={changeAutoSave}
           className="sliderOn"
         >
@@ -140,9 +146,20 @@ const Sidebar = ({
         </button>
       )}
 
+      {/* Settings Button */}
+      <Button 
+        className="my-1"
+        title="Settings"
+        variant="secondary"
+        onClick={() => setShowSettings(true)}
+      >
+        <FontAwesomeIcon icon={faGear} />
+      </Button>
+
       <Button
         variant="success"
         className="saveButton"
+        title="Save Notebook"
         onClick={() => {
           saveNotebook(
             nodes,

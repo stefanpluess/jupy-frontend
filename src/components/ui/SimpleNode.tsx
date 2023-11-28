@@ -13,7 +13,8 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
-  NodeResizeControl
+  NodeResizeControl,
+  Panel
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -29,7 +30,7 @@ import {
   faLockOpen,
   faStopCircle,
   faHourglass,
-  faTriangleExclamation,
+  faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
 import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
@@ -48,8 +49,8 @@ import {
   useAnalyzeStaleState
 } from "../../helpers/hooks";
 import { 
-  analyzeCode, 
-  getConnectedNodeId 
+  getConnectedNodeId,
+  getNodeOrder,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -65,10 +66,12 @@ import {
   EXEC_CELL_NOT_YET_RUN,
   MIN_WIDTH,
   MIN_HEIGHT,
-  CONTROL_STLYE
+  CONTROL_STLYE,
+  RUNALL_ACTION
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
+import useSettingsStore from "../../helpers/settingsStore";
 
 /**
  * A React component that represents a code cell node on the canvas.
@@ -85,7 +88,7 @@ import { ResizeIcon} from "../ui";
  */
 
 function SimpleNode({ id, data }: NodeProps) {
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, getNodes } = useReactFlow();
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -103,7 +106,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const staleState = useNodesStore((state) => state.staleState[id] ?? false);
   const setStaleState = useNodesStore((state) => state.setStaleState);
-  const analyzeStaleState = useAnalyzeStaleState(id);
+  const analyzeStaleState = useAnalyzeStaleState();
   // INFO :: 0️⃣ empty output type functionality
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -120,6 +123,10 @@ function SimpleNode({ id, data }: NodeProps) {
   const [transitioning, setTransitioning] = useState(false);
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
+  // INFO :: 🧫 CELL BRANCH
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [nodeNumber, setNodeNumber] = useState('');
   // INFO :: DUPLICATE CELL
   const handleDuplicateCell = useDuplicateCell(id);
   
@@ -131,6 +138,16 @@ function SimpleNode({ id, data }: NodeProps) {
     // isEqual needed for rerendering purposes
     return getResizeBoundaries(id);
   }, isEqual);
+
+  // INFO :: show order
+  const showOrder = useNodesStore((state) => state.showOrder);
+	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  const fetchNodeOrder = useCallback(() => {
+    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    return number;
+  }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
   const initialRender = useRef(true);
   const wsRunning = useNodesStore(
@@ -155,27 +172,29 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 10); // TODO: check whether 10ms is fine
   }, []);
 
-  const handleExecCountChange = useCallback(async () => {
-    if (executionCount === "*") return; // if cell just got busy, don't do anything
+  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
+  useEffect(() => {
+    const handleStaleStateAndExecCountChange = async () => {
+      if (executionCount !== "*") { // if cell just got busy, don't do anything
+        const assignedVariables = await analyzeStaleState(id); // INFO :: 😴 STALE STATE
+        handleExecCountChange(assignedVariables);
+      }
+    };
+    handleStaleStateAndExecCountChange();
+  }, [executionCount]);
+
+  const handleExecCountChange = useCallback(async (assignedVariables: string[] | undefined) => {
     if (hasParent) {
       data.executionCount.execCount = executionCount; // set it to the data prop
       const groupId = parent!.id;
       if (hasError()) stopFurtherExecution(false);
-      else await executeOnSuccessors(parent!.id);
+      else await executeOnSuccessors(parent!.id, assignedVariables);
       setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
-    if (outputs && outputs.length === 0) {
-      // INFO :: 0️⃣ empty output type functionality
-      setOutputTypeEmpty(id + "_output", true);
-    }
+    // INFO :: 0️⃣ empty output type functionality
+    if (outputs && outputs.length === 0) setOutputTypeEmpty(id + "_output", true);
   }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
-
-  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
-  useEffect(() => {
-    analyzeStaleState(); // INFO :: 😴 STALE STATE
-    handleExecCountChange();
-  }, [executionCount]);
 
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
@@ -289,6 +308,33 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  // INFO :: 🧫 CELL BRANCH
+  useEffect( () => {
+    // filter to exclude the output node ids and markdown node ids
+    const clickedNodeOrderFiltered = clickedNodeOrder.filter((id) => !id.includes("_output") && !id.includes("mdNode"));
+    // find the position of the id inside clickedNodeOrder
+    const position = clickedNodeOrderFiltered.indexOf(id);
+    // set the node number
+    if (position === -1) {
+      setNodeNumber('');
+    }
+    else{
+      setNodeNumber((position + 1).toString());
+    }
+  }, [clickedNodeOrder]);
+
+  const selectorCellBranch = (
+    isCellBranchActive.isActive && isCellBranchActive.id === parentNode && (
+      <Panel position="top-left" style={{ position: "absolute", top: "-1.5em", left: "-1.5em"}}>
+        {nodeNumber === '' ? (
+          <span className="dotNumberEmpty">{'\u00A0'}</span>
+          ) : (
+            <span className="dotNumberSelected">{nodeNumber}</span>
+          )
+        }
+      </Panel>)
+  );
+
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
 
@@ -304,6 +350,7 @@ function SimpleNode({ id, data }: NodeProps) {
 
   return (
     <>
+      {selectorCellBranch}
       <NodeResizeControl
         style={CONTROL_STLYE}
         minWidth={MIN_WIDTH}
@@ -336,7 +383,7 @@ function SimpleNode({ id, data }: NodeProps) {
           >
             <FontAwesomeIcon className="icon" icon={faCommentAlt} />
           </button>
-
+          
           <button
             title="Additonal cell settings"
             onClick={onAdditionalSettings}
@@ -353,7 +400,7 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner">
+        <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
           <MonacoEditor
             ref={editorRef}
             key={data}
@@ -415,6 +462,10 @@ function SimpleNode({ id, data }: NodeProps) {
             <div style={{width: "20px"}}/>
           </div>
         </div>
+        {showOrder.node === parentNode && (
+        <div className="innerOrder">
+          {fetchNodeOrder()}
+        </div>)}
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
@@ -466,7 +517,6 @@ function SimpleNode({ id, data }: NodeProps) {
                       title="Error: Fix your Code and then let's try it again mate"
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />

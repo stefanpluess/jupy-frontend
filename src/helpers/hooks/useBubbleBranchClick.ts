@@ -2,7 +2,7 @@ import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
 import { getId, passParentState, sortNodes } from '../utils';
-import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
+import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 
@@ -19,11 +19,24 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
 
     const onBranchOut = useCallback(async () => {
-        // we need the parent node object for getting its position
-        const parentNode = getNode(id);
-        if (!parentNode) return;
-        const parentWidth = Number(parentNode.style!.width);
-        const parentHeight = Number(parentNode.style!.height);
+        // check the node type
+        let parentNode: Node | undefined = getNode(id);
+        if (parentNode?.type === NORMAL_NODE){
+            // if the node is a normal node, we need to get the parent node
+            // we need the parent node object for getting its position
+            if (parentNode.parentNode !== undefined) {
+                parentNode = getNode(parentNode.parentNode);
+                
+            } else {
+                console.error("parentNode for normal node is undefined.");
+            }
+        }
+        if (!parentNode?.style?.width) {
+            console.error("parentNode, parentNode.style, or parentNode.style.width is undefined.");
+            return;
+        }
+        const parentWidth = Number(parentNode.style.width);
+        const parentHeight = Number(parentNode.style.height);
         const childWidth = 0.8*parentWidth;
         const childHeight = 0.8*parentHeight;
         const childPosX = parentNode.position.x + 0.5*parentWidth - 0.5*childWidth;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { DEFAULT_LOCK_STATUS, KERNEL_IDLE } from '../config/constants';
 import { NodeIdToOutputs, NodeIdToExecCount } from '../config/types';
+import { NodeProps} from 'reactflow';
 
 export type NodesStore = {
 
@@ -31,6 +32,16 @@ export type NodesStore = {
     setExecutionStateForGroupNode: (groupId: string, newState: {nodeId: string, state: string}) => void;
     getExecutionStateForGroupNode: (groupId: string) => {nodeId: string, state: string};
 
+    // INFO :: selected nodes functionality
+    isCellBranchActive: { id: string; isActive: boolean, isConfirmed: boolean };
+    setIsCellBranchActive: (id: string, isActive: boolean) => void;
+    setConfirmCellBranch: (isConfirmed: boolean) => void;
+    clickedNodes: Set<NodeProps['id']>;
+    clickedNodeOrder: NodeProps['id'][];
+    toggleNode: (nodeId: NodeProps['id']) => void;
+    getClickedNodeOrder: () => NodeProps['id'][];
+    resetClickedNodes: () => void;
+
     // INFO :: ws state functionality
     groupNodesWsStates: { [groupId: string]: boolean };
     setWsStateForGroupNode: (groupId: string, new_state: boolean) => void;
@@ -50,6 +61,10 @@ export type NodesStore = {
     deleteNodeFromUsedIdentifiersForGroupNodes: (parentId: string, nodeId: string) => void;
     staleState: { [nodeId: string]: boolean };
     setStaleState: (nodeId: string, isStale: boolean) => void;
+
+    // INFO :: showing order
+    showOrder: { node: string, action: string }
+    setShowOrder: (node_id: string, action: string) => void;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -154,6 +169,46 @@ const useNodesStore = create<NodesStore>((set, get) => ({
     return get().groupNodesExecutionStates[groupId];
   },
 
+  // INFO :: cell branch functionality
+  isCellBranchActive: { id: "", isActive: false, isConfirmed: false }, // initial values
+  setIsCellBranchActive: (id, isActive) => {
+    set((state) => ({
+      isCellBranchActive: {
+        id: id,
+        isActive: isActive,
+        isConfirmed: state.isCellBranchActive.isConfirmed,
+      },
+    }));
+  },
+  setConfirmCellBranch: (isConfirmed) => {
+    set((state) => ({
+      isCellBranchActive: {
+        id: state.isCellBranchActive.id,
+        isActive: state.isCellBranchActive.isActive,
+        isConfirmed: isConfirmed,
+      },
+    }));
+  },
+  clickedNodes: new Set(),
+  clickedNodeOrder: [],
+  toggleNode: (nodeId: NodeProps['id']) =>
+    set((state) => {
+      const clickedNodes = new Set(state.clickedNodes);
+      const clickedNodeOrder = state.clickedNodeOrder.slice();
+
+      if (clickedNodes.has(nodeId)) {
+        clickedNodes.delete(nodeId);
+        clickedNodeOrder.splice(clickedNodeOrder.indexOf(nodeId), 1);
+      } else {
+        clickedNodes.add(nodeId);
+        clickedNodeOrder.push(nodeId);
+      }
+
+      return { clickedNodes, clickedNodeOrder };
+    }),
+  getClickedNodeOrder: () => get().clickedNodeOrder,
+  resetClickedNodes: () => set({ clickedNodes: new Set(), clickedNodeOrder: [] }),
+
   // INFO :: ws state functionality
   groupNodesWsStates: {},
   setWsStateForGroupNode: (groupId: string, new_state: boolean) => {
@@ -220,6 +275,16 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         staleState: {
           ...state.staleState,
           [nodeId]: isStale
+        }
+    }))
+  },
+  // INFO :: showing order
+  showOrder: { node: "", action: "" },
+  setShowOrder: (node_id: string, action: string) => {
+    set((state) => ({
+        showOrder: {
+          node: node_id,
+          action: action
         }
     }))
   },

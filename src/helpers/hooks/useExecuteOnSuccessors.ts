@@ -23,6 +23,10 @@ function useExecuteOnSuccessors() {
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
     const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
 
+    // stale state analysis
+    const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
+    const setStaleState = useNodesStore((state) => state.setStaleState);
+
     /**
      * Returns an array of all successors of a given node that are influenced by a group node.
      * @param {string} node_id - The ID of the node to get the successors of.
@@ -47,7 +51,7 @@ function useExecuteOnSuccessors() {
      * @param {string} node_id - The ID of the node to execute the code on its successors.
      */
     // INFO :: version1 -> each child is run and awaited separately
-    const executeOnSuccessors = useCallback(async (node_id: string) => {
+    const executeOnSuccessors = useCallback(async (node_id: string, assignedVariables: string[] | undefined) => {
       const influencedSuccs = influencedSuccessors(node_id);
       const queue = allQueues[node_id];
       if (!queue || queue.length === 0) return;
@@ -70,13 +74,24 @@ function useExecuteOnSuccessors() {
             toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue);
             setHadRecentErrorForGroupNode(succ, {hadError: true, timestamp: new Date()});
             succsToSkip.push(...influencedSuccessors(succ)); // skip all successors of this successor in case of error
+          } else {
+            // If code was executed on successor, perform stale state analysis
+            if (!assignedVariables) return;
+            const dictUsedIdentifiersPerCell = getUsedIdentifiersForGroupNodes(succ);
+            const staleNodeIds: string[] = [];
+            for (const nodeId in dictUsedIdentifiersPerCell) {
+              const variablesUsedInNode = dictUsedIdentifiersPerCell[nodeId];
+              const hasCommonElement = assignedVariables.some(variable => variablesUsedInNode.includes(variable));
+              if (hasCommonElement) staleNodeIds.push(nodeId);
+            }
+            staleNodeIds.forEach(nodeId => setStaleState(nodeId, true)); // mark stale nodes
           }
         }).catch((err) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
         });
         await new Promise(resolve => setTimeout(resolve, 10));
       }
-    }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
+    }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode, setHadRecentErrorForGroupNode, getUsedIdentifiersForGroupNodes, setStaleState]);
 
     
     // INFO :: version2 -> children are awaited all together

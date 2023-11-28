@@ -123,6 +123,17 @@
                     }
                 }
             }
+
+            .innerOrder {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 3em;
+                color: white;
+                // opacity: 1;
+                // z-index: 10;
+            }
         }
     }
 }
@@ -164,6 +175,29 @@
     100% {
         transform: translate(-50%, -50%) rotate(-360deg);
     }
+}
+
+// Scrollbars style
+.rfWrapper ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.rfWrapper ::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background: rgba(0,0,0,0.1);
+}
+.rfWrapper ::-webkit-scrollbar-thumb{
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:hover{
+    background: rgba(0,0,0,0.4);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:active{
+    background: rgba(0, 0, 0, 0.6);
+}
+.rfWrapper ::-webkit-scrollbar-corner {
+    background-color: transparent;
 }
 
 /* INFO :: canvas area - ouput node*/
@@ -300,6 +334,17 @@
             .bottomCodeCellButtons {
                 @include commonBottomCodeCellButtons;
             }
+        }
+
+        .innerOrder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: white;
+            // opacity: 1;
+            // z-index: 10;
         }
     }
 }
@@ -461,5 +506,73 @@
     }
     100% {
       opacity: 1;
+    }
+}
+
+/* INFO :: styles for the user selecting the nodes - CELL BRANCH */
+@mixin spanCommon {
+    border-radius: 0.8em;
+    -moz-border-radius: 0.8em;
+    -webkit-border-radius: 0.8em;
+    color: #ffffff;
+    display: inline-block;
+    font-weight: bold;
+    line-height: 1.6em;
+    margin-right: 15px;
+    text-align: center;
+    width: 1.6em;
+    -webkit-box-shadow: 0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    -moz-box-shadow:    0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    box-shadow:         0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    border: 1px solid rgb(255, 255, 255);
+    transition: background 0.2s ease; 
+}
+
+.dotNumberEmpty {
+    background: transparent;
+    @include spanCommon;
+}
+
+.dotNumberSelected {
+    background: #3589F9; 
+    @include spanCommon;
+}
+
+.buttonsAreaCellBranch{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.rfWrapper .cellBranchHelp-icon {
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 25px;
+    &:hover{
+        color: rgba(0, 0, 0, 0.3);
+    }
+    &:active{
+        transform: scale(0.8);
+    }
+}
+/* INFO :: styles for the settings popup */
+.settingSliderOn {
+    background-color: white;
+    border: none;
+    color: rgb(0, 128, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(0, 128, 0, 0.7);
+    }
+}
+
+.settingSliderOff {
+    background-color: white;
+    border: none;
+    color: rgb(255, 0, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(255, 0, 0, 0.6);
     }
 }
