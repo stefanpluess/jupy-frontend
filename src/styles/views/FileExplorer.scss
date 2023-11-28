@@ -4,16 +4,12 @@
 }
 
 .link-button {
-  color: rgb(31, 72, 195);
+  color: blue;
   background: none;
   border: none;
   padding: 0;
   margin: 0;
   font: inherit;
-
-  &:hover {
-    color: rgb(0, 0, 110);
-  }
 }
 
 .link-button-back {
@@ -23,10 +19,6 @@
   padding: 0;
   margin: 0;
   font: inherit;
-
-  &:hover {
-    color: rgb(0, 0, 173);
-  }
 }
 
 .no-y-padding {
