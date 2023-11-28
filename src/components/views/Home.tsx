@@ -239,9 +239,11 @@ function DynamicGrouping() {
           execCount: '',
           timestamp: new Date()
         };
+        newNode.data.typeable = true; // allow immediate typing
         setNodeIdToExecCount(newNode.id, ""); // put the exec count into the store
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
+        newNode.data.typeable = true; // allow immediate typing
       }
 
       if (groupNode) {

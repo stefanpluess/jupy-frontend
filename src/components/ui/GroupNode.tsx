@@ -557,12 +557,12 @@ function GroupNode({ id, data }: NodeProps) {
         minHeight={minHeight}
       />
       <NodeToolbar className="nodrag">
-        <button onClick={onDelete} title="Delete Group 👥">
+        <button onClick={onDelete} title="Delete Bubble 🫧">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />
         </button>
-        {hasChildNodes && <button onClick={onDetach} title="Delete Bubble 🫧">
+        {/* {hasChildNodes && <button onClick={onDetach} title="Delete Bubble 🫧">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
-          </button>}
+          </button>} */}
         {wsRunning && <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>}
@@ -637,21 +637,21 @@ function GroupNode({ id, data }: NodeProps) {
         confirmText="Shutdown"
       />
       <CustomConfirmModal 
-        title="Delete Group?" 
-        message={"Are you sure you want to delete the group" + (wsRunning ? " and shutdown the kernel?" : "?") + " All cells will be deleted" + (wsRunning ? " and all variables will be lost!" : "!")}
+        title="Delete Bubble?" 
+        message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " All cells will be deleted" + (wsRunning ? " and all variables will be lost!" : "!")}
         show={modalStates.showConfirmModalDelete} 
         onHide={continueWorking} 
         onConfirm={deleteGroup} 
         confirmText="Delete"
       />
-      <CustomConfirmModal 
+      {/* <CustomConfirmModal 
         title="Delete Bubble?" 
         message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " The cells will remain" + (wsRunning ? ", but all variables will be lost!": "!")}
         show={modalStates.showConfirmModalDetach} 
         onHide={continueWorking} 
         onConfirm={detachGroup} 
         confirmText="Delete"
-      />
+      /> */}
       <CustomConfirmModal 
         title="Restart Kernel before Run All?" 
         message="Do you want to restart the kernel before running all? If yes, all variables will be lost!" 
