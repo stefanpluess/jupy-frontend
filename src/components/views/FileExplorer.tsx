@@ -32,7 +32,8 @@ import {
 //COMMENT :: Internal modules HELPERS
 import { 
   getKernelspecs, 
-  getSessions 
+  getSessions,
+  modifyInitialNotebook,
 } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
@@ -193,7 +194,9 @@ export default function FileExplorer() {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
       .post(`${serverURL}/api/contents/${path}`, { type: "notebook" })
-      .then((res) => {
+      .then(async (res) => {
+        // after creating the notebook, initially update its contents
+        await modifyInitialNotebook(res.data.path);
         const newPath = res.data.path;
         openFile(newPath);
       })
