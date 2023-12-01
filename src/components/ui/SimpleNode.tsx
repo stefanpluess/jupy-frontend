@@ -348,6 +348,16 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
+  /* run code button title */
+  const buttonTitle = useCallback(() => {
+    if (!hasParent) return "Connect to a Bubble cell to run code!";
+    if (!wsRunning) return "The kernel is currently not running!";
+    if (parentExecutionState?.state === KERNEL_BUSY_FROM_PARENT) return "Wait for knowledge passing to finish!";
+    if (hasBusyPred(parentNode!)) return "Wait for parent Bubble to finish!";
+    if (hasBusySucc(parentNode!)) return "Wait for child Bubble to finish or turn influence off!";
+    return "Run Code";
+  }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
+
   return (
     <>
       {selectorCellBranch}
@@ -475,7 +485,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(executionCount !== "*") ? (
                 // allowing to run code only if there is no error & we are not running the code
                 <button
-                  title="Run Code"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -500,7 +510,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(isHovered || !hasParent) ? (
                 // show the run button when we hover over it
                 <button
-                  title="Error: Fix your Code and then let's try it again mate"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -514,7 +524,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   {(executionCount !== "*") ? (
                     // show the error button when we don't hover over it and nothing is running
                     <button
-                      title="Error: Fix your Code and then let's try it again mate"
+                      title={buttonTitle()}
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
                       onMouseEnter={() => setIsHovered(true)}
