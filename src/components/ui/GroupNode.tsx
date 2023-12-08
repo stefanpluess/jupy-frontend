@@ -6,7 +6,7 @@ import {
   useState 
 } from "react";
 import {
-  getRectOfNodes,
+  getNodesBounds,
   Handle,
   NodeProps,
   NodeToolbar,
@@ -32,7 +32,8 @@ import {
   faSpinner,
   faForward,
   faCircleInfo,
-  faArrowDownUpAcrossLine
+  faArrowDownUpAcrossLine,
+  faForwardFast
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -81,7 +82,8 @@ import {
   MIN_HEIGHT_GROUP,
   PADDING,
   RUNALL_ACTION,
-  EXPORT_ACTION
+  EXPORT_ACTION,
+  RUNBRANCH_ACTION
 } from "../../config/constants";
 import {
   lineStyle,
@@ -168,7 +170,7 @@ function GroupNode({ id, data }: NodeProps) {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
       (n) => n.parentNode === id
     );
-    const rect = getRectOfNodes(childNodes);
+    const rect = getNodesBounds(childNodes);
     const node = getNode(id);
     if (childNodes.length === 0) {
       // if there are no child nodes, return the default width and height
@@ -421,6 +423,12 @@ function GroupNode({ id, data }: NodeProps) {
     runAllInGroup(id, [], true);
   };
 
+  /* RUN BRANCH */
+  const onRunBranch = async () => setModalState("showConfirmModalRunBranch", true);
+  const runBranch = async (restart: boolean = false) => {
+    // TODO:
+  };
+
   /* EXPORT */
   const onExporting = async () => {
     const fileName = path.split('/').pop()!;
@@ -435,6 +443,7 @@ function GroupNode({ id, data }: NodeProps) {
     if (modalStates.showConfirmModalDetach) setModalState("showConfirmModalDetach", false);
     if (modalStates.showConfirmModalReconnect) setModalState("showConfirmModalReconnect", false);
     if (modalStates.showConfirmModalRunAll) setModalState("showConfirmModalRunAll", false);
+    if (modalStates.showConfirmModalRunBranch) setModalState("showConfirmModalRunBranch", false);
   };
 
   const fetchParentState = async () => {
@@ -573,6 +582,10 @@ function GroupNode({ id, data }: NodeProps) {
         onMouseEnter={() => setShowOrder(id, RUNALL_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
+        {(wsRunning && data.predecessor) && <button onClick={onRunBranch} title="Run Branch up until Bubble ⏩"
+        onMouseEnter={() => setShowOrder(id, RUNBRANCH_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
+          <FontAwesomeIcon className="icon" icon={faForwardFast} />
+        </button>}
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
@@ -594,7 +607,7 @@ function GroupNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon-disabled" icon={faArrowDownUpAcrossLine}/>
           </button>
         ) : (
-          <button onClick={onCellBranchStart} title="Cell branch: pick code cells and split the bubble ✂️">
+          <button onClick={onCellBranchStart} title="Split Bubble: Pick cells and split the bubble ✂️">
             <FontAwesomeIcon className="icon" icon={faArrowDownUpAcrossLine}/>
           </button>
         )}
@@ -665,6 +678,18 @@ function GroupNode({ id, data }: NodeProps) {
         onConfirm3={() => runAll(true, true)}
         confirmText3={(predecessor && predecessorRunning) ? "Restart (Load Parent)" : ""}
         variants={["success", "danger", "danger"]}
+      />
+      <CustomConfirmModal 
+        title="Restart Kernels before Running Branch?" 
+        message="Do you want to restart the kernels before running branch? If yes, all variables will be lost!" 
+        show={modalStates.showConfirmModalRunBranch} 
+        denyText="Cancel"
+        onHide={continueWorking} 
+        onConfirm={() => runBranch(false)} 
+        confirmText="Just Run"
+        onConfirm2={() => runBranch(true)}
+        confirmText2="Restart"
+        variants={["success", "danger"]}
       />
       <CustomInformationModal show={isBranching} text='Branching Out...' />
       <div className="infoicon nodrag" title="Show kernel info ℹ️" onClick={toggleKernelInfo}>

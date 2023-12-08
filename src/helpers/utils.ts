@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
 import { Position } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, RUNALL_ACTION } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION } from '../config/constants';
 import { serverURL } from '../config/config';
 
 
@@ -584,13 +584,62 @@ export function getEdgeParams(source: Node, target: Node) {
 }
 
 /* ================== helpers for ordering of nodes ================== */
-export function getNodeOrder(node_id: string, parent_id: string, allNodes: Node[], order: string, action: string) {
-  // fetch all NORMAL_NODES and MARKDOWN_NODES (from specified parent) in the order they are in the graph.
-  var simpleNodes = allNodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === parent_id);
-  // if action is RUNALL_ACTION, remove all MARKDOWN_NODES
-  if (action === RUNALL_ACTION) simpleNodes = simpleNodes.filter((node: Node) => node.type !== MARKDOWN_NODE);
-  // if order is based on y-value, sort accodingly
-  if (order === TOP_DOWN_ORDER) simpleNodes.sort((a: Node, b: Node) => a.position.y - b.position.y);
-  const index = simpleNodes.findIndex((node: Node) => node.id === node_id);
+export function getNodeOrder(node_id: string, parent_id: string, allNodes: Node[], order: string, hovered_parent: string, action: string) {
+  // if action is not EXPORT_ACTION, remove all MARKDOWN_NODES
+  var nodes = (action !== EXPORT_ACTION) ? allNodes.filter((node: Node) => node.type !== MARKDOWN_NODE) : allNodes;
+
+  if (action !== RUNBRANCH_ACTION) {
+    // fetch all NORMAL_NODES and MARKDOWN_NODES (from specified parent) in the order they are in the graph.
+    nodes = nodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === parent_id);
+  } else {
+    // Keep the nodes IF: 1. parent is the hovered_parent OR hovered_parent is a successor of parent (recursively)
+    nodes = nodes.filter((node: Node) => {
+      if (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) {
+        if (node.parentNode === hovered_parent) return true;
+        else if (isSuccessor(allNodes, node.parentNode!, hovered_parent)) return true;
+        else return false;
+      } else return false;
+    });
+  }
+
+  // from the hovered_parent, go up the chain of predecessors until you reach the top one (and keep them in a list)
+  const groupNodes = [hovered_parent] as string[];
+  var predecessor = allNodes.find((node: Node) => node.id === hovered_parent)?.data.predecessor;
+  while (predecessor !== undefined) {
+    groupNodes.push(predecessor);
+    predecessor = allNodes.find((node: Node) => node.id === predecessor)?.data.predecessor;
+  }
+
+  // First sort by parent (based on the index of node.parentNode in groupNodes -> the higher, the earlier)
+  nodes.sort((a, b) => {
+    const a_index = groupNodes.indexOf(a.parentNode!);
+    const b_index = groupNodes.indexOf(b.parentNode!);
+    if (a_index > b_index) return -1;
+    else if (a_index < b_index) return 1;
+    // if order is top-down, sort by y-value additionally
+    if (order === TOP_DOWN_ORDER) {
+      return a.position.y - b.position.y;
+    } else {
+      return 0;
+    }
+  });
+  
+  const index = nodes.findIndex((node: Node) => node.id === node_id);
   return index + 1;
 }
+
+
+const isSuccessor = (allNodes: Node[], nodeId: string, potentialSuccessor: string): boolean => {
+  // recursively check whether the potentialSuccessor is a successor of the node
+  const node = allNodes.find((node: Node) => node.id === nodeId);
+  if (!node?.data.successors) {
+    return false;
+  } else if (node?.data.successors.includes(potentialSuccessor)) {
+    return true;
+  } else {
+    for (const successor of node?.data.successors) {
+      if (isSuccessor(allNodes, nodeId, successor)) return true;
+    }
+    return false;
+  }
+};

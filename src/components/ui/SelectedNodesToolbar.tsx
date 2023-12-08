@@ -6,7 +6,7 @@ import {
 import { 
   useNodes, 
   Node, 
-  getRectOfNodes, 
+  getNodesBounds, 
   NodeToolbar, 
   useStoreApi, 
   useReactFlow 
@@ -82,7 +82,7 @@ export default function SelectedNodesToolbar() {
 
 
   const onGroup = async () => {
-    const rectOfNodes = getRectOfNodes(groupableNodes);
+    const rectOfNodes = getNodesBounds(groupableNodes);
     const groupId = getId(GROUP_NODE);
     const parentPosition = {
       x: rectOfNodes.x,

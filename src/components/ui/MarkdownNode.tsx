@@ -27,7 +27,7 @@ import MonacoEditor from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
 //COMMENT :: Internal modules
 import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
-import { CONTROL_STLYE, EXPORT_ACTION, MIN_HEIGHT, MIN_WIDTH, RUNALL_ACTION } from "../../config/constants";
+import { CONTROL_STLYE, EXPORT_ACTION, MIN_HEIGHT, MIN_WIDTH, RUNALL_ACTION, RUNBRANCH_ACTION } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
 import useNodesStore from "../../helpers/nodesStore";
 import useSettingsStore from "../../helpers/settingsStore";
@@ -72,8 +72,8 @@ function MarkdownNode({ id, data }: NodeProps) {
   const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
   const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
-    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
-    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    const order = showOrder.action === RUNALL_ACTION || RUNBRANCH_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.node, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 

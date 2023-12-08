@@ -67,7 +67,8 @@ import {
   MIN_WIDTH,
   MIN_HEIGHT,
   CONTROL_STLYE,
-  RUNALL_ACTION
+  RUNALL_ACTION,
+  RUNBRANCH_ACTION
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
@@ -144,8 +145,9 @@ function SimpleNode({ id, data }: NodeProps) {
 	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
 	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
-    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
-    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    console.log("HEY")
+    const order = showOrder.action === RUNALL_ACTION || RUNBRANCH_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.node, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
@@ -326,6 +328,25 @@ function SimpleNode({ id, data }: NodeProps) {
       </Panel>)
   );
 
+  const isSuccessor = (nodeId: string): boolean => {
+    // recursively check whether the node is a successor of the current parent
+    if (!parent?.data.successors) {
+      return false;
+    } else if (parent?.data.successors.includes(nodeId)) {
+      return true;
+    } else {
+      for (const successor of parent?.data.successors) {
+        if (isSuccessor(successor)) return true;
+      }
+      return false;
+    }
+  };
+
+  const shouldShowOrder = (
+    (showOrder.node === parentNode) || 
+    (showOrder.action === RUNBRANCH_ACTION && isSuccessor(showOrder.node))
+  );
+
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
 
@@ -391,7 +412,7 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
+        <div className="inner" style={{ opacity: shouldShowOrder ? 0.5 : 1 }}>
           <MonacoEditor
             key={data}
             className="textareaNode nodrag"
@@ -452,7 +473,7 @@ function SimpleNode({ id, data }: NodeProps) {
             <div style={{width: "20px"}}/>
           </div>
         </div>
-        {showOrder.node === parentNode && (
+        {shouldShowOrder && (
         <div className="innerOrder">
           {fetchNodeOrder()}
         </div>)}
