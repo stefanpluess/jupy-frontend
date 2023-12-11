@@ -66,12 +66,14 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<button
-								className={snapGridSetting ? "settingSliderOn" : "settingSliderOff"}
-								onClick={changeSnapGrid}
-							>
-								<FontAwesomeIcon icon={snapGridSetting ? faToggleOn : faToggleOff} />
-							</button>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={snapGridSetting}
+								onChange={changeSnapGrid}
+								/>
+								<span className="slider"></span>
+							</label>
 						</Col>
 					</Row>
 					<Row>
@@ -83,12 +85,14 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<button 
-								className={expandParentSetting ? "settingSliderOn" : "settingSliderOff"}
-								onClick={changeExpandParent}
-							>
-								<FontAwesomeIcon icon={expandParentSetting ? faToggleOn : faToggleOff} />
-							</button>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={expandParentSetting}
+								onChange={changeExpandParent}
+								/>
+								<span className="slider"></span>
+							</label>
 						</Col>
 					</Row>
 					<Row>
@@ -100,12 +104,14 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<button
-								className={floatingEdgesSetting ? "settingSliderOn" : "settingSliderOff"}
-								onClick={changeFloatingEdges}
-							>
-								<FontAwesomeIcon icon={floatingEdgesSetting ? faToggleOn : faToggleOff} />
-							</button>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={floatingEdgesSetting}
+								onChange={changeFloatingEdges}
+								/>
+								<span className="slider"></span>
+							</label>
 						</Col>
 					</Row>
 					<Row>

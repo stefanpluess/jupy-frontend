@@ -112,78 +112,75 @@ const Sidebar = ({
 
   return (
     <aside>
-      <div
-        className="react-flow__node-group"
-        onDragStart={(event: DragEvent) => onDragStart(event, "group")}
-        draggable
-      >
+      <div className = "nodeContainer">
+        <div
+          className="react-flow__node-group"
+          onDragStart={(event: DragEvent) => onDragStart(event, "group")}
+          draggable
+        >
+        </div>
         <div className="label">Bubble</div>
-      </div>
-      <div
-        className="react-flow__node-node"
-        onDragStart={(event: DragEvent) => onDragStart(event, "node")}
-        draggable
-      >
+
+        <div
+          className="react-flow__node-node"
+          onDragStart={(event: DragEvent) => onDragStart(event, "node")}
+          draggable
+        >
+        </div>
         <div className="label">Code</div>
-      </div>
-      <div
-        className="react-flow__node-mdNode"
-        onDragStart={(event: DragEvent) => onDragStart(event, "mdNode")}
-        draggable
-      >
+
+        <div
+          className="react-flow__node-mdNode"
+          onDragStart={(event: DragEvent) => onDragStart(event, "mdNode")}
+          draggable
+        >
+        </div>
         <div className="label">Markdown</div>
       </div>
 
-      <div className="autoSave">AutoSave</div>
 
-      {!autoSaveSetting ? (
-        <button
-          title="Activate AutoSave"
-          onClick={changeAutoSave}
-          className="sliderOff"
+      <div className = "settingsContainer">
+
+        <div className="autoSaveContainer">
+          <div className="autoSave">AutoSave</div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={autoSaveSetting}
+              onChange={changeAutoSave}
+            />
+            <span className="slider"></span>
+          </label>
+        </div>
+
+        {/* Settings Button */}
+        <Button 
+          className="settingsButton"
+          title="Settings"
+          variant="secondary"
+          onClick={handleSettingsClick}
         >
-          <div className="autoSave">OFF</div>
+          <FontAwesomeIcon icon={faGear} spin={isSpinning} />
+        </Button>
 
-          <FontAwesomeIcon className="" icon={faToggleOff} />
-        </button>
-      ) : (
-        <button
-          title="Deactivate AutoSave"
-          onClick={changeAutoSave}
-          className="sliderOn"
+        <Button
+          variant="success"
+          className="saveButton"
+          title="Save Notebook"
+          onClick={() => {
+            saveNotebook(
+              nodes,
+              edges,
+              token,
+              path,
+              setShowSuccessAlert,
+              setShowErrorAlert
+            );
+          }}
         >
-          <div className="autoSave">ON</div>
-          <FontAwesomeIcon icon={faToggleOn} />
-        </button>
-      )}
-
-      {/* Settings Button */}
-      <Button 
-        className="my-1"
-        title="Settings"
-        variant="secondary"
-        onClick={handleSettingsClick}
-      >
-        <FontAwesomeIcon icon={faGear} spin={isSpinning} />
-      </Button>
-
-      <Button
-        variant="success"
-        className="saveButton"
-        title="Save Notebook"
-        onClick={() => {
-          saveNotebook(
-            nodes,
-            edges,
-            token,
-            path,
-            setShowSuccessAlert,
-            setShowErrorAlert
-          );
-        }}
-      >
-        <FontAwesomeIcon icon={faSave} />
-      </Button>
+          <FontAwesomeIcon icon={faSave} />
+        </Button>
+      </div>
     </aside>
   );
 };

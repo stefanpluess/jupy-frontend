@@ -576,3 +576,9 @@
         color: rgba(255, 0, 0, 0.6);
     }
 }
+
+$switch_width: 40px;
+$switch_height: 20px;
+$translate_x_minus: -(20px);
+$translate_x_plus: 20px;
+@include custom-switch($switch_width, $switch_height, $translate_x_minus, $translate_x_plus);
