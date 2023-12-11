@@ -2,6 +2,7 @@
 import { 
   DragEvent, 
   useEffect,
+  useState,
 } from "react";
 import { 
   Node, 
@@ -53,6 +54,16 @@ const Sidebar = ({
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const autoSaveSetting = useSettingsStore((state) => state.autoSave);
   const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
+  const [isSpinning, setIsSpinning] = useState(false);
+
+  const handleSettingsClick = () => {
+    setShowSettings(true);
+    setIsSpinning(true);
+
+    setTimeout(() => {
+      setIsSpinning(false);
+    }, 300);
+  };
 
   const changeAutoSave = () => {
     setAutoSaveSetting(!autoSaveSetting);
@@ -151,9 +162,9 @@ const Sidebar = ({
         className="my-1"
         title="Settings"
         variant="secondary"
-        onClick={() => setShowSettings(true)}
+        onClick={handleSettingsClick}
       >
-        <FontAwesomeIcon icon={faGear} />
+        <FontAwesomeIcon icon={faGear} spin={isSpinning} />
       </Button>
 
       <Button

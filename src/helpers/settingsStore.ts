@@ -24,6 +24,9 @@ export type SettingsStore = {
     exportOrder: string;
     setExportOrder: (order: string) => void;
 
+    // INFO :: grid settings
+    snapGrid: boolean;
+    setSnapGrid: (snapGrid: boolean) => void;
 };
 
 const useSettingsStore = create<SettingsStore>((set, get) => ({
@@ -62,6 +65,13 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     setExportOrder: (order: string) => {
         set({ exportOrder: order });
         localStorage.setItem('exportOrder', order);
+    },
+
+    // INFO :: grid settings
+    snapGrid: localStorage.getItem('snapGrid') !== 'false',
+    setSnapGrid: (snapGrid: boolean) => {
+        set({ snapGrid });
+        localStorage.setItem('snapGrid', snapGrid.toString());
     },
 
 }));

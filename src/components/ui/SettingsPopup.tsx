@@ -34,6 +34,10 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 	const handleExportSelect = (eventKey: string | null) => {
 		if (eventKey) setExportOrderSetting(eventKey);
 	}
+	// INFO :: grid settings
+	const snapGridSetting = useSettingsStore((state) => state.snapGrid);
+	const setSnapGrid = useSettingsStore((state) => state.setSnapGrid);
+	const changeSnapGrid = () => setSnapGrid(!snapGridSetting);
 
 	return (
 		<Modal
@@ -52,6 +56,24 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 				<p>Changes in the settings are applied immediately.</p>
 				{/* Add your settings content here */}
 				<Container>
+					{/* Create a button to enable the snap to grid */}
+					{/* INFO :: Snap to grid setting */}
+					<Row>
+						<Col md={10}>
+							<strong>Snap to Grid</strong><br />
+							<p style={{fontSize: 'smaller'}}>
+								When dragging a cell, it will snap to the grid.
+							</p>
+						</Col>
+						<Col md={2}>
+							<button
+								className={snapGridSetting ? "settingSliderOn" : "settingSliderOff"}
+								onClick={changeSnapGrid}
+							>
+								<FontAwesomeIcon icon={snapGridSetting ? faToggleOn : faToggleOff} />
+							</button>
+						</Col>
+					</Row>
 					<Row>
 						<Col md={10}>
 							<strong>Auto Expand</strong><br />

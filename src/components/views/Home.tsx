@@ -136,6 +136,7 @@ function DynamicGrouping() {
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+  const snapGridSetting = useSettingsStore((state) => state.snapGrid);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -542,6 +543,8 @@ function DynamicGrouping() {
           onDragOver={onDragOver}
           proOptions={proOptions}
           fitView
+          snapToGrid={snapGridSetting}
+          snapGrid={[30, 30]}
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -551,7 +554,7 @@ function DynamicGrouping() {
           maxZoom={4}
           deleteKeyCode={null}
         >
-          <Background gap={50} variant={BackgroundVariant.Dots} />
+          <Background gap={30} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
           <MiniMap position={"top-right"} zoomable pannable />
           <Controls
