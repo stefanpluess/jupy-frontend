@@ -137,7 +137,7 @@ function DynamicGrouping() {
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
   const snapGridSetting = useSettingsStore((state) => state.snapGrid);
-
+  // INFO :: alerts
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   // INFO :: needed for lock functionality and moving nodes together:
@@ -150,7 +150,9 @@ function DynamicGrouping() {
   const resetCellBranch= useCellBranchReset();
   const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
-
+  // INFO :: dragging nodes from sidebar
+  const setIsDraggedFromSidebar = useNodesStore((state) => state.setIsDraggedFromSidebar)
+  const isDraggedFromSidebar = useNodesStore((state) => state.isDraggedFromSidebar)
   //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
   useChangeExpandParent();
@@ -269,6 +271,9 @@ function DynamicGrouping() {
         .concat(newNode)
         .sort(sortNodes);
       setNodes(sortedNodes);
+
+      // INFO :: dragging nodes from sidebar
+      setIsDraggedFromSidebar(false);
     }
   };
 
@@ -523,11 +528,12 @@ function DynamicGrouping() {
   }
 
   return (
-    <div className={"wrapper"}>
+    // onDragOver, onDragEnter is needed for drag and drop from the side bar to not display the "no-drop" cursor
+    <div onDragOver={onDragOver} onDragEnter={onDragOver} className={"wrapper"}> 
       <div className={"sidebar"}>
         <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
       </div>
-      <div className={"rfWrapper"} ref={wrapperRef}>
+      <div className={isDraggedFromSidebar ? "rfWrapper nodeDraggedFromSideBar" : "rfWrapper"} ref={wrapperRef}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

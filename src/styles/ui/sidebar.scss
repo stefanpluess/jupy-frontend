@@ -73,6 +73,22 @@
     height: 40px;
     color: $shared-text-color;
     margin-bottom: 0.2em;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    
+    &:active{
+        cursor: grabbing;
+        box-shadow: 0px 0px 15px 2px rgba(255, 255, 255, 0.9)
+    }
+
+    .gripIndicator{
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: $shared-text-color;
+    }
 }
 
 /* INFO :: sidebar - code cell*/

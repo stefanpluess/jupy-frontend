@@ -65,6 +65,10 @@ export type NodesStore = {
     // INFO :: showing order
     showOrder: { node: string, action: string }
     setShowOrder: (node_id: string, action: string) => void;
+
+    // INFO :: dragging nodes
+    isDraggedFromSidebar: boolean;
+    setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => void;
 };
 
 const useNodesStore = create<NodesStore>((set, get) => ({
@@ -286,6 +290,14 @@ const useNodesStore = create<NodesStore>((set, get) => ({
           node: node_id,
           action: action
         }
+    }))
+  },
+
+  // INFO :: dragging nodes
+  isDraggedFromSidebar: false,
+  setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => {
+    set((state) => ({
+      isDraggedFromSidebar: isDraggedFromSidebar
     }))
   },
 }));
