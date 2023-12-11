@@ -296,6 +296,12 @@
     background: #553051;
 }
 
+// highlight the group nodes that the node is intersecting with
+.rfWrapper .react-flow__node-group.active{
+    box-shadow: 0px 0px 12px 2px #ff0072;
+    background-color: #ff007336;
+}
+
 /*shade around bubble cell when hovering/selecting */
 .rfWrapper .react-flow__node-group:hover {
     box-shadow: $node-box-shadow; 

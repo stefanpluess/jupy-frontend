@@ -365,6 +365,7 @@ function DynamicGrouping() {
       if (!canRunOnNodeDrag(node)) return;
       const intersections = getIntersectingNodes(node)
                               .filter((n) => n.type === GROUP_NODE);
+      const intersectingGroupNode = intersections.map((n) => n.id); // highlight the group nodes that the node is intersecting with
       /* groupClassName will be 'active' if there is at least one intersection
       and the parent node of the current node is not the first intersection. */
       const groupClassName = intersections.length && 
@@ -377,7 +378,7 @@ function DynamicGrouping() {
       setNodes((nds) => {
         return nds.map((n) => {
           if (n.type === GROUP_NODE) {
-            return { ...n, className: groupClassName};
+            return { ...n, className: intersectingGroupNode.includes(n.id) ? groupClassName : ''}; // highlight the group nodes that the node is intersecting with
           } else if (n.id === node.id) {
             return { 
               ...n, 
