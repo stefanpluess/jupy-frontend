@@ -122,7 +122,6 @@ import useSettingsStore from "../../helpers/settingsStore";
  */
 
 function GroupNode({ id, data }: NodeProps) {
-  const [nodeData, setNodeData] = useState(data);
   const store = useStoreApi();
   const token = useWebSocketStore((state) => state.token);
   const path = usePath();
@@ -242,17 +241,17 @@ function GroupNode({ id, data }: NodeProps) {
       setIsReconnecting(false);
     };
     const handleWebSocketClose = () => setWsStateForGroupNode(id, false);
-    if (nodeData.ws) {
+    if (data.ws) {
       // Add event listeners to handle WebSocket state changes
-      nodeData.ws.addEventListener('open', handleWebSocketOpen);
-      nodeData.ws.addEventListener('close', handleWebSocketClose);
+      data.ws.addEventListener('open', handleWebSocketOpen);
+      data.ws.addEventListener('close', handleWebSocketClose);
       // Remove event listeners when the component unmounts
       return () => {
-        nodeData.ws.removeEventListener('open', handleWebSocketOpen);
-        nodeData.ws.removeEventListener('close', handleWebSocketClose);
+        data.ws.removeEventListener('open', handleWebSocketOpen);
+        data.ws.removeEventListener('close', handleWebSocketClose);
       };
     }
-  }, [nodeData.ws?.readyState]);
+  }, [data.ws?.readyState]);
 
   /* DELETE */
   const onDelete = async () => setModalState("showConfirmModalDelete", true);
@@ -353,19 +352,33 @@ function GroupNode({ id, data }: NodeProps) {
   /* RESTART */
   const onRestart = async () => setModalState("showConfirmModalRestart", true);
 
-  /* restarts the kernel (call to /restart) and creates a new websocket connection */
-  const restartKernel = async (fetchParent: boolean = false) => {
+  /** 
+   * restarts the kernel (call to /restart) and creates a new websocket connection 
+   * By default, restart THIS kernel. If node_id is given, restart the kernel of the node with the given id.
+  */
+  const restartKernel = async (fetchParent: boolean = false, node_id: string | null = null) => {
     console.log('Restarting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`${serverURL}/api/kernels/${nodeData.session.kernel.id}/restart`)
-    // and also restart the websocket connection
-    nodeData.ws.close();
-    data.ws.close();
-    const ws = await startWebsocket(nodeData.session.id, nodeData.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
-    setNodeData({...nodeData, ws: ws});
-    data.ws = ws;
-    await fetchFromParentOrNot(fetchParent);
-    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Restart the kernel of the node with the given id
+    if (node_id) {
+      const node = getNode(node_id);
+      if (!node) return;
+      await axios.post(`${serverURL}/api/kernels/${node.data.session.kernel.id}/restart`);
+      node.data.ws.close();
+      const ws = await startWebsocket(node.data.session.id, node.data.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
+      node.data.ws = ws;
+
+    // Restart the kernel of THIS node
+    } else {
+      await axios.post(`${serverURL}/api/kernels/${data.session.kernel.id}/restart`);
+      data.ws.close();
+      const ws = await startWebsocket(data.session.id, data.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
+      data.ws = ws;
+    }
+
+    // await new Promise(resolve => setTimeout(resolve, 200));
+    await fetchFromParentOrNot(fetchParent, node_id);
     setModalState("showConfirmModalRestart", false);
   };
 
@@ -373,24 +386,28 @@ function GroupNode({ id, data }: NodeProps) {
     setIsReconnecting(true);
     console.log('Starting new session')
     const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-    setNodeData({...nodeData, ws: ws, session: session});
     data.ws = ws;
     data.session = session;
-    await fetchFromParentOrNot(fetchParent);
+    // await new Promise(resolve => setTimeout(resolve, 200));
+    setTimeout(async () => {
+      await fetchFromParentOrNot(fetchParent);
+    }, 10);
     setModalState("showConfirmModalReconnect", false);
     // isReconnecting = false when wsState changes (see useEffect)
   };
 
-  const fetchFromParentOrNot = async (fetchParent: boolean) => {
+  const fetchFromParentOrNot = async (fetchParent: boolean, node_id: string | null = null) => {
+    // setTimeout needed for ws state to update before
+    await new Promise(resolve => setTimeout(resolve, 200));
     if (fetchParent) {
       // console.log("LOAD PARENT")
-      await fetchParentState();
-      setPassStateDecisionForGroupNode(id, true);
-    } else {
-      // console.log("DON'T LOAD PARENT")
-      setTimeout(() => { // setTimeout needed for ws state to update before
-        if (predecessor && predecessorRunning) setPassStateDecisionForGroupNode(id, false);
-      }, 150);
+      await fetchParentState(node_id);
+      setPassStateDecisionForGroupNode(node_id ?? id, true);
+    } else if (predecessor && predecessorRunning) {
+      setTimeout(async () => {
+        // console.log("DON'T LOAD PARENT")
+        setPassStateDecisionForGroupNode(node_id ?? id, false); // should always just be id
+      }, 10);
     }
   }
 
@@ -399,10 +416,9 @@ function GroupNode({ id, data }: NodeProps) {
 
   const shutdownKernel = async () => {
     console.log('Shutting kernel down')
-    nodeData.ws.close();
     data.ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete(`${serverURL}/api/sessions/`+nodeData.session.id);
+    await axios.delete(`${serverURL}/api/sessions/`+data.session.id);
     setModalState("showConfirmModalShutdown", false);
   };
 
@@ -418,7 +434,6 @@ function GroupNode({ id, data }: NodeProps) {
 
   const runAll = async (restart: boolean = false, fetchParent: boolean = false) => {
     if (restart) await restartKernel(fetchParent);
-    await new Promise(resolve => setTimeout(resolve, 500)); // wait until kernel is restarted
     setModalState("showConfirmModalRunAll", false);
     runAllInGroup(id, [], true);
   };
@@ -426,8 +441,37 @@ function GroupNode({ id, data }: NodeProps) {
   /* RUN BRANCH */
   const onRunBranch = async () => setModalState("showConfirmModalRunBranch", true);
   const runBranch = async (restart: boolean = false) => {
-    // TODO:
+    console.log('Running branch with restart: ' + restart)
+    
+    // TODO: put the groupnodes in some store to mark them as "running branch"
+
+    const groupNodes = getGroupNodesOrdered();
+    for (const groupNodeId of groupNodes) {
+      console.log('Running group node: ' + groupNodeId)
+      if (restart) await restartKernel(true, groupNodeId); // fetchParent is always true when restarting in run branch
+      else await fetchFromParentOrNot(true, groupNodeId);
+
+      setModalState("showConfirmModalRunBranch", false); // close modal rather quickly
+      await runAllInGroup(groupNodeId, [], true);
+      // wait until the kernel is idle
+      while (getExecutionStateForGroupNode(groupNodeId).state !== KERNEL_IDLE) {
+        console.log('Waiting for kernel ' + groupNodeId + ' to be idle');
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    };
+
   };
+
+  const getGroupNodesOrdered = () => {
+    const groupNodes: string[] = [id];
+    let currentPredecessor = predecessor;
+    while (currentPredecessor) {
+      groupNodes.push(currentPredecessor.id);
+      currentPredecessor = getNode(currentPredecessor.data.predecessor);
+    }
+    groupNodes.reverse();
+    return groupNodes;
+  }
 
   /* EXPORT */
   const onExporting = async () => {
@@ -446,14 +490,25 @@ function GroupNode({ id, data }: NodeProps) {
     if (modalStates.showConfirmModalRunBranch) setModalState("showConfirmModalRunBranch", false);
   };
 
-  const fetchParentState = async () => {
-    if (predecessor && predecessorRunning) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const parentKernel = predecessor.data.session?.kernel.id;
-      const childKernel = data.session?.kernel.id;
-      const dill_path = path.split('/').slice(0, -1).join('/');
-      await passParentState(token, dill_path, parentKernel, childKernel);
+  const fetchParentState = async (node_id: string | null = null) => {
+    var parentKernel, childKernel;
+    // fetch parent state for the given node
+    if (node_id) {
+      const node = getNode(node_id);
+      if (!node) return;
+      const parentNode = getNode(node.data.predecessor);
+      if (!parentNode) return;
+      parentKernel = parentNode.data.session?.kernel.id;
+      childKernel = node.data.session?.kernel.id;
+
+    // fetch parent state for this node
+    } else {
+      if (!predecessor || !predecessorRunning) return;
+      parentKernel = predecessor.data.session?.kernel.id;
+      childKernel = data.session?.kernel.id;
     }
+    const dill_path = path.split('/').slice(0, -1).join('/');
+    await passParentState(token, dill_path, parentKernel, childKernel);
   };
 
   // INFO :: 🛑INTERRUPT KERNEL

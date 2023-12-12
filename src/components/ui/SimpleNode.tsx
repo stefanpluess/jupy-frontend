@@ -67,8 +67,8 @@ import {
   MIN_WIDTH,
   MIN_HEIGHT,
   CONTROL_STLYE,
-  RUNALL_ACTION,
-  RUNBRANCH_ACTION
+  EXPORT_ACTION,
+  RUNBRANCH_ACTION,
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
@@ -145,8 +145,7 @@ function SimpleNode({ id, data }: NodeProps) {
 	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
 	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
-    console.log("HEY")
-    const order = showOrder.action === RUNALL_ACTION || RUNBRANCH_ACTION ? runAllOrderSetting : exportOrderSetting;
+    const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
     const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.node, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
