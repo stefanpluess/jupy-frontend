@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { DEFAULT_LOCK_STATUS, KERNEL_IDLE } from '../config/constants';
 import { NodeIdToOutputs, NodeIdToExecCount } from '../config/types';
 import { NodeProps} from 'reactflow';
@@ -65,9 +65,13 @@ export type NodesStore = {
     // INFO :: showing order
     showOrder: { node: string, action: string }
     setShowOrder: (node_id: string, action: string) => void;
+
+    // INFO :: run branch functionality
+    groupNodesRunBranchActive: { [groupId: string]: boolean };
+    setRunBranchActiveForGroupNodes: (groupIds: string[], new_state: boolean) => void;
 };
 
-const useNodesStore = create<NodesStore>((set, get) => ({
+const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
   // INFO :: execution count
   nodeIdToExecCount: {} as NodeIdToExecCount,
   setNodeIdToExecCount: (id: string, count: number | string) => {
@@ -278,6 +282,7 @@ const useNodesStore = create<NodesStore>((set, get) => ({
         }
     }))
   },
+
   // INFO :: showing order
   showOrder: { node: "", action: "" },
   setShowOrder: (node_id: string, action: string) => {
@@ -287,6 +292,19 @@ const useNodesStore = create<NodesStore>((set, get) => ({
           action: action
         }
     }))
+  },
+
+  // INFO :: run branch functionality
+  groupNodesRunBranchActive: {},
+  setRunBranchActiveForGroupNodes: (groupIds: string[], new_state: boolean) => {
+    for (const groupId of groupIds) {
+      set((state) => ({
+          groupNodesRunBranchActive: {
+            ...state.groupNodesRunBranchActive,
+            [groupId]: new_state
+          }
+      }))
+    }
   },
 }));
 

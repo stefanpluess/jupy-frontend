@@ -51,6 +51,7 @@ import {
 import { 
   getConnectedNodeId,
   getNodeOrder,
+  isSuccessor,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -146,7 +147,7 @@ function SimpleNode({ id, data }: NodeProps) {
 	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
     const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
-    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.node, showOrder.action);
+    const number = getNodeOrder(id, showOrder.node, getNodes(), order, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
@@ -327,23 +328,9 @@ function SimpleNode({ id, data }: NodeProps) {
       </Panel>)
   );
 
-  const isSuccessor = (nodeId: string): boolean => {
-    // recursively check whether the node is a successor of the current parent
-    if (!parent?.data.successors) {
-      return false;
-    } else if (parent?.data.successors.includes(nodeId)) {
-      return true;
-    } else {
-      for (const successor of parent?.data.successors) {
-        if (isSuccessor(successor)) return true;
-      }
-      return false;
-    }
-  };
-
   const shouldShowOrder = (
-    (showOrder.node === parentNode) || 
-    (showOrder.action === RUNBRANCH_ACTION && isSuccessor(showOrder.node))
+    showOrder.node === parentNode || 
+    (showOrder.action === RUNBRANCH_ACTION && isSuccessor(getNodes(), parentNode!, showOrder.node))
   );
 
   const hasBusySucc = useHasBusySuccessors();

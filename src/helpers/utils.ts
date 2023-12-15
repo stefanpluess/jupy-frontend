@@ -584,20 +584,19 @@ export function getEdgeParams(source: Node, target: Node) {
 }
 
 /* ================== helpers for ordering of nodes ================== */
-export function getNodeOrder(node_id: string, parent_id: string, allNodes: Node[], order: string, hovered_parent: string, action: string) {
+export function getNodeOrder(node_id: string, hovered_parent: string, allNodes: Node[], order: string, action: string) {
   // if action is not EXPORT_ACTION, remove all MARKDOWN_NODES
   var nodes = (action !== EXPORT_ACTION) ? allNodes.filter((node: Node) => node.type !== MARKDOWN_NODE) : allNodes;
 
   if (action !== RUNBRANCH_ACTION) {
     // fetch all NORMAL_NODES and MARKDOWN_NODES (from specified parent) in the order they are in the graph.
-    nodes = nodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === parent_id);
+    nodes = nodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === hovered_parent);
   } else {
     // Keep the nodes IF: 1. parent is the hovered_parent OR hovered_parent is a successor of parent (recursively)
     nodes = nodes.filter((node: Node) => {
       if (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) {
         if (node.parentNode === hovered_parent) return true;
-        else if (isSuccessor(allNodes, node.parentNode!, hovered_parent)) return true;
-        else return false;
+        else return isSuccessor(allNodes, node.parentNode!, hovered_parent);
       } else return false;
     });
   }
@@ -628,8 +627,7 @@ export function getNodeOrder(node_id: string, parent_id: string, allNodes: Node[
   return index + 1;
 }
 
-
-const isSuccessor = (allNodes: Node[], nodeId: string, potentialSuccessor: string): boolean => {
+export const isSuccessor = (allNodes: Node[], nodeId: string, potentialSuccessor: string): boolean => {
   // recursively check whether the potentialSuccessor is a successor of the node
   const node = allNodes.find((node: Node) => node.id === nodeId);
   if (!node?.data.successors) {
@@ -638,7 +636,7 @@ const isSuccessor = (allNodes: Node[], nodeId: string, potentialSuccessor: strin
     return true;
   } else {
     for (const successor of node?.data.successors) {
-      if (isSuccessor(allNodes, nodeId, successor)) return true;
+      if (isSuccessor(allNodes, successor, potentialSuccessor)) return true;
     }
     return false;
   }

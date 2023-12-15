@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { ExecutionCount, ExecutionOutput, NodeIdToMsgId } from '../../config/types';
 /*
   WebSocket store based on zustand with functions relted to:
@@ -20,7 +20,7 @@ export type WebSocketState = {
     token: string; // extracted from .env file
 };
 
-const useWebSocketStore = create<WebSocketState>((set, get) => ({
+const useWebSocketStore = createWithEqualityFn<WebSocketState>((set, get) => ({
     latestExecutionCount: {} as ExecutionCount,
     latestExecutionOutput: {} as ExecutionOutput,
     nodeIdToMsgId: {} as NodeIdToMsgId,

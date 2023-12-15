@@ -73,7 +73,7 @@ function MarkdownNode({ id, data }: NodeProps) {
   const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
     const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
-    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.node, showOrder.action);
+    const number = getNodeOrder(id, showOrder.node, getNodes(), order, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 

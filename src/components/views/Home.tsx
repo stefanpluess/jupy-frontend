@@ -124,7 +124,7 @@ function DynamicGrouping() {
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
-  const { project, getIntersectingNodes } = useReactFlow();
+  const { screenToFlowPosition, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
@@ -201,11 +201,11 @@ function DynamicGrouping() {
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     if (wrapperRef.current) {
-      const wrapperBounds = wrapperRef.current.getBoundingClientRect();
+      // const wrapperBounds = wrapperRef.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
-      let position = project({
-        x: event.clientX - wrapperBounds.x - 20,
-        y: event.clientY - wrapperBounds.top - 20,
+      let position = screenToFlowPosition({
+        x: event.clientX - 20,
+        y: event.clientY - 20,
       });
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
                         type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined;

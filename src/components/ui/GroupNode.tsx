@@ -164,6 +164,10 @@ function GroupNode({ id, data }: NodeProps) {
   const setIsCellBranchActive = useNodesStore((state) => state.setIsCellBranchActive);
   const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
   const getClickedNodeOrder = useNodesStore((state) => state.getClickedNodeOrder);
+  // INFO :: RUN BRANCH
+  const runBranchActive = useNodesStore((state) => state.groupNodesRunBranchActive[id]); // can be undefined
+  const setRunBranchActiveForGroupNodes = useNodesStore((state) => state.setRunBranchActiveForGroupNodes);
+  const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -441,25 +445,25 @@ function GroupNode({ id, data }: NodeProps) {
   /* RUN BRANCH */
   const onRunBranch = async () => setModalState("showConfirmModalRunBranch", true);
   const runBranch = async (restart: boolean = false) => {
-    console.log('Running branch with restart: ' + restart)
-    
-    // TODO: put the groupnodes in some store to mark them as "running branch"
-
     const groupNodes = getGroupNodesOrdered();
+    setRunBranchActiveForGroupNodes(groupNodes, true);
     for (const groupNodeId of groupNodes) {
       console.log('Running group node: ' + groupNodeId)
       if (restart) await restartKernel(true, groupNodeId); // fetchParent is always true when restarting in run branch
-      else await fetchFromParentOrNot(true, groupNodeId);
+      else {
+        await fetchFromParentOrNot(true, groupNodeId);
+        setInfluenceStateForGroupNode(groupNodeId, true); // since there was no restart, manually triggering the influence state to be on
+      }
 
       setModalState("showConfirmModalRunBranch", false); // close modal rather quickly
       await runAllInGroup(groupNodeId, [], true);
       // wait until the kernel is idle
       while (getExecutionStateForGroupNode(groupNodeId).state !== KERNEL_IDLE) {
-        console.log('Waiting for kernel ' + groupNodeId + ' to be idle');
+        // console.log('Waiting for kernel ' + groupNodeId + ' to be idle');
         await new Promise(resolve => setTimeout(resolve, 200));
       }
+      setRunBranchActiveForGroupNodes([groupNodeId], false);
     };
-
   };
 
   const getGroupNodesOrdered = () => {
@@ -589,6 +593,7 @@ function GroupNode({ id, data }: NodeProps) {
 
   const displayExecutionState = useCallback(() => {
     if (wsRunning) {
+      if (runBranchActive) return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Running Branch...</div>
       if (executionState?.state === KERNEL_IDLE) {
         if (hasBusySucc(id)) {
           return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Influenced child busy...</div>
@@ -609,7 +614,7 @@ function GroupNode({ id, data }: NodeProps) {
     }
     // Return null if none of the conditions are met
     return null;
-  }, [wsRunning, executionState, hasBusySucc, hasBusyPred]);
+  }, [wsRunning, executionState, runBranchActive, hasBusySucc, hasBusyPred]);
 
   return (
      <div> 
