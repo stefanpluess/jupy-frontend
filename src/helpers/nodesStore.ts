@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { DEFAULT_LOCK_STATUS, KERNEL_IDLE } from '../config/constants';
-import { NodeIdToOutputs, NodeIdToExecCount } from '../config/types';
+import { NodeIdToOutputs, NodeIdToExecCount, NodeIdToWebsocketSession, Session } from '../config/types';
 import { NodeProps} from 'reactflow';
 
 export type NodesStore = {
@@ -12,6 +12,12 @@ export type NodesStore = {
     // INFO :: outputs
     nodeIdToOutputs: NodeIdToOutputs;
     setNodeIdToOutputs: (newObj: NodeIdToOutputs) => void;
+
+    // INFO :: websockets & sessions
+    nodeIdToWebsocketSession: NodeIdToWebsocketSession;
+    getNodeIdToWebsocketSession: (nodeId: string) => { ws: WebSocket, session: Session };
+    getWsRunningForNode: (nodeId: string) => boolean;
+    setNodeIdToWebsocketSession: (nodeId: string, ws: WebSocket, session: Session | undefined) => void;
 
     // INFO :: lock functionality
     locks: { [id: string]: boolean };
@@ -41,10 +47,6 @@ export type NodesStore = {
     toggleNode: (nodeId: NodeProps['id']) => void;
     getClickedNodeOrder: () => NodeProps['id'][];
     resetClickedNodes: () => void;
-
-    // INFO :: ws state functionality
-    groupNodesWsStates: { [groupId: string]: boolean };
-    setWsStateForGroupNode: (groupId: string, new_state: boolean) => void;
 
     // INFO :: influence functionality
     groupNodesInfluenceStates: { [groupId: string]: boolean };
@@ -94,6 +96,26 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
         nodeIdToOutputs: {
             ...state.nodeIdToOutputs,
             ...newObj,
+        },
+    }));
+  },
+  // INFO :: websockets & sessions
+  nodeIdToWebsocketSession: {} as NodeIdToWebsocketSession,
+  getNodeIdToWebsocketSession: (nodeId: string) => get().nodeIdToWebsocketSession[nodeId],
+  getWsRunningForNode: (nodeId: string) => {
+    // check if websocket is open
+    const ws = get().nodeIdToWebsocketSession[nodeId]?.ws;
+    return ws && ws.readyState === WebSocket.OPEN;
+  },
+  setNodeIdToWebsocketSession: (nodeId: string, ws: WebSocket, session: Session | undefined) => {
+    // update the values given for the node given (if session is undefined, keep the old value)
+    set((state) => ({
+        nodeIdToWebsocketSession: {
+            ...state.nodeIdToWebsocketSession,
+            [nodeId]: {
+                ws: ws,
+                session: session ?? state.nodeIdToWebsocketSession[nodeId]?.session,
+            },
         },
     }));
   },
@@ -212,17 +234,6 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
     }),
   getClickedNodeOrder: () => get().clickedNodeOrder,
   resetClickedNodes: () => set({ clickedNodes: new Set(), clickedNodeOrder: [] }),
-
-  // INFO :: ws state functionality
-  groupNodesWsStates: {},
-  setWsStateForGroupNode: (groupId: string, new_state: boolean) => {
-    set((state) => ({
-        groupNodesWsStates: {
-          ...state.groupNodesWsStates,
-          [groupId]: new_state
-        }
-    })) 
-  },
 
   // INFO :: influence state functionality
   groupNodesInfluenceStates: {},

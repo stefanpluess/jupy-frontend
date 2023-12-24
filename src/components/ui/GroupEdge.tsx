@@ -65,8 +65,8 @@ export default function GroupEdge({
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
   const influenceState = useNodesStore((state) => state.groupNodesInfluenceStates[target]);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
-  const childWsRunning = useNodesStore((state) => state.groupNodesWsStates[target]);
-  const parentWsRunning = useNodesStore((state) => state.groupNodesWsStates[source]);
+  const childWsRunning = useNodesStore((state) => state.getWsRunningForNode(target));
+  const parentWsRunning = useNodesStore((state) => state.getWsRunningForNode(source));
 
   const childExecutionState = useNodesStore((state) => state.groupNodesExecutionStates[target]);
   const hasBusyPredecessor = useHasBusyPredecessor();

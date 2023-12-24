@@ -136,6 +136,7 @@ function DynamicGrouping() {
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+  const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
 
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -165,8 +166,7 @@ function DynamicGrouping() {
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-          node.data.ws = ws;
-          node.data.session = session;
+          setNodeIdToWebsocketSession(node.id, ws, session);
         } else {
           expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
           if (node.type === NORMAL_NODE) {
@@ -232,8 +232,7 @@ function DynamicGrouping() {
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
         const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        newNode.data.ws = ws;
-        newNode.data.session = session;
+        setNodeIdToWebsocketSession(newNode.id, ws, session);
       } else if (type === NORMAL_NODE) {
         newNode.data.executionCount = {
           execCount: '',

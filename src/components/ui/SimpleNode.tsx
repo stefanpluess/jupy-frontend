@@ -140,6 +140,7 @@ function SimpleNode({ id, data }: NodeProps) {
     // isEqual needed for rerendering purposes
     return getResizeBoundaries(id);
   }, isEqual);
+  const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
 
   // INFO :: show order
   const showOrder = useNodesStore((state) => state.showOrder);
@@ -152,11 +153,24 @@ function SimpleNode({ id, data }: NodeProps) {
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
   const initialRender = useRef(true);
-  const wsRunning = useNodesStore(
-    (state) => state.groupNodesWsStates[parentNode!] ?? true
-  );
+  const wsParent = useNodesStore((state) => state.nodeIdToWebsocketSession[parentNode!]?.ws);
+  const wsRunning = useNodesStore((state) => state.getWsRunningForNode(parentNode!)); // can be undefined
   const token = useWebSocketStore((state) => state.token);
   const executeOnSuccessors = useExecuteOnSuccessors();
+  const [, forceUpdate] = useState<{}>();
+
+  useEffect(() => {
+    const addEventListeners = async () => {
+      // add a open and a close listener (for initial render, ensure correct ws status is shown)
+      wsParent.addEventListener("open", () => forceUpdate({}) );
+      wsParent.addEventListener("close", () => forceUpdate({}) );
+      return () => { // remove them when component unmounts
+        wsParent.removeEventListener("open", () => forceUpdate({}) );
+        wsParent.removeEventListener("close", () => forceUpdate({}) );
+      };
+    }
+    if (wsParent) addEventListeners();
+  }, [wsParent]);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -203,7 +217,8 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🛑INTERRUPT KERNEL
   const interruptKernel = useCallback(() => {
     if (parent) {
-      onInterrupt(token, parent.data.session.kernel.id);
+      const parentKernelId = getNodeIdToWebsocketSession(parent.id).session.kernel.id!;
+      onInterrupt(token, parentKernelId);
       stopFurtherExecution(true);
     } else {
       console.warn("interruptKernel: parent is undefined");

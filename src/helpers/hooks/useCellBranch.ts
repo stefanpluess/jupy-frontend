@@ -5,6 +5,7 @@ import { getId, passParentState, sortNodes } from '../utils';
 import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
+import useNodesStore from '../nodesStore';
 
 
 /**
@@ -20,6 +21,9 @@ export function useCellBranch(id: NodeProps['id']) {
     const store = useStoreApi();
     const path = usePath();
     const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
+    const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+    const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
+    const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
 
     const onCellBranchOut = useCallback(async (): Promise<string> => {
         const sourceGroupNode = getNode(id);
@@ -53,7 +57,7 @@ export function useCellBranch(id: NodeProps['id']) {
 
         // create a websocket connection and pass the parent state to the child
         const {ws, session} = await createSession(newGroupNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        setNodeIdToWebsocketSession(newGroupNodeId, ws, session);
 
         // check if the source group node has a predecessor
         if (sourceGroupNode.data.predecessor !== undefined) {
@@ -63,14 +67,22 @@ export function useCellBranch(id: NodeProps['id']) {
                 console.error("predecessorNode is undefined.");
                 return '';
             }
-            const predecessorKernel = predecessorNode.data.session?.kernel.id;
-            const newKernel = session?.kernel.id;
-            if (predecessorKernel === undefined || newKernel === undefined) {
-                console.error("predecessorKernel or newKernel is undefined.");
-                return '';
+            var loadParentState = true;
+            // if the predecessor node is not running, we won't pass the state
+            if (!getWsRunningForNode(predecessorNode.id)) loadParentState = false;
+            // TODO: check if edge was turned off? -> don't load state ???
+
+            // actually pass the state
+            if (loadParentState) {
+                const predecessorKernel = getNodeIdToWebsocketSession(predecessorNode.id)?.session?.kernel.id;
+                const newKernel = session?.kernel.id;
+                if (predecessorKernel === undefined || newKernel === undefined) {
+                    console.error("predecessorKernel or newKernel is undefined.");
+                    return '';
+                }
+                const dill_path = path.split('/').slice(0, -1).join('/');
+                await passParentState(token, dill_path, predecessorKernel, newKernel);
             }
-            const dill_path = path.split('/').slice(0, -1).join('/');
-            await passParentState(token, dill_path, predecessorKernel, newKernel);
             // delete sourceGroupNode from the list of successors of the predecessorNode and add the new group node as a successor
             const predecessors = predecessorNode.data.successors;
             if (!predecessors) {
@@ -91,8 +103,6 @@ export function useCellBranch(id: NodeProps['id']) {
             predecessorEdge.id = `${predecessorNode.id}-${newGroupNodeId}`;
         }
         // adjust the properties of group nodes
-        newGroupNode.data.ws = ws;
-        newGroupNode.data.session = session;
         newGroupNode.data.predecessor = sourceGroupNode.data.predecessor; // take over the predecessor of the source group node
         sourceGroupNode.data.predecessor = newGroupNodeId; // add the new group node as a predecessor of the source group node
         newGroupNode.data.successors = [sourceGroupNode.id]; // successor of the new group node is the source group node
@@ -110,8 +120,13 @@ export function useCellBranch(id: NodeProps['id']) {
             edges.concat([newEdge])
         );
 
+        // wait for the websocket to be connected
+        while (!getWsRunningForNode(newGroupNodeId)) {
+            console.log('Waiting for websocket in node ' + newGroupNodeId + ' to be connected');
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
         return newGroupNodeId;
-    }, [getEdges, getNode, getNodes, id, setEdges, setNodes]);
+    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, getWsRunningForNode, setNodeIdToWebsocketSession]);
 
   return onCellBranchOut;
 }

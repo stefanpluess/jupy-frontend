@@ -55,6 +55,13 @@ export type NodeIdToMsgId = {
     [msgId: string]: string;
 };
 
+export type NodeIdToWebsocketSession = {
+    [nodeId: string]: {
+        ws: WebSocket;
+        session: Session;
+    };
+};
+
 export type Cell = {
     id: string;
     execution_count: number;

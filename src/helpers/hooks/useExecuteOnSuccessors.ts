@@ -22,6 +22,7 @@ function useExecuteOnSuccessors() {
     const token = useWebSocketStore((state) => state.token);
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
     const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
+    const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
 
     // stale state analysis
     const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
@@ -60,10 +61,10 @@ function useExecuteOnSuccessors() {
       for (const succ of influencedSuccs) {
         if (succsToSkip.includes(succ)) continue;
         // console.log("run code " + code + " on successor: " + succ);
-        const succNode = getNode(succ);
+        const succKernelId = getNodeIdToWebsocketSession(succ)?.session.kernel.id!;
         const requestBody = {
           "code": code,
-          'kernel_id': succNode?.data.session?.kernel.id
+          'kernel_id': succKernelId
         }
         setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
