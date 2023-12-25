@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 import { DEFAULT_LOCK_STATUS, KERNEL_IDLE } from '../config/constants';
-import { NodeIdToOutputs, NodeIdToExecCount, NodeIdToWebsocketSession, Session } from '../config/types';
+import { NodeIdToOutputs, NodeIdToExecCount, NodeIdToWebsocketSession, Session, OutputNodeData } from '../config/types';
 import { NodeProps} from 'reactflow';
 
 export type NodesStore = {
@@ -11,6 +11,7 @@ export type NodesStore = {
 
     // INFO :: outputs
     nodeIdToOutputs: NodeIdToOutputs;
+    getOutputsForNodeId: (nodeId: string) => OutputNodeData[];
     setNodeIdToOutputs: (newObj: NodeIdToOutputs) => void;
 
     // INFO :: websockets & sessions
@@ -90,6 +91,7 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
   },
   // INFO :: outputs
   nodeIdToOutputs: {} as NodeIdToOutputs,
+  getOutputsForNodeId: (nodeId: string) => get().nodeIdToOutputs[nodeId] || [],
   setNodeIdToOutputs: (newObj: NodeIdToOutputs) => {
     // using the previous state, we can update the nodeIdToOutputs mapping
     set((state) => ({

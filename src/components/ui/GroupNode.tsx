@@ -83,7 +83,8 @@ import {
   PADDING,
   RUNALL_ACTION,
   EXPORT_ACTION,
-  RUNBRANCH_ACTION
+  RUNBRANCH_ACTION,
+  NORMAL_NODE
 } from "../../config/constants";
 import {
   lineStyle,
@@ -91,7 +92,7 @@ import {
   initialModalStates,
   serverURL,
 } from "../../config/config";
-import { InstalledPackages } from "../../config/types";
+import { InstalledPackages, OutputNodeData } from "../../config/types";
 import useSettingsStore from "../../helpers/settingsStore";
 
 /**
@@ -172,6 +173,7 @@ function GroupNode({ id, data }: NodeProps) {
   const runBranchActive = useNodesStore((state) => state.groupNodesRunBranchActive[id]); // can be undefined
   const setRunBranchActiveForGroupNodes = useNodesStore((state) => state.setRunBranchActiveForGroupNodes);
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
+  const getOutputsForNodeId = useNodesStore((state) => state.getOutputsForNodeId);
   const [, forceUpdate] = useState<{}>();
 
   useEffect(() => {
@@ -186,6 +188,17 @@ function GroupNode({ id, data }: NodeProps) {
     }
     if (ws) addEventListeners();
   }, [ws]);
+
+  /* function to know if any code cell in the given node_id bubble had an error */
+  const anyChildHasError = useCallback((node_id: string) => {
+    const children = getNodes().filter((n) => n.parentNode === node_id && n.type === NORMAL_NODE);
+    for (const child of children) {
+      const outputs = getOutputsForNodeId(child.id+"_output");
+      if (!outputs) continue;
+      if (outputs.some((output: OutputNodeData) => output.outputType === "error")) return true;
+    }
+    return false;
+  }, [getOutputsForNodeId, getNodes]);
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
@@ -436,7 +449,7 @@ function GroupNode({ id, data }: NodeProps) {
   const onRunBranch = async () => setModalState("showConfirmModalRunBranch", true);
   const runBranch = async (restart: boolean = false) => {
     // for all successors, turn influence state off immediately
-    for (const succ of data.successors) setInfluenceStateForGroupNode(succ, false);
+    if (data.successors) for (const succ of data.successors) setInfluenceStateForGroupNode(succ, false);
     const groupNodes = getGroupNodesOrdered();
     setRunBranchActiveForGroupNodes(groupNodes, true);
     for (const groupNodeId of groupNodes) {
@@ -454,11 +467,15 @@ function GroupNode({ id, data }: NodeProps) {
       await runAllInGroup(groupNodeId, [], true);
       // wait until the kernel is idle
       while (getExecutionStateForGroupNode(groupNodeId).state !== KERNEL_IDLE) {
-        // TODO: if any simple node has an error, stop
         // console.log('Waiting for kernel ' + groupNodeId + ' to be idle');
         await new Promise(resolve => setTimeout(resolve, 50));
       }
       setRunBranchActiveForGroupNodes([groupNodeId], false);
+      // if any child has an error, stop running the branch
+      if (anyChildHasError(groupNodeId)) {
+        setRunBranchActiveForGroupNodes(groupNodes, false);
+        break;
+      }
     };
   };
 
