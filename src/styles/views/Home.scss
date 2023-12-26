@@ -35,17 +35,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   width: 8px;
 }
 
- /*color of labels for in navbar*/
-.wrapper .label {
-  position: absolute;
-  bottom: 0;
-  width: 100px;
-  left: 50%;
-  transform: translate(-50%, 120%);
-  color: #f5f5f5;
-  font-size: 12px;
-}
-
 .wrapper .rinputCentered{
   position: fixed;
   width: 10%;

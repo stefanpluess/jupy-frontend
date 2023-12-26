@@ -6,6 +6,40 @@ import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LEN
 import { serverURL } from '../config/config';
 
 
+/** Method to modify the initial notebook to contain 1 bubble and 1 code cell */
+export const modifyInitialNotebook = async (path: string) => {
+  const bubbleId = getId(GROUP_NODE);
+  const notebookContent = {
+    cells: [
+      {
+        id: bubbleId,
+        cell_type: 'group',
+        metadata: {},
+        position: { x: 0, y: 0 },
+        width: 600,
+        height: 400,
+      },
+      {
+        id: getId(NORMAL_NODE),
+        cell_type: 'code',
+        execution_count: null,
+        source: [],
+        metadata: {},
+        position: { x: 210, y: 160 },
+        width: 180,
+        height: 85,
+        parentNode: bubbleId,
+        outputs: [],
+      }
+    ],
+    metadata: {},
+    nbformat: 4,
+    nbformat_minor: 5
+  };
+  await axios.put(`${serverURL}/api/contents/${path}`, { content: notebookContent, type: 'notebook' })
+    .catch((err) => console.log(err));
+}
+
 /** Method to create the nodes given the JSON upon rendering a notebook for the first time */
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
 

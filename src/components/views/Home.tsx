@@ -136,8 +136,10 @@ function DynamicGrouping() {
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+  const snapGridSetting = useSettingsStore((state) => state.snapGrid);
   const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
 
+  // INFO :: alerts
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   // INFO :: needed for lock functionality and moving nodes together:
@@ -150,7 +152,9 @@ function DynamicGrouping() {
   const resetCellBranch= useCellBranchReset();
   const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
-
+  // INFO :: dragging nodes from sidebar
+  const setIsDraggedFromSidebar = useNodesStore((state) => state.setIsDraggedFromSidebar)
+  const isDraggedFromSidebar = useNodesStore((state) => state.isDraggedFromSidebar)
   //INFO :: useEffects -> update execution count and output of nodes / some settings
   useUpdateNodesExeCountAndOuput();
   useChangeExpandParent();
@@ -238,9 +242,11 @@ function DynamicGrouping() {
           execCount: '',
           timestamp: new Date()
         };
+        newNode.data.typeable = true; // allow immediate typing
         setNodeIdToExecCount(newNode.id, ""); // put the exec count into the store
       } else if (type === MARKDOWN_NODE) {
         newNode.data.editMode = true; // on initial render, the markdown node is in edit mode
+        newNode.data.typeable = true; // allow immediate typing
       }
 
       if (groupNode) {
@@ -265,6 +271,9 @@ function DynamicGrouping() {
         .concat(newNode)
         .sort(sortNodes);
       setNodes(sortedNodes);
+
+      // INFO :: dragging nodes from sidebar
+      setIsDraggedFromSidebar(false);
     }
   };
 
@@ -356,6 +365,7 @@ function DynamicGrouping() {
       if (!canRunOnNodeDrag(node)) return;
       const intersections = getIntersectingNodes(node)
                               .filter((n) => n.type === GROUP_NODE);
+      const intersectingGroupNode = intersections.map((n) => n.id); // highlight the group nodes that the node is intersecting with
       /* groupClassName will be 'active' if there is at least one intersection
       and the parent node of the current node is not the first intersection. */
       const groupClassName = intersections.length && 
@@ -368,7 +378,7 @@ function DynamicGrouping() {
       setNodes((nds) => {
         return nds.map((n) => {
           if (n.type === GROUP_NODE) {
-            return { ...n, className: groupClassName};
+            return { ...n, className: intersectingGroupNode.includes(n.id) ? groupClassName : ''}; // highlight the group nodes that the node is intersecting with
           } else if (n.id === node.id) {
             return { 
               ...n, 
@@ -519,11 +529,12 @@ function DynamicGrouping() {
   }
 
   return (
-    <div className={"wrapper"}>
+    // onDragOver, onDragEnter is needed for drag and drop from the side bar to not display the "no-drop" cursor
+    <div onDragOver={onDragOver} onDragEnter={onDragOver} className={"wrapper"}> 
       <div className={"sidebar"}>
         <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
       </div>
-      <div className={"rfWrapper"} ref={wrapperRef}>
+      <div className={isDraggedFromSidebar ? "rfWrapper nodeDraggedFromSideBar" : "rfWrapper"} ref={wrapperRef}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -541,6 +552,8 @@ function DynamicGrouping() {
           onDragOver={onDragOver}
           proOptions={proOptions}
           fitView
+          snapToGrid={snapGridSetting}
+          snapGrid={[30, 30]}
           selectNodesOnDrag={false}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -550,7 +563,7 @@ function DynamicGrouping() {
           maxZoom={4}
           deleteKeyCode={null}
         >
-          <Background gap={50} variant={BackgroundVariant.Dots} />
+          <Background gap={30} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
           <MiniMap position={"top-right"} zoomable pannable />
           <Controls

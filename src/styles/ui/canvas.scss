@@ -2,13 +2,21 @@
 
 /* INFO :: canvas area = .rfWrapper*/
 /*background color canvas area*/
-.wrapper .react-flow {
+.wrapper {
     background: $shared-bg-color;
 }
 
 .wrapper .rfWrapper {
     flex-grow: 1;
     height: 100%;
+}
+
+.wrapper .nodeDraggedFromSideBar{
+    border-style: dashed;
+    border-color: $node-background-selected;
+    border-width: 0.3em;
+    background: #4e4a4a;
+    // background: rgba(78, 74, 74, 0.116);
 }
 
 @mixin commonStyleCodeAndMarkdownCell{
@@ -283,6 +291,17 @@
     resize: both;
     width: auto;
 }
+
+.rfWrapper .react-flow__node-group.nodeDraggedFromSideBar{
+    background: #553051;
+}
+
+// highlight the group nodes that the node is intersecting with
+.rfWrapper .react-flow__node-group.active{
+    box-shadow: 0px 0px 12px 2px #ff0072;
+    background-color: #ff007336;
+}
+
 /*shade around bubble cell when hovering/selecting */
 .rfWrapper .react-flow__node-group:hover {
     box-shadow: $node-box-shadow; 
@@ -576,3 +595,9 @@
         color: rgba(255, 0, 0, 0.6);
     }
 }
+
+$switch_width: 40px;
+$switch_height: 20px;
+$translate_x_minus: -(20px);
+$translate_x_plus: 20px;
+@include custom-switch($switch_width, $switch_height, $translate_x_minus, $translate_x_plus);

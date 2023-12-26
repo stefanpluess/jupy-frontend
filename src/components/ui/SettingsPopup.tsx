@@ -34,6 +34,10 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 	const handleExportSelect = (eventKey: string | null) => {
 		if (eventKey) setExportOrderSetting(eventKey);
 	}
+	// INFO :: grid settings
+	const snapGridSetting = useSettingsStore((state) => state.snapGrid);
+	const setSnapGrid = useSettingsStore((state) => state.setSnapGrid);
+	const changeSnapGrid = () => setSnapGrid(!snapGridSetting);
 
 	return (
 		<Modal
@@ -52,6 +56,26 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 				<p>Changes in the settings are applied immediately.</p>
 				{/* Add your settings content here */}
 				<Container>
+					{/* Create a button to enable the snap to grid */}
+					{/* INFO :: Snap to grid setting */}
+					<Row>
+						<Col md={10}>
+							<strong>Snap to Grid</strong><br />
+							<p style={{fontSize: 'smaller'}}>
+								When dragging a cell, it will snap to the grid.
+							</p>
+						</Col>
+						<Col md={2}>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={snapGridSetting}
+								onChange={changeSnapGrid}
+								/>
+								<span className="slider"></span>
+							</label>
+						</Col>
+					</Row>
 					<Row>
 						<Col md={10}>
 							<strong>Auto Expand</strong><br />
@@ -61,12 +85,14 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<button 
-								className={expandParentSetting ? "settingSliderOn" : "settingSliderOff"}
-								onClick={changeExpandParent}
-							>
-								<FontAwesomeIcon icon={expandParentSetting ? faToggleOn : faToggleOff} />
-							</button>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={expandParentSetting}
+								onChange={changeExpandParent}
+								/>
+								<span className="slider"></span>
+							</label>
 						</Col>
 					</Row>
 					<Row>
@@ -78,12 +104,14 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<button
-								className={floatingEdgesSetting ? "settingSliderOn" : "settingSliderOff"}
-								onClick={changeFloatingEdges}
-							>
-								<FontAwesomeIcon icon={floatingEdgesSetting ? faToggleOn : faToggleOff} />
-							</button>
+							<label className="switch">
+								<input
+								type="checkbox"
+								checked={floatingEdgesSetting}
+								onChange={changeFloatingEdges}
+								/>
+								<span className="slider"></span>
+							</label>
 						</Col>
 					</Row>
 					<Row>

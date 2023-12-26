@@ -72,6 +72,10 @@ export type NodesStore = {
     // INFO :: run branch functionality
     groupNodesRunBranchActive: { [groupId: string]: boolean };
     setRunBranchActiveForGroupNodes: (groupIds: string[], new_state: boolean) => void;
+  
+    // INFO :: dragging nodes
+    isDraggedFromSidebar: boolean;
+    setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => void;
 };
 
 const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
@@ -318,6 +322,14 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
           }
       }))
     }
+  },
+    
+  // INFO :: dragging nodes
+  isDraggedFromSidebar: false,
+  setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => {
+    set((state) => ({
+      isDraggedFromSidebar: isDraggedFromSidebar
+    }))
   },
 }));
 

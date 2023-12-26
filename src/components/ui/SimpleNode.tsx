@@ -32,7 +32,7 @@ import {
   faHourglass,
   faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
-import MonacoEditor from "@uiw/react-monacoeditor";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 //COMMENT :: Internal modules HELPERS
@@ -178,6 +178,15 @@ function SimpleNode({ id, data }: NodeProps) {
       (output: OutputNodeData) => output.outputType === "error"
     );
   }, [outputs]);
+
+  /* right after insertion, allow the user to immediately type */
+  const editorRef = useRef<RefEditorInstance | null>(null);
+  useEffect(() => {
+    if (!data.typeable) return;
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.editor?.focus();
+    }, 10); // TODO: check whether 10ms is fine
+  }, []);
 
   // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
   useEffect(() => {
@@ -361,6 +370,16 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
+  /* run code button title */
+  const buttonTitle = useCallback(() => {
+    if (!hasParent) return "Connect to a Bubble cell to run code!";
+    if (!wsRunning) return "The kernel is currently not running!";
+    if (parentExecutionState?.state === KERNEL_BUSY_FROM_PARENT) return "Wait for knowledge passing to finish!";
+    if (hasBusyPred(parentNode!)) return "Wait for parent Bubble to finish!";
+    if (hasBusySucc(parentNode!)) return "Wait for child Bubble to finish or turn influence off!";
+    return "Run Code";
+  }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
+
   return (
     <>
       {selectorCellBranch}
@@ -384,7 +403,7 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
 
           {hasParent && (
-            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
+            <button title="Ungroup Code Cell from Bubble Cell" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
@@ -415,6 +434,7 @@ function SimpleNode({ id, data }: NodeProps) {
       >
         <div className="inner" style={{ opacity: shouldShowOrder ? 0.5 : 1 }}>
           <MonacoEditor
+            ref={editorRef}
             key={data}
             className="textareaNode nodrag"
             language="python"
@@ -487,7 +507,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(executionCount !== "*") ? (
                 // allowing to run code only if there is no error & we are not running the code
                 <button
-                  title="Run Code"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -512,7 +532,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(isHovered || !hasParent) ? (
                 // show the run button when we hover over it
                 <button
-                  title="Error: Fix your Code and then let's try it again mate"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -526,7 +546,7 @@ function SimpleNode({ id, data }: NodeProps) {
                   {(executionCount !== "*") ? (
                     // show the error button when we don't hover over it and nothing is running
                     <button
-                      title="Error: Fix your Code and then let's try it again mate"
+                      title={buttonTitle()}
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
                       onMouseEnter={() => setIsHovered(true)}
