@@ -124,7 +124,7 @@ function DynamicGrouping() {
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
-  const { project, getIntersectingNodes } = useReactFlow();
+  const { screenToFlowPosition, getIntersectingNodes } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
@@ -137,6 +137,8 @@ function DynamicGrouping() {
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
   const snapGridSetting = useSettingsStore((state) => state.snapGrid);
+  const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
+
   // INFO :: alerts
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -168,8 +170,7 @@ function DynamicGrouping() {
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-          node.data.ws = ws;
-          node.data.session = session;
+          setNodeIdToWebsocketSession(node.id, ws, session);
         } else {
           expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
           if (node.type === NORMAL_NODE) {
@@ -204,11 +205,11 @@ function DynamicGrouping() {
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     if (wrapperRef.current) {
-      const wrapperBounds = wrapperRef.current.getBoundingClientRect();
+      // const wrapperBounds = wrapperRef.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
-      let position = project({
-        x: event.clientX - wrapperBounds.x - 20,
-        y: event.clientY - wrapperBounds.top - 20,
+      let position = screenToFlowPosition({
+        x: event.clientX - 20,
+        y: event.clientY - 20,
       });
       const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
                         type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined;
@@ -235,8 +236,7 @@ function DynamicGrouping() {
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
         const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        newNode.data.ws = ws;
-        newNode.data.session = session;
+        setNodeIdToWebsocketSession(newNode.id, ws, session);
       } else if (type === NORMAL_NODE) {
         newNode.data.executionCount = {
           execCount: '',

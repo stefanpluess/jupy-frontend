@@ -28,6 +28,7 @@ export const initialModalStates = {
   showConfirmModalDetach: false,
   showConfirmModalReconnect: false,
   showConfirmModalRunAll: false,
+  showConfirmModalRunBranch: false,
 };
 
 // COMMENT - URL of the Jupyter Server

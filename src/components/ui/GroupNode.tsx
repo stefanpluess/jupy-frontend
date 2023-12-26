@@ -6,7 +6,7 @@ import {
   useState 
 } from "react";
 import {
-  getRectOfNodes,
+  getNodesBounds,
   Handle,
   NodeProps,
   NodeToolbar,
@@ -32,7 +32,8 @@ import {
   faSpinner,
   faForward,
   faCircleInfo,
-  faArrowDownUpAcrossLine
+  faArrowDownUpAcrossLine,
+  faForwardFast
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -81,7 +82,9 @@ import {
   MIN_HEIGHT_GROUP,
   PADDING,
   RUNALL_ACTION,
-  EXPORT_ACTION
+  EXPORT_ACTION,
+  RUNBRANCH_ACTION,
+  NORMAL_NODE
 } from "../../config/constants";
 import {
   lineStyle,
@@ -89,7 +92,7 @@ import {
   initialModalStates,
   serverURL,
 } from "../../config/config";
-import { InstalledPackages } from "../../config/types";
+import { InstalledPackages, OutputNodeData } from "../../config/types";
 import useSettingsStore from "../../helpers/settingsStore";
 
 /**
@@ -120,7 +123,6 @@ import useSettingsStore from "../../helpers/settingsStore";
  */
 
 function GroupNode({ id, data }: NodeProps) {
-  const [nodeData, setNodeData] = useState(data);
   const store = useStoreApi();
   const token = useWebSocketStore((state) => state.token);
   const path = usePath();
@@ -138,9 +140,13 @@ function GroupNode({ id, data }: NodeProps) {
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
   // INFO :: running ws and parents influence children functionality
-  const wsRunning = useNodesStore((state) => state.groupNodesWsStates[id]);
-  const predecessorRunning = useNodesStore((state) => state.groupNodesWsStates[data.predecessor] ?? false);
-  const setWsStateForGroupNode = useNodesStore((state) => state.setWsStateForGroupNode);
+  const ws = useNodesStore((state) => state.nodeIdToWebsocketSession[id]?.ws); // can be undefined
+  const session = useNodesStore((state) => state.nodeIdToWebsocketSession[id]?.session); // can be undefined
+  const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+  const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
+  const wsRunning = useNodesStore((state) => state.getWsRunningForNode(id));
+  const predecessorRunning = useNodesStore((state) => state.getWsRunningForNode(data.predecessor) ?? false);
+  const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
   const setPassStateDecisionForGroupNode = useNodesStore((state) => state.setPassStateDecisionForGroupNode);
   // INFO :: 0️⃣ empty output type functionality
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
@@ -163,12 +169,42 @@ function GroupNode({ id, data }: NodeProps) {
   const setIsCellBranchActive = useNodesStore((state) => state.setIsCellBranchActive);
   const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
   const getClickedNodeOrder = useNodesStore((state) => state.getClickedNodeOrder);
+  // INFO :: RUN BRANCH
+  const runBranchActive = useNodesStore((state) => state.groupNodesRunBranchActive[id]); // can be undefined
+  const setRunBranchActiveForGroupNodes = useNodesStore((state) => state.setRunBranchActiveForGroupNodes);
+  const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
+  const getOutputsForNodeId = useNodesStore((state) => state.getOutputsForNodeId);
+  const [, forceUpdate] = useState<{}>();
+
+  useEffect(() => {
+    const addEventListeners = async () => {
+      // add a open and a close listener (for initial render, ensure correct ws status is known)
+      ws.addEventListener("open", () => forceUpdate({}) );
+      ws.addEventListener("close", () => forceUpdate({}) );
+      return () => { // remove them when component unmounts
+        ws.removeEventListener("open", () => forceUpdate({}) );
+        ws.removeEventListener("close", () => forceUpdate({}) );
+      };
+    }
+    if (ws) addEventListeners();
+  }, [ws]);
+
+  /* function to know if any code cell in the given node_id bubble had an error */
+  const anyChildHasError = useCallback((node_id: string) => {
+    const children = getNodes().filter((n) => n.parentNode === node_id && n.type === NORMAL_NODE);
+    for (const child of children) {
+      const outputs = getOutputsForNodeId(child.id+"_output");
+      if (!outputs) continue;
+      if (outputs.some((output: OutputNodeData) => output.outputType === "error")) return true;
+    }
+    return false;
+  }, [getOutputsForNodeId, getNodes]);
 
   const { minWidth, minHeight, hasChildNodes } = useStore((store) => {
     const childNodes = Array.from(store.nodeInternals.values()).filter(
       (n) => n.parentNode === id
     );
-    const rect = getRectOfNodes(childNodes);
+    const rect = getNodesBounds(childNodes);
     const node = getNode(id);
     if (childNodes.length === 0) {
       // if there are no child nodes, return the default width and height
@@ -186,9 +222,8 @@ function GroupNode({ id, data }: NodeProps) {
     }
   }, isEqual);
 
-  // initially, set the ws state to true and execution state to IDLE (only needed bc sometimes, it's not immediately set)
+  // initially, set the kernel to IDLE
   useEffect(() => {
-    setWsStateForGroupNode(id, true);
     setExecutionStateForGroupNode(id, {nodeId: "", state: KERNEL_IDLE});
   }, []);
 
@@ -220,37 +255,18 @@ function GroupNode({ id, data }: NodeProps) {
         const msg_id = uuidv4();
         const message = generateMessage(msg_id, code);
         setNodeIdToMsgId({ [msg_id]: simpleNodeId });
-        const ws = data.ws;
-        if (ws.readyState === WebSocket.OPEN) {
+        if (wsRunning) {
           const outputNodeId= simpleNodeId + "_output";
           deleteOutput(outputNodeId);
           // INFO :: 0️⃣ empty output type functionality
           setOutputTypeEmpty(outputNodeId, false); 
           ws.send(JSON.stringify(message));
         } else {
-          console.log("websocket is not connected");
+          console.error("websocket is not connected");
         }
       }
     }
   }, [queues]);
-
-  useEffect(() => {
-    const handleWebSocketOpen = () => {
-      setWsStateForGroupNode(id, true);
-      setIsReconnecting(false);
-    };
-    const handleWebSocketClose = () => setWsStateForGroupNode(id, false);
-    if (nodeData.ws) {
-      // Add event listeners to handle WebSocket state changes
-      nodeData.ws.addEventListener('open', handleWebSocketOpen);
-      nodeData.ws.addEventListener('close', handleWebSocketClose);
-      // Remove event listeners when the component unmounts
-      return () => {
-        nodeData.ws.removeEventListener('open', handleWebSocketOpen);
-        nodeData.ws.removeEventListener('close', handleWebSocketClose);
-      };
-    }
-  }, [nodeData.ws?.readyState]);
 
   /* DELETE */
   const onDelete = async () => setModalState("showConfirmModalDelete", true);
@@ -282,10 +298,10 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const MySwal = withReactContent(Swal);
-  const showAlertBranchOutOff = () => {
+  const showAlertBranchOutOff = (message: string) => {
     MySwal.fire({ 
       title: <strong>Branch out warning!</strong>,
-      html: <i>Wait until kernel is idle 😴!</i>,
+      html: <i>{message}</i>,
       icon: "warning",
     });
   };
@@ -296,7 +312,7 @@ function GroupNode({ id, data }: NodeProps) {
       setIsBranching(true);
       const pickedNodeIds: NodeProps['id'][] = getClickedNodeOrder();
       // create new group node
-      try{
+      try {
         const newGroupNodeId: string = await onCellBranchOut();
         if (newGroupNodeId === '') return;
         // assignment of picked nodes to the new group node 
@@ -315,7 +331,7 @@ function GroupNode({ id, data }: NodeProps) {
           setNodes(allNodes);
           // execute selected nodes on the new group node
           await new Promise(resolve => setTimeout(resolve, 1000)); // wait until websocket is connected
-          runAllInGroup(newGroupNodeId, pickedNodeIds, false);
+          runAllInGroup(newGroupNodeId, pickedNodeIds, true);
           // zoom to the new group node
           fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] });
         }
@@ -351,45 +367,55 @@ function GroupNode({ id, data }: NodeProps) {
   /* RESTART */
   const onRestart = async () => setModalState("showConfirmModalRestart", true);
 
-  /* restarts the kernel (call to /restart) and creates a new websocket connection */
-  const restartKernel = async (fetchParent: boolean = false) => {
+  /** 
+   * restarts the kernel (call to /restart) and creates a new websocket connection 
+   * By default, restart THIS kernel. If node_id is given, restart the kernel of the node with the given id.
+  */
+  const restartKernel = async (fetchParent: boolean = false, node_id: string | null = null) => {
     console.log('Restarting kernel')
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.post(`${serverURL}/api/kernels/${nodeData.session.kernel.id}/restart`)
-    // and also restart the websocket connection
-    nodeData.ws.close();
-    data.ws.close();
-    const ws = await startWebsocket(nodeData.session.id, nodeData.session.kernel.id, token, setLatestExecutionOutput, setLatestExecutionCount);
-    setNodeData({...nodeData, ws: ws});
-    data.ws = ws;
-    await fetchFromParentOrNot(fetchParent);
-    await new Promise(resolve => setTimeout(resolve, 200));
-    setModalState("showConfirmModalRestart", false);
-  };
-
-  const startNewSession = async (fetchParent: boolean = false) => {
     setIsReconnecting(true);
-    console.log('Starting new session')
-    const {ws, session} = await createSession(id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-    setNodeData({...nodeData, ws: ws, session: session});
-    data.ws = ws;
-    data.session = session;
-    await fetchFromParentOrNot(fetchParent);
-    setModalState("showConfirmModalReconnect", false);
-    // isReconnecting = false when wsState changes (see useEffect)
+    setModalState("showConfirmModalRestart", false);
+
+    // Restart the kernel of either THIS node or the given node
+    const oldWs = node_id ? getNodeIdToWebsocketSession(node_id)?.ws : ws;
+    const activeSession = node_id ? getNodeIdToWebsocketSession(node_id)?.session! : session;
+    await axios.post(`${serverURL}/api/kernels/${activeSession.kernel.id}/restart`);
+    oldWs.close();
+    const newWs = await startWebsocket(activeSession.id!, activeSession.kernel.id!, token, setLatestExecutionOutput, setLatestExecutionCount);
+    setNodeIdToWebsocketSession(node_id ?? id, newWs, undefined); // only update the ws, keep the session
+
+    await fetchFromParentOrNot(fetchParent, node_id);
   };
 
-  const fetchFromParentOrNot = async (fetchParent: boolean) => {
+  const startNewSession = async (fetchParent: boolean = false, node_id: null | string = null) => {
+    setIsReconnecting(true);
+    setModalState("showConfirmModalReconnect", false);
+    console.log('Starting new session')
+    // start new session for either THIS node or the given node
+    const {ws, session} = await createSession(node_id ?? id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+    setNodeIdToWebsocketSession(node_id ?? id, ws, session); // update both ws and session
+
+    await fetchFromParentOrNot(fetchParent, node_id);
+    // isReconnecting = false at end of fetchFromParentOrNot
+  };
+
+  const fetchFromParentOrNot = async (fetchParent: boolean, node_id: string | null = null) => {
+    // wait until the websocket is connected
+    while (getWsRunningForNode(node_id ?? id) !== true) {
+      // console.log('Waiting for websocket in node ' + (node_id ?? id) + ' to be connected');
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    // fetch parent state if fetchParent is true
     if (fetchParent) {
       // console.log("LOAD PARENT")
-      await fetchParentState();
-      setPassStateDecisionForGroupNode(id, true);
-    } else {
+      await fetchParentState(node_id);
+      setPassStateDecisionForGroupNode(node_id ?? id, true); // turn the incoming edge ON if the parent was loaded
+    } else if (predecessor && predecessorRunning) {
       // console.log("DON'T LOAD PARENT")
-      setTimeout(() => { // setTimeout needed for ws state to update before
-        if (predecessor && predecessorRunning) setPassStateDecisionForGroupNode(id, false);
-      }, 150);
+      setPassStateDecisionForGroupNode(node_id ?? id, false); // // turn the incoming edge OFF if the parent was not loaded (should always just be id)
     }
+    setIsReconnecting(false);
   }
 
   /* SHUTDOWN */
@@ -397,10 +423,9 @@ function GroupNode({ id, data }: NodeProps) {
 
   const shutdownKernel = async () => {
     console.log('Shutting kernel down')
-    nodeData.ws.close();
-    data.ws.close();
+    ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    await axios.delete(`${serverURL}/api/sessions/`+nodeData.session.id);
+    await axios.delete(`${serverURL}/api/sessions/`+session.id);
     setModalState("showConfirmModalShutdown", false);
   };
 
@@ -416,10 +441,54 @@ function GroupNode({ id, data }: NodeProps) {
 
   const runAll = async (restart: boolean = false, fetchParent: boolean = false) => {
     if (restart) await restartKernel(fetchParent);
-    await new Promise(resolve => setTimeout(resolve, 500)); // wait until kernel is restarted
     setModalState("showConfirmModalRunAll", false);
-    runAllInGroup(id, [], true);
+    runAllInGroup(id, [], false); // keep edges how they are
   };
+
+  /* RUN BRANCH */
+  const onRunBranch = async () => setModalState("showConfirmModalRunBranch", true);
+  const runBranch = async (restart: boolean = false) => {
+    // for all successors, turn influence state off immediately
+    if (data.successors) for (const succ of data.successors) setInfluenceStateForGroupNode(succ, false);
+    const groupNodes = getGroupNodesOrdered();
+    setRunBranchActiveForGroupNodes(groupNodes, true);
+    for (const groupNodeId of groupNodes) {
+      console.log('Running group node: ' + groupNodeId);
+      // check if node is running
+      const isRunning = getWsRunningForNode(groupNodeId);
+      if (!isRunning) await startNewSession(true, groupNodeId); // fetchParent is always true
+      else if (restart) await restartKernel(true, groupNodeId); // fetchParent is always true when restarting in run branch
+      else {
+        await fetchFromParentOrNot(true, groupNodeId); // if neither shutdown nor restart, fetch parent state anyways
+        setInfluenceStateForGroupNode(groupNodeId, true); // since there was no restart, manually triggering the influence state to be on
+      }
+
+      setModalState("showConfirmModalRunBranch", false); // close modal rather quickly
+      await runAllInGroup(groupNodeId, [], true);
+      // wait until the kernel is idle
+      while (getExecutionStateForGroupNode(groupNodeId).state !== KERNEL_IDLE) {
+        // console.log('Waiting for kernel ' + groupNodeId + ' to be idle');
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      setRunBranchActiveForGroupNodes([groupNodeId], false);
+      // if any child has an error, stop running the branch
+      if (anyChildHasError(groupNodeId)) {
+        setRunBranchActiveForGroupNodes(groupNodes, false);
+        break;
+      }
+    };
+  };
+
+  const getGroupNodesOrdered = () => {
+    const groupNodes: string[] = [id];
+    let currentPredecessor = predecessor;
+    while (currentPredecessor) {
+      groupNodes.push(currentPredecessor.id);
+      currentPredecessor = getNode(currentPredecessor.data.predecessor);
+    }
+    groupNodes.reverse();
+    return groupNodes;
+  }
 
   /* EXPORT */
   const onExporting = async () => {
@@ -435,22 +504,33 @@ function GroupNode({ id, data }: NodeProps) {
     if (modalStates.showConfirmModalDetach) setModalState("showConfirmModalDetach", false);
     if (modalStates.showConfirmModalReconnect) setModalState("showConfirmModalReconnect", false);
     if (modalStates.showConfirmModalRunAll) setModalState("showConfirmModalRunAll", false);
+    if (modalStates.showConfirmModalRunBranch) setModalState("showConfirmModalRunBranch", false);
   };
 
-  const fetchParentState = async () => {
-    if (predecessor && predecessorRunning) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const parentKernel = predecessor.data.session?.kernel.id;
-      const childKernel = data.session?.kernel.id;
-      const dill_path = path.split('/').slice(0, -1).join('/');
-      await passParentState(token, dill_path, parentKernel, childKernel);
+  const fetchParentState = async (node_id: string | null = null) => {
+    var parentKernel, childKernel;
+    // fetch parent state for the given node
+    if (node_id) {
+      const node = getNode(node_id);
+      if (!node || !node.data.predecessor) return;
+      parentKernel = getNodeIdToWebsocketSession(node.data.predecessor)?.session?.kernel.id!;
+      childKernel = getNodeIdToWebsocketSession(node_id)?.session?.kernel.id!;
+
+    // fetch parent state for THIS node
+    } else {
+      if (!predecessor || !predecessorRunning) return;
+      parentKernel = getNodeIdToWebsocketSession(predecessor.id)?.session?.kernel.id!;
+      // using simply "session" here results in old value, that's why getNodeIdToWebsocketSession is used
+      childKernel = getNodeIdToWebsocketSession(id)?.session?.kernel.id!; 
     }
+    const dill_path = path.split('/').slice(0, -1).join('/');
+    await passParentState(token, dill_path, parentKernel, childKernel);
   };
 
   // INFO :: 🛑INTERRUPT KERNEL
   const interruptKernel = () => {
     if (wsRunning && executionState && executionState.state !== KERNEL_IDLE) {
-      onInterrupt(token, data.session.kernel.id);
+      onInterrupt(token, session?.kernel.id!);
       clearQueue(id);
       const nodeRunning = getExecutionStateForGroupNode(id).nodeId;
       setExecutionStateForGroupNode(id, {nodeId: nodeRunning, state: KERNEL_INTERRUPTED});
@@ -467,7 +547,7 @@ function GroupNode({ id, data }: NodeProps) {
   const fetchInstalledPackages = async () => {
     setInstalledPackages({});
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    const requestBody = { "kernel_id": data.session?.kernel.id };
+    const requestBody = { "kernel_id": session?.kernel.id };
     const response = await axios.post(`${serverURL}/canvas_ext/installed`, requestBody);
     setInstalledPackages(response.data);
   }
@@ -483,7 +563,7 @@ function GroupNode({ id, data }: NodeProps) {
           <tbody>
             <tr>
               <td>Name</td>
-              <td>{data.session?.kernel.name}</td>
+              <td>{session?.kernel.name}</td>
             </tr>
             <tr>
               <td>Running On&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
@@ -524,6 +604,7 @@ function GroupNode({ id, data }: NodeProps) {
   }
 
   const displayExecutionState = useCallback(() => {
+    if (runBranchActive) return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Running Branch...</div>
     if (wsRunning) {
       if (executionState?.state === KERNEL_IDLE) {
         if (hasBusySucc(id)) {
@@ -540,12 +621,14 @@ function GroupNode({ id, data }: NodeProps) {
       } else if (executionState?.state === KERNEL_INTERRUPTED) {
         return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Interrupting...</div>
       }
+    } else if (isReconnecting) {
+      return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Reconnecting...</div>
     } else if (!wsRunning && executionState?.state === KERNEL_IDLE) {
       return <div className="kernelOff"><FontAwesomeIcon icon={faCircleXmark} /> Shutdown</div>
     }
     // Return null if none of the conditions are met
     return null;
-  }, [wsRunning, executionState, hasBusySucc, hasBusyPred]);
+  }, [wsRunning, executionState, runBranchActive, isReconnecting, hasBusySucc, hasBusyPred]);
 
   return (
      <div> 
@@ -573,28 +656,36 @@ function GroupNode({ id, data }: NodeProps) {
         onMouseEnter={() => setShowOrder(id, RUNALL_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
+        {(wsRunning && data.predecessor) && <button onClick={onRunBranch} title="Run Branch up until Bubble ⏩"
+        onMouseEnter={() => setShowOrder(id, RUNBRANCH_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
+          <FontAwesomeIcon className="icon" icon={faForwardFast} />
+        </button>}
         <button onClick={wsRunning ? onShutdown : onReconnect} title={wsRunning ? "Shutdown Kernel ❌" : "Reconnect Kernel ▶️"} disabled={isReconnecting}> 
           <FontAwesomeIcon className="icon" icon={wsRunning ? faPowerOff : faCirclePlay} />
         </button>
-        {/* Disable branching out functionality when code is running */}
+        {/* Disable branching out functionality when code is running or kernel is shut */}
         {((wsRunning && executionState?.state !== KERNEL_IDLE) || 
             (hasBusyPred(id))) ? (
-          <button onClick={showAlertBranchOutOff} title="Branch out 🍃 temporary disabled 🚫"> 
+          <button onClick={() => showAlertBranchOutOff("Wait until kernel is idle 😴!")} title="Code is running ➡️ Branching disabled 🚫"> 
             <FontAwesomeIcon className="icon-disabled" icon={faNetworkWired}/>
           </button>
-        ) : (
+        ) : (wsRunning) ? (
           <button onClick={onBranchOut} title="Branch out 🍃"> 
             <FontAwesomeIcon className="icon" icon={faNetworkWired}/>
           </button>
+        ) : (
+          <button onClick={() => showAlertBranchOutOff("Connect the kernel to enable branching!")} title="Kernel is shut ➡️ Branching disabled 🚫"> 
+            <FontAwesomeIcon className="icon-disabled" icon={faNetworkWired}/>
+          </button>
         )}
-        {/* Disable branching out functionality when code is running */}
+        {/* Disable branching out functionality when code is running or kernel is shut */}
         {((wsRunning && executionState?.state !== KERNEL_IDLE) || 
             (hasBusyPred(id))) ? (
-          <button onClick={showAlertBranchOutOff} title="Code is running ➡️ Cell branch disabled 🚫">
+          <button onClick={() => showAlertBranchOutOff("Wait until kernel is idle 😴!")} title="Code is running ➡️ Branching disabled 🚫">
             <FontAwesomeIcon className="icon-disabled" icon={faArrowDownUpAcrossLine}/>
           </button>
         ) : (
-          <button onClick={onCellBranchStart} title="Cell branch: pick code cells and split the bubble ✂️">
+          <button onClick={onCellBranchStart} title="Split Bubble: Pick cells and split the bubble ✂️">
             <FontAwesomeIcon className="icon" icon={faArrowDownUpAcrossLine}/>
           </button>
         )}
@@ -666,11 +757,23 @@ function GroupNode({ id, data }: NodeProps) {
         confirmText3={(predecessor && predecessorRunning) ? "Restart (Load Parent)" : ""}
         variants={["success", "danger", "danger"]}
       />
+      <CustomConfirmModal 
+        title="Restart Kernels before Running Branch?" 
+        message="Do you want to restart the kernels before running branch? If yes, all variables will be lost! In case a kernel is not running, it will be started." 
+        show={modalStates.showConfirmModalRunBranch} 
+        denyText="Cancel"
+        onHide={continueWorking} 
+        onConfirm={() => runBranch(false)} 
+        confirmText="Just Run"
+        onConfirm2={() => runBranch(true)}
+        confirmText2="Restart"
+        variants={["success", "danger"]}
+      />
       <CustomInformationModal show={isBranching} text='Branching Out...' />
-      <div className="infoicon nodrag" title="Show kernel info ℹ️" onClick={toggleKernelInfo}>
+      {wsRunning && <div className="infoicon nodrag" title="Show kernel info ℹ️" onClick={toggleKernelInfo}>
         <FontAwesomeIcon className="icon" icon={faCircleInfo}/>
-      </div>
-      { showKernelInfo && renderKernelInfo() }
+      </div>}
+      {wsRunning && showKernelInfo && renderKernelInfo()}
     </div>
   );
 }

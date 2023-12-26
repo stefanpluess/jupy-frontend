@@ -5,6 +5,7 @@ import { getId, passParentState, sortNodes } from '../utils';
 import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
+import useNodesStore from '../nodesStore';
 
 /**
  * Returns a callback function that creates a new child group node and connection from the given parent.
@@ -17,6 +18,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const store = useStoreApi();
     const path = usePath();
     const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
+    const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+    const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
 
     const onBranchOut = useCallback(async () => {
         // check the node type
@@ -62,13 +65,11 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
 
         // create a websocket connection and pass the parent state to the child
         const {ws, session} = await createSession(childNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        const parentKernel = parentNode.data.session?.kernel.id;
+        setNodeIdToWebsocketSession(childNodeId, ws, session);
+        const parentKernel = getNodeIdToWebsocketSession(parentNode.id)?.session?.kernel.id!;
         const childKernel = session?.kernel.id;
         const dill_path = path.split('/').slice(0, -1).join('/')
         await passParentState(token, dill_path, parentKernel, childKernel!);
-        childNode.data.ws = ws;
-        childNode.data.session = session;
         childNode.data.predecessor = parentNode.id;
         parentNode.data.successors = parentNode.data.successors ? parentNode.data.successors.concat([childNodeId]) : [childNodeId];
 
@@ -84,7 +85,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
             edges.concat([childEdge])
         );
 
-    }, [getEdges, getNode, getNodes, id, setEdges, setNodes]);
+    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, setNodeIdToWebsocketSession]);
 
   return onBranchOut;
 }

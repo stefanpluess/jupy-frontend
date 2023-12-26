@@ -6,7 +6,7 @@ import {
 import { 
   useNodes, 
   Node, 
-  getRectOfNodes, 
+  getNodesBounds, 
   NodeToolbar, 
   useStoreApi, 
   useReactFlow 
@@ -57,7 +57,8 @@ export default function SelectedNodesToolbar() {
   const nodes = useNodes();
   const { setNodes, deleteElements } = useReactFlow();
   const store = useStoreApi();
-  const groupNodesWsStates = useNodesStore((state) => state.groupNodesWsStates);
+  const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
+  const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
   // only allow grouping for nodes that are not already grouped and are not group nodes
   const selectedNodes = nodes.filter((node) => node.selected);
   const groupableNodes = selectedNodes.filter((node) => !node.parentNode && node.type !== GROUP_NODE);
@@ -73,16 +74,16 @@ export default function SelectedNodesToolbar() {
   let hasRunningGroupNodeSelected = useCallback(() => {
     let hasRunningGroupNodeSelected = false;
     selectedNodes.forEach((node) => {
-      if (node.type === GROUP_NODE && groupNodesWsStates[node.id]) {
+      if (node.type === GROUP_NODE && getWsRunningForNode(node.id)) {
         hasRunningGroupNodeSelected = true;
       }
     });
     return hasRunningGroupNodeSelected;
-  }, [selectedNodes, groupNodesWsStates]);
+  }, [selectedNodes, getWsRunningForNode]);
 
 
   const onGroup = async () => {
-    const rectOfNodes = getRectOfNodes(groupableNodes);
+    const rectOfNodes = getNodesBounds(groupableNodes);
     const groupId = getId(GROUP_NODE);
     const parentPosition = {
       x: rectOfNodes.x,
@@ -97,11 +98,9 @@ export default function SelectedNodesToolbar() {
         width: rectOfNodes.width + PADDING * 4,
         height: rectOfNodes.height + PADDING * 4,
       },
-      data: {
-        ws: ws,
-        session: session,
-      },
+      data: {},
     };
+    setNodeIdToWebsocketSession(groupId, ws, session);
 
     const nextNodes: Node[] = nodes.map((node) => {
       if (selectedNodeIds.includes(node.id)) {

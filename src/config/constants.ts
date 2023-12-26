@@ -34,6 +34,7 @@ export const PADDING = 15;
 // INFO :: order functionality
 export const EXPORT_ACTION = 'export';
 export const RUNALL_ACTION = 'runall';
+export const RUNBRANCH_ACTION = 'runbranch';
 export const INSERTION_ORDER = 'insertion';
 export const TOP_DOWN_ORDER = 'top-down';
 // export const LEFT_RIGHT_ORDER = 'left-right';

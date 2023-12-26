@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { INSERTION_ORDER, TOP_DOWN_ORDER } from '../config/constants';
 
 export type SettingsStore = {
@@ -29,7 +29,7 @@ export type SettingsStore = {
     setSnapGrid: (snapGrid: boolean) => void;
 };
 
-const useSettingsStore = create<SettingsStore>((set, get) => ({
+const useSettingsStore = createWithEqualityFn<SettingsStore>((set, get) => ({
 
     showSettings: false,
     setShowSettings: (showSettings: boolean) => set({ showSettings }),

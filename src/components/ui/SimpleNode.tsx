@@ -51,6 +51,7 @@ import {
 import { 
   getConnectedNodeId,
   getNodeOrder,
+  isSuccessor,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -67,7 +68,8 @@ import {
   MIN_WIDTH,
   MIN_HEIGHT,
   CONTROL_STLYE,
-  RUNALL_ACTION
+  EXPORT_ACTION,
+  RUNBRANCH_ACTION,
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
@@ -138,23 +140,37 @@ function SimpleNode({ id, data }: NodeProps) {
     // isEqual needed for rerendering purposes
     return getResizeBoundaries(id);
   }, isEqual);
+  const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
 
   // INFO :: show order
   const showOrder = useNodesStore((state) => state.showOrder);
 	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
 	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
   const fetchNodeOrder = useCallback(() => {
-    const order = showOrder.action === RUNALL_ACTION ? runAllOrderSetting : exportOrderSetting;
-    const number = getNodeOrder(id, parentNode!, getNodes(), order, showOrder.action);
+    const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
+    const number = getNodeOrder(id, showOrder.node, getNodes(), order, showOrder.action);
     return number;
   }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
   const initialRender = useRef(true);
-  const wsRunning = useNodesStore(
-    (state) => state.groupNodesWsStates[parentNode!] ?? true
-  );
+  const wsParent = useNodesStore((state) => state.nodeIdToWebsocketSession[parentNode!]?.ws);
+  const wsRunning = useNodesStore((state) => state.getWsRunningForNode(parentNode!)); // can be undefined
   const token = useWebSocketStore((state) => state.token);
   const executeOnSuccessors = useExecuteOnSuccessors();
+  const [, forceUpdate] = useState<{}>();
+
+  useEffect(() => {
+    const addEventListeners = async () => {
+      // add a open and a close listener (for initial render, ensure correct ws status is shown)
+      wsParent.addEventListener("open", () => forceUpdate({}) );
+      wsParent.addEventListener("close", () => forceUpdate({}) );
+      return () => { // remove them when component unmounts
+        wsParent.removeEventListener("open", () => forceUpdate({}) );
+        wsParent.removeEventListener("close", () => forceUpdate({}) );
+      };
+    }
+    if (wsParent) addEventListeners();
+  }, [wsParent]);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -210,7 +226,8 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🛑INTERRUPT KERNEL
   const interruptKernel = useCallback(() => {
     if (parent) {
-      onInterrupt(token, parent.data.session.kernel.id);
+      const parentKernelId = getNodeIdToWebsocketSession(parent.id).session.kernel.id!;
+      onInterrupt(token, parentKernelId);
       stopFurtherExecution(true);
     } else {
       console.warn("interruptKernel: parent is undefined");
@@ -335,6 +352,11 @@ function SimpleNode({ id, data }: NodeProps) {
       </Panel>)
   );
 
+  const shouldShowOrder = (
+    showOrder.node === parentNode || 
+    (showOrder.action === RUNBRANCH_ACTION && isSuccessor(getNodes(), parentNode!, showOrder.node))
+  );
+
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
 
@@ -410,7 +432,7 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner" style={{ opacity: showOrder.node === parentNode ? 0.5 : 1 }}>
+        <div className="inner" style={{ opacity: shouldShowOrder ? 0.5 : 1 }}>
           <MonacoEditor
             ref={editorRef}
             key={data}
@@ -472,7 +494,7 @@ function SimpleNode({ id, data }: NodeProps) {
             <div style={{width: "20px"}}/>
           </div>
         </div>
-        {showOrder.node === parentNode && (
+        {shouldShowOrder && (
         <div className="innerOrder">
           {fetchNodeOrder()}
         </div>)}
