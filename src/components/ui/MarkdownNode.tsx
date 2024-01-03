@@ -18,7 +18,6 @@ import {
 } from "reactflow";
 import {
   faCheck,
-  faCopy,
   faObjectUngroup,
   faPlayCircle,
   faTrashAlt,
@@ -28,11 +27,12 @@ import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
 //COMMENT :: Internal modules
 import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
-import { CONTROL_STLYE, EXPORT_ACTION, MIN_HEIGHT, MIN_WIDTH, RUNALL_ACTION, RUNBRANCH_ACTION } from "../../config/constants";
+import { CONTROL_STLYE, EXPORT_ACTION, MARKDOWN_NODE, MIN_HEIGHT, MIN_WIDTH, RUNALL_ACTION, RUNBRANCH_ACTION } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
 import useNodesStore from "../../helpers/nodesStore";
 import useSettingsStore from "../../helpers/settingsStore";
 import { getNodeOrder } from "../../helpers/utils";
+import CopyButton from "../buttons/CopyContentButton";
 
 /**
  * A React component that represents a Markdown node used in the Home component.
@@ -95,7 +95,6 @@ function MarkdownNode({ id, data }: NodeProps) {
   }, isEqual);
 
   const createMarkdown = () => setEditMode(false);
-  const copyCode = () => navigator.clipboard.writeText(data.code);
 
   const toolbar = (
     <NodeToolbar className="nodrag">
@@ -115,13 +114,12 @@ function MarkdownNode({ id, data }: NodeProps) {
 
   const buttons = (
     <div className="bottomCodeCellButtons">
-      <button
+      <CopyButton 
+        nodeId={id}               
         title="Copy Text from Cell"
         className="cellButton"
-        onClick={copyCode}
-      >
-        <FontAwesomeIcon className="copy-icon" icon={faCopy} />
-      </button>
+        nodeType={MARKDOWN_NODE} 
+      />
     </div>
   );
 

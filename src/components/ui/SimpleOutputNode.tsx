@@ -15,15 +15,12 @@ import {
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faCopy,
   faObjectUngroup,
-  faSave,
   faTriangleExclamation,
   faCheck
 } from "@fortawesome/free-solid-svg-icons";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import * as clipboard from "clipboard-polyfill";
 //COMMENT :: Internal modules HELPERS
 import { 
   useDetachNodes, 
@@ -33,10 +30,13 @@ import useNodesStore from "../../helpers/nodesStore";
 import { getConnectedNodeId } from "../../helpers/utils";
 //COMMENT :: Internal modules CONFIG
 import { OutputNodeData } from "../../config/types";
-import { CONTROL_STLYE } from "../../config/constants";
+import { CONTROL_STLYE, OUTPUT_NODE } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon } from "../ui";
 import useSettingsStore from "../../helpers/settingsStore";
+//COMMENT :: Internal modules BUTTONS
+import CopyButton from "../buttons/CopyContentButton";
+import SaveGraphButton from "../buttons/SaveGraphButton";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -60,9 +60,6 @@ function SimpleOutputNode({
   const detachNodes = useDetachNodes();
   const [groupedOutputs, setGroupedOutputs] = useState([] as OutputNodeData[]);
   const [selectedOutputIndex, setSelectedOutputIndex] = useState(-1 as number);
-
-  const [isCopyClicked, setIsCopyClicked] = useState(false);
-  const [isSaveClicked, setIsSaveClicked] = useState(false);
 
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = useStore((store) => {
@@ -145,88 +142,12 @@ function SimpleOutputNode({
 
   const onDetach = () => detachNodes([id]);
 
-  /* Method used to copy the selected (or all) outputs */
-  const copyOutput = async (index: number = -1) => {
-    // if index is -1, copy all outputs to clipboard
-    if (index === -1) {
-      var html = "";
-      groupedOutputs.forEach((output) => {
-        if (!output.isImage) {
-          html += output.output + "<br>";
-        } else {
-          html += '<img src="data:image/png;base64,' + output.output + '"><br>';
-        }
-      });
-      const item = new clipboard.ClipboardItem({
-        "text/html": new Blob([html], { type: "text/html" }),
-      });
-      await clipboard.write([item]);
-      //alert("Copied all Outputs to Clipboard!");
-      return;
-    }
-
-    if (groupedOutputs[index]?.output === "") return;
-    if (!groupedOutputs[index]?.isImage) {
-      var copiedOutput = groupedOutputs[index].output;
-      clipboard.writeText(copiedOutput);
-      // alert("Copied Output to Clipboard!");
-    } else {
-      const item = new clipboard.ClipboardItem({
-        "image/png": b64toBlob(groupedOutputs[index]?.output, "image/png", 512),
-      });
-      await clipboard.write([item]);
-      // alert("Copied Image as PNG to Clipboard!");
-    }
-  };
-
-  /* Method used for saving of images (convert b64 string to blob object) */
-  function b64toBlob(
-    b64Data: string,
-    contentType = "image/png",
-    sliceSize = 512
-  ) {
-    let byteCharacters = atob(b64Data);
-    let byteArrays = [];
-    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      let slice = byteCharacters.slice(offset, offset + sliceSize);
-      let byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-      var byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    return new Blob(byteArrays, { type: contentType });
-  }
-
-  /* Method used to save the output (only in case of images) */
-  const saveOutput = (index: number) => {
-    // return if there is no output yet
-    if (groupedOutputs[index]?.output === "") return;
-    if (groupedOutputs[index]?.isImage) {
-      // Create a new anchor link
-      const link = document.createElement("a");
-      link.href = "data:image/png;base64," + groupedOutputs[index]?.output;
-      link.download = "image.png"; // Set a default filename for the downloaded image
-      link.style.display = "none"; // Hide the link
-      document.body.appendChild(link); // Add the link to the DOM
-      link.click(); // Programmatically click the link to trigger the download
-      // Remove the link from the DOM after a short delay
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 1000);
-      // console.log("Saved Output:\n" + link);
-      // alert("Saved Output:\n" + link);
-    }
-  };
-
   // INFO :: lock functionality - observe the lock state of the connected SimpleNode with code
   const isSimpleNodeLocked = useNodesStore(
     (state) => state.locks[getConnectedNodeId(id)]
   );
   const MySwal = withReactContent(Swal);
   const showAlertDetachOff = () => {
-    // window.alert('Unlock 🔓 before detaching!');
     MySwal.fire({
       title: <strong>Detach error!</strong>,
       html: <i>Unlock 🔓 before detaching!</i>,
@@ -272,18 +193,17 @@ function SimpleOutputNode({
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}
       style={outerDivMaxSize} // needed to maintain the size of the outer div
     >
-      {/* {!canRenderEmpty && */}
-        <NodeResizeControl
-          style={CONTROL_STLYE}
-          minWidth={35}
-          minHeight={35}
-          maxWidth={maxWidth} // this is only triggered after the node is resized
-          maxHeight={maxHeight} // this is only triggered after the node is resized
-          onResize={onResize}
-        >
-          <ResizeIcon isSmaller />
-        </NodeResizeControl>
-      {/* } */}
+      <NodeResizeControl
+        style={CONTROL_STLYE}
+        minWidth={35}
+        minHeight={35}
+        maxWidth={maxWidth} // this is only triggered after the node is resized
+        maxHeight={maxHeight} // this is only triggered after the node is resized
+        onResize={onResize}
+      >
+        <ResizeIcon isSmaller />
+      </NodeResizeControl>
+      
       <NodeToolbar className="nodrag">
         {!isSimpleNodeLocked ? (
           hasParent && (
@@ -314,57 +234,42 @@ function SimpleOutputNode({
 
       {/* ----- Single Output - Always show buttons ----- */}
       {groupedOutputs.length === 1 && (
-        <div className="oinputCentered obuttonArea nodrag">
-          <button
+        <div className="OutputNodeButtonsArea nodrag">
+          <CopyButton
             title="Copy Output"
-            className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
-            onClick={() => copyOutput(0)}
-            onMouseDown={() => setIsCopyClicked(true)}
-            onMouseUp={() => setIsCopyClicked(false)}
-          >
-            <FontAwesomeIcon className="icon" icon={faCopy} />
-          </button>
+            className='cellButton'
+            nodeType={OUTPUT_NODE} 
+            groupedOutputs={groupedOutputs}
+            copyOutputIndex = {0}
+          />
           {outputs && outputs[0]?.isImage && (
-            <button
-              className={`obuttonArea oLower ${
-                isSaveClicked ? "oClickedSave" : ""
-              }`}
+            <SaveGraphButton
               title="Save Output"
-              onClick={() => saveOutput(0)}
-              onMouseDown={() => setIsSaveClicked(true)}
-              onMouseUp={() => setIsSaveClicked(false)}
-            >
-              <FontAwesomeIcon className="icon" icon={faSave} />
-            </button>
+              className='cellButton'
+              groupedOutputs={groupedOutputs}
+              saveOutputIndex = {0}
+            />
           )}
         </div>
       )}
 
       {/* ----- Multiple Outputs - Only show buttons for selected ones, also highlighting them (no selection - show copy for all) ----- */}
       {groupedOutputs.length !== 1 && !canRenderEmpty &&(
-        <div className="oinputCentered obuttonArea nodrag">
-          <button
+        <div className="OutputNodeButtonsArea nodrag">
+          <CopyButton
             title="Copy Selected Output"
-            className={`obuttonArea oUpper ${isCopyClicked ? "oClicked" : ""}`}
-            onClick={() => copyOutput(selectedOutputIndex)}
-            onMouseDown={() => setIsCopyClicked(true)}
-            onMouseUp={() => setIsCopyClicked(false)}
-          >
-            <FontAwesomeIcon className="icon" icon={faCopy} />
-          </button>
-
+            className='cellButton'
+            nodeType={OUTPUT_NODE} 
+            groupedOutputs={groupedOutputs}
+            copyOutputIndex = {selectedOutputIndex}
+          />
           {outputs && outputs[selectedOutputIndex]?.isImage && (
-            <button
-              className={`obuttonArea oLower ${
-                isSaveClicked ? "oClickedSave" : ""
-              }`}
+            <SaveGraphButton
               title="Save Selected Output"
-              onClick={() => saveOutput(selectedOutputIndex)}
-              onMouseDown={() => setIsSaveClicked(true)}
-              onMouseUp={() => setIsSaveClicked(false)}
-            >
-              <FontAwesomeIcon className="icon" icon={faSave} />
-            </button>
+              className='cellButton'
+              groupedOutputs={groupedOutputs}
+              saveOutputIndex = {selectedOutputIndex}
+            />
           )}
         </div>
       )}

@@ -75,3 +75,92 @@ $toolbar-background: #b6b6b6;
         box-shadow: 0 0 0 2px limeGreen, 0 0 8px limeGreen;
     }
 }
+
+// COMMENT - custom tick checked animation button
+@mixin checkedAnimation{
+
+    .tickChecked {
+        width: 12px;
+        height: 12px;
+    }
+
+    .path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 0;
+        &.circle {
+            -webkit-animation: dash .5s ease-in-out;
+            animation: dash .5s ease-in-out;
+        }
+        &.line {
+            stroke-dashoffset: 1000;
+            -webkit-animation: dash .5s .20s ease-in-out forwards;
+            animation: dash .5s .20s ease-in-out forwards;
+        }
+        &.check {
+            stroke-dashoffset: -100;
+            -webkit-animation: dash-check .5s .20s ease-in-out forwards;
+            animation: dash-check .5s .20s ease-in-out forwards;
+        }
+    }
+
+    @-webkit-keyframes dash {
+     0% {
+        stroke-dashoffset: 1000;
+     }
+     100% {
+        stroke-dashoffset: 0;
+     }
+    }
+
+    @keyframes dash {
+     0% {
+        stroke-dashoffset: 1000;
+     }
+     100% {
+        stroke-dashoffset: 0;
+     }
+    }
+
+    @-webkit-keyframes dash-check {
+     0% {
+        stroke-dashoffset: -100;
+     }
+     100% {
+        stroke-dashoffset: 900;
+     }
+    }
+
+    @keyframes dash-check {
+     0% {
+        stroke-dashoffset: -100;
+     }
+     100% {
+        stroke-dashoffset: 900;
+     }
+    }
+}
+
+
+// button used to copy the content of code, markdown cell and output cell
+@mixin copyContentButton{
+    .copy-icon:hover{
+        color: rgba(223, 223, 223, 0.5);
+    }
+    .copy-icon:active{
+        transform: scale(0.8);
+    }
+    // check icon animation when content is copied
+    @include checkedAnimation;
+}
+
+// button used to save the graph in the output cell
+@mixin saveGraphButton{
+    .save-icon:hover{
+        color: rgba(223, 223, 223, 0.5);
+    }
+    .save-icon:active{
+        transform: scale(0.8);
+    }
+    // check icon animation when content is saved
+    @include checkedAnimation;
+}
