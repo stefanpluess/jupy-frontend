@@ -18,7 +18,7 @@ import {
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faCopy,
+  faClone,
   faCommentAlt,
   faTrashAlt,
   faObjectUngroup,
@@ -70,10 +70,13 @@ import {
   CONTROL_STLYE,
   EXPORT_ACTION,
   RUNBRANCH_ACTION,
+  NORMAL_NODE,
 } from "../../config/constants";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
 import useSettingsStore from "../../helpers/settingsStore";
+//COMMENT :: Internal modules BUTTONS
+import CopyButton from "../buttons/CopyContentButton";
 
 /**
  * A React component that represents a code cell node on the canvas.
@@ -299,11 +302,6 @@ function SimpleNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
-  const copyCode = () => {
-    let copyText = data.code;
-    navigator.clipboard.writeText(copyText);
-  };
-
   const onAdditionalSettings = () => {
     let text =
       "This feature is currently still under construction. We will let you know when it is ready to use!";
@@ -399,7 +397,7 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
 
           <button onClick={duplicateCell} title="Duplicate Cell">
-            <FontAwesomeIcon className="icon" icon={faCopy} />
+            <FontAwesomeIcon className="icon" icon={faClone} />
           </button>
 
           {hasParent && (
@@ -473,14 +471,13 @@ function SimpleNode({ id, data }: NodeProps) {
           />
           {/* INFO :: bottom bar below Monaco with buttons for code cell */}
           <div className="bottomCodeCellButtons">
-            {/* COPY CELL */}
-            <button
+            {/* COPY CELL CONTENT*/}
+            <CopyButton 
+              nodeId={id}
               title="Copy Text from Cell"
               className="cellButton"
-              onClick={copyCode}
-            >
-              <FontAwesomeIcon className="copy-icon" icon={faCopy} />
-            </button>
+              nodeType={NORMAL_NODE} 
+            />
             {/* STALE STATE INDICATOR */}
             {staleState && (
               <button

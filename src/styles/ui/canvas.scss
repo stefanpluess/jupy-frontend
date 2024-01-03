@@ -55,13 +55,8 @@
     justify-content: space-between;
     font-size: 10px;
 
-    .copy-icon:hover {
-        color: rgba(223, 223, 223, 0.502);
-    }
-
-    .copy-icon:active {
-        transform: scale(0.8);
-    }
+    // copy content button used in simple, markdown and output cell
+    @include copyContentButton;
 }
 
 /* INFO :: canvas area - simple node*/
@@ -252,6 +247,27 @@
 
     .selected {
         background-color: $node-background-selected;
+    }
+
+    // buttons at the top right corner of the output node
+    .OutputNodeButtonsArea {
+        //push completely OutputNodeButtonsArea outside the right edge of its container => OutputNode
+        position: absolute;
+        margin-left: 100%;
+        top: 0;
+
+        // style within OutputNodeButtonsArea
+        width: 25px;
+        height: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        // copy content button used in simple, markdown and output node
+        @include copyContentButton;
+
+        // save graph button used to save the graph in output node
+        @include saveGraphButton;
     }
 }
 
