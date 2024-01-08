@@ -122,7 +122,7 @@ export function useCellBranch(id: NodeProps['id']) {
 
         // wait for the websocket to be connected
         while (!getWsRunningForNode(newGroupNodeId)) {
-            console.log('Waiting for websocket in node ' + newGroupNodeId + ' to be connected');
+            // console.log('Waiting for websocket in node ' + newGroupNodeId + ' to be connected');
             await new Promise(resolve => setTimeout(resolve, 50));
         }
         return newGroupNodeId;

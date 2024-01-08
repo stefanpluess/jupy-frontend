@@ -322,26 +322,27 @@ function GroupNode({ id, data }: NodeProps) {
           // assign the picked nodes to the new group node
           const allNodes: Node[] = store.getState().getNodes()
               .map((n) => {
-                  if (pickedNodeIds.includes(n.id)) {
-                      return {...n, parentNode: newGroupNodeId};
-                  }
+                  if (pickedNodeIds.includes(n.id)) return {...n, parentNode: newGroupNodeId};
                   return n;
               })
               .sort(sortNodes);
           setNodes(allNodes);
           // execute selected nodes on the new group node
           await new Promise(resolve => setTimeout(resolve, 1000)); // wait until websocket is connected
-          runAllInGroup(newGroupNodeId, pickedNodeIds, true);
-          // zoom to the new group node
-          fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] });
+          fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] }); // zoom to the new group node
+          await runAllInGroup(newGroupNodeId, pickedNodeIds, true);
+          setIsBranching(false); // end of cell branch
+          resetCellBranch(); // reset cell branch state back to default
+          // when the kernel is idle, set the influence state to true (make edge flow again by default)
+          while (getExecutionStateForGroupNode(newGroupNodeId).state !== KERNEL_IDLE) {
+            // console.log('Waiting for kernel ' + newGroupNodeId + ' to be idle');
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          setInfluenceStateForGroupNode(id, true); 
         }
       } catch (error) {
           console.error("An error occurred during the cell branch:", error);
       }
-      // end of cell branch
-      setIsBranching(false);
-      // reset cell branch state back to default
-      resetCellBranch();
     };
     // check if this group node is eligible to conduct cell branch
     if (isCellBranchActive.id === id){

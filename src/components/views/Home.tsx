@@ -160,6 +160,19 @@ function DynamicGrouping() {
   useChangeExpandParent();
   useChangeFloatingEdges();
 
+  // Remove the resizeObserver error
+  useEffect(() => {
+    const errorHandler = (e: any) => {
+      if (e.message.includes("ResizeObserver loop completed with undelivered notifications" ||
+            "ResizeObserver loop limit exceeded")) {
+        const resizeObserverErr = document.getElementById("webpack-dev-server-client-overlay");
+        if (resizeObserverErr) resizeObserverErr.style.display = "none";
+      }
+    };
+    window.addEventListener("error", errorHandler);
+    return () => window.removeEventListener("error", errorHandler);
+  }, []);
+
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
