@@ -27,7 +27,7 @@ import {
   useResizeBoundaries 
 } from "../../helpers/hooks";
 import useNodesStore from "../../helpers/nodesStore";
-import { getConnectedNodeId } from "../../helpers/utils";
+import { ansiToHtml, getConnectedNodeId } from "../../helpers/utils";
 //COMMENT :: Internal modules CONFIG
 import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE, OUTPUT_NODE } from "../../config/constants";
@@ -162,7 +162,7 @@ function SimpleOutputNode({
     } else if (output.outputHTML) {
       return '<div class="rendered_html">' + output.outputHTML + "</div>";
     } else {
-      return output.output.replace(/\n/g, "<br>");
+      return ansiToHtml(output.output.replace(/\n/g, "<br>"));
     }
   }
 
@@ -281,16 +281,10 @@ function SimpleOutputNode({
         {groupedOutputs.map((groupedOutput, index) => (
           <div
             key={index}
-            className={
-              selectedOutputIndex === index && groupedOutputs.length !== 1
-                ? "outputNode selected" +
-                  (groupedOutput.outputType === "error" ? " errorMessage" : "")
-                : "outputNode" +
-                  (groupedOutput.outputType === "error" ? " errorMessage" : "")
-            }
+            className={selectedOutputIndex === index && groupedOutputs.length !== 1 ? "outputNode selected" : "outputNode"}
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
-          ></div>
+          />
         ))}
         {/* COMMENT: Display when already run and no output*/}
         {(canRenderEmpty) && (

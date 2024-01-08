@@ -214,9 +214,6 @@
     box-shadow: $node-box-shadow;
 }
 
-.rfWrapper .errorMessage{
-    color: red;
-}
 /* 
     ".rfWrapper .react-flow__node-outputNode" is the general class from reactflow,
     ".OutputNode" or ".OutputNodeEmpty" is the class from the output 

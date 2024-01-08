@@ -84,7 +84,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         const output = output_cell.output_type === 'execute_result' ? output_cell.data['text/plain'] :
                        output_cell.output_type === 'stream' ? output_cell.text :
                        output_cell.output_type === 'display_data' ? output_cell.data['image/png'] ?? output_cell.data['text/plain'] :
-                       output_cell.output_type === 'error' ? output_cell.traceback?.map(removeEscapeCodes).join('\n') : '';
+                       output_cell.output_type === 'error' ? output_cell.traceback?.join('\n') : '';
         const newOutputData: OutputNodeData = {
           output: output,
           isImage: output_cell.isImage!,
@@ -423,8 +423,46 @@ export function createOutputNode(node: Node, outputParent?: string) {
   return newOutputNode;
 }
 
-export function removeEscapeCodes(str: string) {
-  return str.replace(/\u001b\[[0-9;]*m/g, '');
+/* Functions to properly display color coding */
+export function ansiToHtml(text: string): string {
+  let html = '';
+  let inEscapeCode = false;
+  let currentCode = '';
+
+  for (const char of text) {
+    if (char === '\u001b') {
+      inEscapeCode = true;
+      currentCode = char;
+    } else if (inEscapeCode) {
+      currentCode += char;
+      if (char.match(/[a-zA-Z]/)) {
+        inEscapeCode = false;
+        if (currentCode.endsWith('m')) {
+          html += convertAnsiToHtml(currentCode);
+        } else {
+          html += currentCode;
+        }
+        currentCode = '';
+      }
+    } else {
+      html += char;
+    }
+  }
+
+  return html;
+}
+
+function convertAnsiToHtml(escapeCode: string): string {
+  if (escapeCode.match(/0;31|1;31/)) {
+    return '<span style="color: #8B0000;">';
+  } else if (escapeCode.match(/0;32|1;32/)) {
+    return '<span style="color: #00ff00;">';
+  } else if (escapeCode === '\u001b[0m') {
+    return '<span style="color: #ffffff;">';
+    // return '</span>'
+  } else {
+    return '';
+  }
 }
 
 /** Method to make sure that parent nodes are rendered before their children */
