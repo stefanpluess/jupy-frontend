@@ -32,8 +32,9 @@ function useRunAll() {
                 : childNodes;
         } else {
             // Filter childNodes to only include those that are selected
-            // TODO: ENSURE THE CORRECT ORDERING OF THE SELECTED NODES
-            sortedChildNodes = childNodes.filter((node) => selected_node_ids.includes(node.id));
+            sortedChildNodes = selected_node_ids
+                .map((selectedId) => childNodes.find((node) => node.id === selectedId))
+                .filter((node): node is Node<any> => node !== undefined);
         }
         // grab all successors and set their influence to OFF if disable_edges is true
         if (disable_edges) {
