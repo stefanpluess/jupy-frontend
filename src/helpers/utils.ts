@@ -336,16 +336,20 @@ export async function getKernelspecs(token: string) {
 
 /** Method to pass the parent state to a child */
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
+  var parent_exec_count, child_exec_count;
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   await axios.post(`${serverURL}/canvas_ext/export`, { 'kernel_id': parent_kernel_id })
+    .then((res) => parent_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // wait for 200ms to ensure the state was actually saved
   await new Promise(resolve => setTimeout(resolve, 200));
   await axios.post(`${serverURL}/canvas_ext/import`, { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+    .then((res) => child_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // delete the dill file that was saved
   await axios.delete(`${serverURL}/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
     .catch((err) => console.log(err));
+  return {parent_exec_count, child_exec_count};
 }
 
 /** Method to analyze code (static analysis) after executing a code cell */

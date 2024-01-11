@@ -1,4 +1,5 @@
 import { XYPosition } from "reactflow";
+import { ExecInfoT } from "./constants";
 
 /**
  * This file contains types that are used throughout the application:
@@ -7,7 +8,9 @@ import { XYPosition } from "reactflow";
  * - NodeIdToOutputs
  * - NodeIdToExecCount
  * - OutputNodeData
- * - NodeIdToMsgId
+ * - MsgIdToExecInfo
+ * - NodeIdToWebsocketSession
+ * - ExecInfo
  * - Cell
  * - Content
  * - Kernelspecs
@@ -51,8 +54,12 @@ export type OutputNodeData = {
     timestamp?: Date;
 };
 
-export type NodeIdToMsgId = {
-    [msgId: string]: string;
+export type MsgIdToExecInfo = {
+    [msgId: string]: {
+        nodeId: string;
+        executedParent: string;
+        code: string;
+    };
 };
 
 export type NodeIdToWebsocketSession = {
@@ -60,6 +67,13 @@ export type NodeIdToWebsocketSession = {
         ws: WebSocket;
         session: Session;
     };
+};
+
+export type ExecInfo = {
+    node_id: string,
+    execution_count: number,
+    type: ExecInfoT,
+    code?: string
 };
 
 export type Cell = {
