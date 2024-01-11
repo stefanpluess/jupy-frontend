@@ -282,6 +282,7 @@ function SimpleOutputNode({
           <div
             key={index}
             className={selectedOutputIndex === index && groupedOutputs.length !== 1 ? "outputNode selected" : "outputNode"}
+            // style={groupedOutput.outputType === "error" ? { whiteSpace: "pre" } : {}}
             dangerouslySetInnerHTML={{ __html: getHtmlOutput(groupedOutput) }}
             onClick={() => handleSelect(index)}
           />
