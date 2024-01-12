@@ -69,11 +69,6 @@ const useUpdateNodesExeCountAndOuput = (): void => {
         }
         setNodeIdToOutputs(newOutputsMapping);
     }, [latestExecutionOutput]);
-
-    const historyPerNode = useExecutionStore((state) => state.historyPerNode);
-    useEffect(() => {
-        console.log("historyPerNode", historyPerNode);
-    }, [historyPerNode]);
     
 }
 
