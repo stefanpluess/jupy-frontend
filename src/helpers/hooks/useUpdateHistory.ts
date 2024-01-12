@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import useExecutionStore from "../executionStore";
 import { ExecInfoT } from "../../config/constants";
 
-type UpdateExportImportHistory = {
+type UpdateExportImportHistoryT = {
     parent_id: string;
     parent_exec_count: number;
     child_id: string;
@@ -13,7 +13,7 @@ function useUpdateHistory() {
 
     const addToHistory = useExecutionStore((state) => state.addToHistory);
 
-    const updateExportImportHistory = useCallback((obj: UpdateExportImportHistory) => {
+    const updateExportImportHistory = useCallback((obj: UpdateExportImportHistoryT) => {
         // EXPORT
         addToHistory(obj.parent_id, {
             node_id: obj.parent_id, // provide the bubble itself in case of export

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useCallback } from 'react';
 import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
+import useExecutionStore from '../executionStore';
 import { useWebSocketStore } from '../websocket';
 import { serverURL } from '../../config/config';
 
@@ -15,6 +16,7 @@ function useRemoveGroupNode() {
     const token = useWebSocketStore((state) => state.token);
     const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+    const removeNodeFromHistory = useExecutionStore((state) => state.removeNodeFromHistory);
 
     /* Method to update the data props (predecessor & successors) from the removed nodes */
     const removeFromPredecessorAndSuccessors = (node_id: string, predecessor_id: string, successor_ids: string[]) => {
@@ -42,10 +44,11 @@ function useRemoveGroupNode() {
           const ws = getNodeIdToWebsocketSession(node_id)?.ws;
           const session = getNodeIdToWebsocketSession(node_id)?.session;
           ws?.close();
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-          await axios.delete(`${serverURL}/api/sessions/`+ session.id)
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          await axios.delete(`${serverURL}/api/sessions/`+ session.id);
+          removeNodeFromHistory(node_id);
         }
-    }, [getNode, deleteElements, getWsRunningForNode, token, getNodeIdToWebsocketSession]);
+    }, [getNode, deleteElements, getWsRunningForNode, token, getNodeIdToWebsocketSession, removeNodeFromHistory]);
 
     return removeGroupNode;
 }

@@ -181,6 +181,7 @@ function GroupNode({ id, data }: NodeProps) {
   // INFO :: HISTORY
   const updateExportImportHistory = useUpdateHistory();
   const addToHistory = useExecutionStore((state) => state.addToHistory);
+  const clearHistory = useExecutionStore((state) => state.clearHistory);
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -388,6 +389,7 @@ function GroupNode({ id, data }: NodeProps) {
     const activeSession = node_id ? getNodeIdToWebsocketSession(node_id)?.session! : session;
     await axios.post(`${serverURL}/api/kernels/${activeSession.kernel.id}/restart`);
     oldWs.close();
+    clearHistory(node_id ?? id);
     const newWs = await startWebsocket(activeSession.id!, activeSession.kernel.id!, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeIdToWebsocketSession(node_id ?? id, newWs, undefined); // only update the ws, keep the session
 
@@ -432,6 +434,7 @@ function GroupNode({ id, data }: NodeProps) {
     ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.delete(`${serverURL}/api/sessions/`+session.id);
+    clearHistory(id);
     setModalState("showConfirmModalShutdown", false);
   };
 
