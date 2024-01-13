@@ -14,7 +14,8 @@ import {
   useReactFlow,
   useStore,
   useStoreApi,
-  Node
+  Node,
+  ReactFlowProvider
 } from "reactflow";
 import { NodeResizer } from "@reactflow/node-resizer";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -33,7 +34,8 @@ import {
   faForward,
   faCircleInfo,
   faArrowDownUpAcrossLine,
-  faForwardFast
+  faForwardFast,
+  faCodeCommit
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -70,7 +72,8 @@ import {
 //COMMENT :: Internal modules UI
 import { 
   CustomConfirmModal, 
-  CustomInformationModal 
+  CustomInformationModal,
+  ExecutionGraph
 } from "../ui";
 //COMMENT :: Internal modules CONFIG
 import {
@@ -175,6 +178,8 @@ function GroupNode({ id, data }: NodeProps) {
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
   const getOutputsForNodeId = useNodesStore((state) => state.getOutputsForNodeId);
   const [, forceUpdate] = useState<{}>();
+  // INFO :: execution graph
+  const [showExecutionGraph, setShowExecutionGraph] = useState(false);
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -603,6 +608,38 @@ function GroupNode({ id, data }: NodeProps) {
     )
   }
 
+  // INFO :: execution graph
+  const toggleExecutionGraph = () => {
+    if (showExecutionGraph) setShowExecutionGraph(false);
+    else setShowExecutionGraph(true);
+  };
+
+  const renderToggleExecutionGraph = () => {
+    return (
+      // COMMENT :: button to show execution graph
+      <button
+        className="exegraph-button nodrag"
+        title="Show execution graph"
+        onClick={toggleExecutionGraph}
+      >
+        <FontAwesomeIcon className="exegraph-button-icon" icon={faCodeCommit}/>
+      </button>
+    )
+  };
+ 
+  const renderExecutionGraph = () => {
+    return (
+      showExecutionGraph &&
+      (
+      <div className = "exegraph-flow-container">
+        <ReactFlowProvider>
+          <ExecutionGraph id={id} />
+        </ReactFlowProvider>
+      </div>
+      )
+    )
+  };
+
   const displayExecutionState = useCallback(() => {
     if (runBranchActive) return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Running Branch...</div>
     if (wsRunning) {
@@ -774,6 +811,9 @@ function GroupNode({ id, data }: NodeProps) {
         <FontAwesomeIcon className="icon" icon={faCircleInfo}/>
       </div>}
       {wsRunning && showKernelInfo && renderKernelInfo()}
+      {/* INFO :: execution graph */}
+      {renderToggleExecutionGraph()}
+      {renderExecutionGraph()}
     </div>
   );
 }
