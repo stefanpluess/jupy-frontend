@@ -39,6 +39,14 @@ export const INSERTION_ORDER = 'insertion';
 export const TOP_DOWN_ORDER = 'top-down';
 // export const LEFT_RIGHT_ORDER = 'left-right';
 
+export enum ExecInfoT {
+    NormalExecution = 'Execution',
+    PropagateExecution = 'Propagate',
+    LoadParent = 'Import',
+    Export = 'Export',
+    LoadLibraries = 'Libraries',
+}
+
 export const CONTROL_STLYE = {
     background: 'transparent',
     border: 'none',

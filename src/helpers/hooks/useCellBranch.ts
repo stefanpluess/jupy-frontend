@@ -6,6 +6,7 @@ import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
+import { useUpdateHistory } from '.';
 
 
 /**
@@ -24,6 +25,7 @@ export function useCellBranch(id: NodeProps['id']) {
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
     const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
+    const updateExportImportHistory = useUpdateHistory();
 
     const onCellBranchOut = useCallback(async (): Promise<string> => {
         const sourceGroupNode = getNode(id);
@@ -81,7 +83,13 @@ export function useCellBranch(id: NodeProps['id']) {
                     return '';
                 }
                 const dill_path = path.split('/').slice(0, -1).join('/');
-                await passParentState(token, dill_path, predecessorKernel, newKernel);
+                const {parent_exec_count, child_exec_count} = await passParentState(token, dill_path, predecessorKernel, newKernel);
+                updateExportImportHistory({
+                    parent_id: predecessorNode.id,
+                    parent_exec_count: parent_exec_count ?? 0,
+                    child_id: newGroupNodeId,
+                    child_exec_count: child_exec_count ?? 0,
+                });
             }
             // delete sourceGroupNode from the list of successors of the predecessorNode and add the new group node as a successor
             const predecessors = predecessorNode.data.successors;
@@ -126,7 +134,7 @@ export function useCellBranch(id: NodeProps['id']) {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
         return newGroupNodeId;
-    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, getWsRunningForNode, setNodeIdToWebsocketSession]);
+    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, getWsRunningForNode, setNodeIdToWebsocketSession, updateExportImportHistory]);
 
   return onCellBranchOut;
 }

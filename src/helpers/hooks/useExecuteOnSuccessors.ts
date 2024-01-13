@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
+import useExecutionStore from '../executionStore';
 import { useWebSocketStore } from "../websocket";
 import axios from "axios";
 import { 
   KERNEL_IDLE,
-  KERNEL_BUSY_FROM_PARENT 
+  KERNEL_BUSY_FROM_PARENT, 
+  ExecInfoT
 } from '../../config/constants';
 import { toast } from 'react-toastify';
 import { serverURL } from '../../config/config';
@@ -23,6 +25,7 @@ function useExecuteOnSuccessors() {
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
     const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+    const addToHistory = useExecutionStore((state) => state.addToHistory);
 
     // stale state analysis
     const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
@@ -70,7 +73,13 @@ function useExecuteOnSuccessors() {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         await axios.post(`${serverURL}/canvas_ext/execute`, requestBody)
         .then((res) => {
-          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
+          addToHistory(succ, {
+            node_id: simpleNodeId,
+            execution_count: res.data.execution_count,
+            type: ExecInfoT.PropagateExecution,
+            code: code,
+          });
+          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
           if (res.data.status === "error") {
             toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue);
             setHadRecentErrorForGroupNode(succ, {hadError: true, timestamp: new Date()});

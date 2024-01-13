@@ -6,6 +6,7 @@ import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
+import { useUpdateHistory } from '.';
 
 /**
  * Returns a callback function that creates a new child group node and connection from the given parent.
@@ -20,6 +21,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
+    const updateExportImportHistory = useUpdateHistory();
 
     const onBranchOut = useCallback(async () => {
         // check the node type
@@ -69,7 +71,13 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         const parentKernel = getNodeIdToWebsocketSession(parentNode.id)?.session?.kernel.id!;
         const childKernel = session?.kernel.id;
         const dill_path = path.split('/').slice(0, -1).join('/')
-        await passParentState(token, dill_path, parentKernel, childKernel!);
+        const {parent_exec_count, child_exec_count} = await passParentState(token, dill_path, parentKernel, childKernel!);
+        updateExportImportHistory({
+            parent_id: parentNode.id,
+            parent_exec_count: parent_exec_count ?? 0,
+            child_id: childNodeId,
+            child_exec_count: child_exec_count ?? 0,
+        });
         childNode.data.predecessor = parentNode.id;
         parentNode.data.successors = parentNode.data.successors ? parentNode.data.successors.concat([childNodeId]) : [childNodeId];
 
@@ -85,7 +93,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
             edges.concat([childEdge])
         );
 
-    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, setNodeIdToWebsocketSession]);
+    }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, setNodeIdToWebsocketSession, updateExportImportHistory]);
 
   return onBranchOut;
 }
