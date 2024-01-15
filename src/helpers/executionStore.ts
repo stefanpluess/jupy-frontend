@@ -8,7 +8,12 @@ export type ExecutionStore = {
     addToHistory: (nodeId: string, execInfo: ExecInfo) => void;
     clearHistory: (nodeId: string) => void;
     removeNodeFromHistory: (nodeId: string) => void;
-    
+
+    // INFO :: execution actions
+    fitViewNodeId: string | undefined;
+    setFitViewNodeId: (nodeId: string | undefined) => void;
+    hoveredNodeId: string | undefined;
+    setHoveredNodeId: (nodeId: string | undefined) => void;
 };
 
 const useExecutionStore = createWithEqualityFn<ExecutionStore>((set, get) => ({
@@ -26,6 +31,11 @@ const useExecutionStore = createWithEqualityFn<ExecutionStore>((set, get) => ({
         set({ historyPerNode: { ...historyPerNode } });
     },
 
+    // INFO :: execution actions
+    fitViewNodeId: undefined,
+    setFitViewNodeId: (nodeId: string | undefined) => set({ fitViewNodeId: nodeId }),
+    hoveredNodeId: undefined,
+    setHoveredNodeId: (nodeId: string | undefined) => set({ hoveredNodeId: nodeId }),
 }));
 
 export default useExecutionStore;

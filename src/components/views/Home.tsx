@@ -69,6 +69,7 @@ import {
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
 import useSettingsStore from "../../helpers/settingsStore";
+import useExecutionStore from "../../helpers/executionStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
@@ -124,7 +125,7 @@ function DynamicGrouping() {
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
-  const { screenToFlowPosition, getIntersectingNodes } = useReactFlow();
+  const { screenToFlowPosition, getIntersectingNodes, fitView } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
@@ -159,6 +160,10 @@ function DynamicGrouping() {
   useUpdateNodesExeCountAndOuput();
   useChangeExpandParent();
   useChangeFloatingEdges();
+  // INFO :: execution graph
+  const fitViewNodeId = useExecutionStore((state) => state.fitViewNodeId);
+  const setFitViewNodeId = useExecutionStore((state) => state.setFitViewNodeId);
+  const hoveredNodeId = useExecutionStore((state) => state.hoveredNodeId);
 
   /* on initial render, load the notebook (with nodes and edges) and start websocket connections for group nodes */
   useEffect(() => {
@@ -467,6 +472,36 @@ function DynamicGrouping() {
     resetCellBranch();
   }
 
+  // INFO :: execution graph
+  // transfer to node on click in the execution graph
+  useEffect(() => {
+    if (fitViewNodeId) {
+      fitView({ padding: 0.8, duration: 800, nodes: [{ id: fitViewNodeId }] });
+    }
+  }, [fitViewNodeId]);
+
+  // enable to user to focus the same node again after the user paned or zoomed the viewport
+  const onMoveStart = () => {
+    setFitViewNodeId(undefined);
+  };
+  
+  // change the class name of the node that is hovered in the execution graph
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => {
+      // Check if the node is the hovered one or has the specific class name
+      const isHoveredNode = n.id === hoveredNodeId;
+      const hasHoveredClass = n.className === 'hoveredInExecutionGraph';
+  
+      if (isHoveredNode) {
+        return { ...n, className: 'hoveredInExecutionGraph' };
+      } else if (hasHoveredClass) {
+        return { ...n, className: undefined };
+      }
+  
+      return n; // Return the node as-is if none of the above conditions are met
+    }));
+  }, [hoveredNodeId]);  
+
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
     return (
@@ -546,6 +581,7 @@ function DynamicGrouping() {
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
           onNodeClick={onNodeClick}
+          onMoveStart={onMoveStart}
           nodesDraggable={!isCellBranchActive.isActive}
           elementsSelectable={!isCellBranchActive.isActive}
           zoomOnDoubleClick={!isCellBranchActive.isActive}

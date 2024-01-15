@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import ReactFlow, {
   useReactFlow,
   Edge,
@@ -27,6 +27,7 @@ const proOptions = { hideAttribution: true };
 const PADDING = 10;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 1.5;
+const DISTANCE_BETWEEN_NODES = 50;
 interface ExecutionGraphProps {
   id: string;
 }
@@ -35,20 +36,28 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
     const { zoomIn, zoomOut, fitView} = useReactFlow();
     const historyPerNode = useExecutionStore((state) => state.historyPerNode[id]); // can be undefined
     const { nodes: initNodes, edges: initEdges, lastY } = createNodesAndEdges(historyPerNode);
+    const numberofNodes = useRef(initNodes.length);
+
+    const getLastNode = useCallback(() => {
+      return initNodes.length ? [{ id: initNodes[initNodes.length - 1].id }] : [];
+    }, [historyPerNode, initNodes]);
+
     // execute fitView on historyPerNode change
     useEffect(() => {
-      fitView({
+      // needed to avoid unnecessary executions of fitView, example when moving nodes
+      if (numberofNodes.current != initNodes.length) {
+        numberofNodes.current = initNodes.length;
+      }
+    } , [initNodes]);
+    useEffect(() => {
+      fitView({ 
         padding: PADDING,
         minZoom: MIN_ZOOM,
         maxZoom: MAX_ZOOM,
         nodes: getLastNode(),
         duration: 800
-      });
-    } , [fitView, initNodes]);
-
-    const getLastNode = useCallback(() => {
-      return initNodes.length ? [{ id: initNodes[initNodes.length - 1].id }] : [];
-    }, [historyPerNode, initNodes]);
+        });
+    }, [numberofNodes.current]);
 
     const jumpToBottom = useCallback(() => {
       fitView({ 
@@ -98,6 +107,8 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
             panOnScroll = {true}
             nodesDraggable = {false}
             nodesConnectable={false}
+            nodesFocusable={false}
+            edgesFocusable={false}
             zoomOnDoubleClick={false}
             deleteKeyCode={null}
         >
@@ -166,7 +177,7 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
         position: { x: 0, y },
         type: 'exeGraphNode',
       });
-      y += 50;
+      y += DISTANCE_BETWEEN_NODES;
     }
     return { nodes, lastY: y };
   };
