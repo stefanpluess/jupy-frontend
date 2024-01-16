@@ -187,6 +187,7 @@ function GroupNode({ id, data }: NodeProps) {
   const updateExportImportHistory = useUpdateHistory();
   const addToHistory = useExecutionStore((state) => state.addToHistory);
   const clearHistory = useExecutionStore((state) => state.clearHistory);
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -286,6 +287,13 @@ function GroupNode({ id, data }: NodeProps) {
   const deleteGroup = async () => {
     removeGroupNode(id, true);
     setModalState("showConfirmModalDelete", false);
+    // get the deleted id for the execution graph
+    const childNodeIds = Array.from(store.getState().nodeInternals.values())
+    .filter((n) => n.parentNode === id)
+    .map((n) => n.id);
+    // create and array with id and childNodeIds
+    const deletedIds = [id, ...childNodeIds];
+    addDeletedNodeIds(deletedIds);
   };
 
   /* DETACH */

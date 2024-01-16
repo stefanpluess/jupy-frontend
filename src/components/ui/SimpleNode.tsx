@@ -77,6 +77,7 @@ import { ResizeIcon} from "../ui";
 import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules BUTTONS
 import CopyButton from "../buttons/CopyContentButton";
+import useExecutionStore from "../../helpers/executionStore";
 
 /**
  * A React component that represents a code cell node on the canvas.
@@ -161,6 +162,8 @@ function SimpleNode({ id, data }: NodeProps) {
   const token = useWebSocketStore((state) => state.token);
   const executeOnSuccessors = useExecuteOnSuccessors();
   const [, forceUpdate] = useState<{}>();
+  // INFO :: execution graph
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -250,8 +253,11 @@ function SimpleNode({ id, data }: NodeProps) {
 
  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
-  const deleteNode = () =>
+  const deleteNode = () => {
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
+    // get the deleted id for the execution graph
+    addDeletedNodeIds([id]);
+  }
 
   const onDetach = () => {
     if (isLocked) {

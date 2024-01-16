@@ -52,3 +52,5 @@ export const CONTROL_STLYE = {
     border: 'none',
     zIndex: 1,
 }
+
+export const EXECUTION_GRAPH_PANEL = 'exePanel';

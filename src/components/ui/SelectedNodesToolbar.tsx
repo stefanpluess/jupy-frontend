@@ -45,6 +45,7 @@ import {
   OUTPUT_NODE
 } from '../../config/constants';
 import useSettingsStore from '../../helpers/settingsStore';
+import useExecutionStore from '../../helpers/executionStore';
 
 /**
  * This component renders a toolbar for selected nodes on the canvas space.
@@ -70,6 +71,7 @@ export default function SelectedNodesToolbar() {
   const isVisibleGroup = groupableNodes.length > 1;
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
   let hasRunningGroupNodeSelected = useCallback(() => {
     let hasRunningGroupNodeSelected = false;
@@ -133,6 +135,8 @@ export default function SelectedNodesToolbar() {
     selectedNodes.forEach((node) => {
       if (node.type === GROUP_NODE) {
         removeGroupNode(node.id, false);
+        // get the deleted id for the execution graph 
+        addDeletedNodeIds([node.id]);
       }
     });
     const correspondingNodes: string[] = [];
@@ -144,6 +148,9 @@ export default function SelectedNodesToolbar() {
     // actually remove the nodes
     deleteElements({ nodes: nodesToBeDeleted });
     setShowConfirmModalDelete(false);
+    // get the deleted ids for the execution graph
+    const deletedIds = nodesToBeDeleted.map((node) => node.id);
+    addDeletedNodeIds(deletedIds);
   };
 
   const MySwal = withReactContent(Swal);

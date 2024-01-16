@@ -5,7 +5,7 @@ import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { useReactFlow } from 'reactflow';
 import { OutputNodeData } from "../../config/types";
 import * as clipboard from "clipboard-polyfill";
-import { OUTPUT_NODE } from '../../config/constants';
+import { OUTPUT_NODE, NORMAL_NODE, MARKDOWN_NODE, EXECUTION_GRAPH_PANEL } from '../../config/constants';
 import CheckIcon from './CheckIcon';
 
 interface CopyButtonProps {
@@ -15,9 +15,10 @@ interface CopyButtonProps {
   nodeId?: string; // Make groupedOutputs optional
   groupedOutputs?: OutputNodeData[]; // Make groupedOutputs optional
   copyOutputIndex?: number; // Make copyOutputIndex optional
+  stringToCopy?: string; // Make stringToCopy optional
 }
 
-const CopyButton: React.FC<CopyButtonProps> = ({ nodeType, title, className, nodeId, groupedOutputs, copyOutputIndex}) => {
+const CopyButton: React.FC<CopyButtonProps> = ({ nodeType, title, className, nodeId, groupedOutputs, copyOutputIndex, stringToCopy}) => {
   const { getNode } = useReactFlow();
   const [isCopied, setIsCopied] = useState(false);
 
@@ -112,12 +113,39 @@ const CopyButton: React.FC<CopyButtonProps> = ({ nodeType, title, className, nod
     return new Blob(byteArrays, { type: contentType });
   }
 
+  // function used in the Panel of the Execution Graph
+  const copyString = () => {
+    setIsCopied(true);
+    if (stringToCopy === undefined) {
+      return;
+    }
+    navigator.clipboard.writeText(stringToCopy);
+    setTimeout(() => {
+      setIsCopied(false);
+    }, 700);
+  };
+
   return (
     <button
       title={title}
       className={className}
-      // use copyCode function if nodeType is not OUTPUT_NODE
-      onClick={nodeType !== OUTPUT_NODE ?  copyCode : () => copyOutput(copyOutputIndex)}
+      onClick={() => {
+        switch (nodeType) {
+          case NORMAL_NODE:
+          case MARKDOWN_NODE:
+            copyCode();
+            break;
+          case OUTPUT_NODE:
+            copyOutput(copyOutputIndex);
+            break;
+          case EXECUTION_GRAPH_PANEL:
+            copyString();
+            break;
+          default:
+            console.log("Error: unknown nodeType");
+            break;
+        }
+      }}
     >
       {isCopied ? (
         <CheckIcon />

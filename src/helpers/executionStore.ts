@@ -14,6 +14,10 @@ export type ExecutionStore = {
     setFitViewNodeId: (nodeId: string | undefined) => void;
     hoveredNodeId: string | undefined;
     setHoveredNodeId: (nodeId: string | undefined) => void;
+    clickedNodeCode: string | undefined;
+    setClickedNodeCode: (nodeCode: string | undefined) => void;
+    deletedNodeIds: string[];
+    addDeletedNodeIds: (nodeIds: string[]) => void;
 };
 
 const useExecutionStore = createWithEqualityFn<ExecutionStore>((set, get) => ({
@@ -36,6 +40,10 @@ const useExecutionStore = createWithEqualityFn<ExecutionStore>((set, get) => ({
     setFitViewNodeId: (nodeId: string | undefined) => set({ fitViewNodeId: nodeId }),
     hoveredNodeId: undefined,
     setHoveredNodeId: (nodeId: string | undefined) => set({ hoveredNodeId: nodeId }),
+    clickedNodeCode: undefined,
+    setClickedNodeCode: (nodeCode: string | undefined) => set({ clickedNodeCode: nodeCode }),
+    deletedNodeIds: [],
+    addDeletedNodeIds: (nodeIds: string[]) => set({ deletedNodeIds: [...get().deletedNodeIds, ...nodeIds] }),
 }));
 
 export default useExecutionStore;

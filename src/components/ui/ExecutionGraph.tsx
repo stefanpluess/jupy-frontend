@@ -5,6 +5,7 @@ import ReactFlow, {
   Node,
   Panel,
   MarkerType,
+  PanOnScrollMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ExecutionGraphNode from './ExecutionGraphNode';
@@ -18,7 +19,7 @@ import {
   faMagnifyingGlassMinus, 
   faMagnifyingGlassPlus 
 } from '@fortawesome/free-solid-svg-icons';
-import Thanos_gif from '../../../public/thanos.gif'; // https://giphy.com/stickers/marvelstudios-oh-thanos-snapped-TfjfIgE9YUgdyz8V1J
+import Thanos_gif from '../../thanos.gif'; // https://giphy.com/stickers/marvelstudios-oh-thanos-snapped-TfjfIgE9YUgdyz8V1J
 
 // constants and parameters
 const nodeTypes = { exeGraphNode: ExecutionGraphNode };
@@ -105,12 +106,14 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
             proOptions={proOptions}
             preventScrolling = {false}
             panOnScroll = {true}
+            panOnScrollMode={PanOnScrollMode.Vertical}
             nodesDraggable = {false}
             nodesConnectable={false}
             nodesFocusable={false}
             edgesFocusable={false}
             zoomOnDoubleClick={false}
             deleteKeyCode={null}
+            // TODO holiding scroll and moving move moves the graph
         >
             {historyPerNode && 
               <Panel
@@ -143,7 +146,7 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
               </Panel>
             }
             {/* display when execution graph is empty */}
-            {historyPerNode === undefined &&
+            {(!historyPerNode || historyPerNode.length === 0) &&
               <Panel
                 className='exegraph-flow-panel-empty'
                 position='top-center'>
