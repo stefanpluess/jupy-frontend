@@ -46,7 +46,7 @@ function useRunAll() {
         const executableChildNodes = sortedChildNodes.filter((node) => node.data.code && node.data.code.trim() !== '');
         // for all executable child nodes with execution count being "", insert the output node
         const noOutputNodes = executableChildNodes.filter((node) => nodeIdToExecCount[node.id]?.execCount === "");
-        await insertOutput(noOutputNodes.map((node) => node.id));
+        await insertOutput(noOutputNodes.map((node) => node.id), false); // COMMENT: set to true if you want to adjust the position of the output node
         // for each child node with code, add it to the queue and set the execution count to *
         executableChildNodes.forEach((node) => {
             setNodeIdToExecCount(node.id, '*');

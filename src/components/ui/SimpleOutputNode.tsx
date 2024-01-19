@@ -293,10 +293,10 @@ function SimpleOutputNode({
         )}
       </div>
       <Handle
+        className="handle-output"
         type="target"
         position={Position.Left}
         isConnectableStart={false}
-        style={{ height: "6px", width: "6px", opacity: floatingEdgesSetting ? 0 : 1 }}
       />
     </div>
   );

@@ -221,7 +221,7 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
     if (!data.code || data.code.trim() === '') return;
-    if (executionCount === "") await insertOutput([id]); // if the execution count is "", create an output node and add an edge
+    if (executionCount === "") await insertOutput([id], true); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
       setNodeIdToExecCount(id, "*");

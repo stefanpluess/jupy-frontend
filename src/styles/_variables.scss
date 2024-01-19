@@ -19,6 +19,8 @@ $icon-base-transform-scale: scale(1.5);
 $icon-active-transform-scale: scale(1.25);
 $exe-graph-icon-hover-transform-scale: scale(1.3);
 $exe-graph-icon-active-transform-scale: scale(0.6);
+// size
+$min-output-node-size: 25px;
 
 //COMMENT - sidebar - variables might be used across many files
 $sidebar-node-box-shadow-selected-hover: 0px 0px 16px 0px rgba(255, 255, 255, 0.5);

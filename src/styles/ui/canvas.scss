@@ -210,6 +210,14 @@
 }
 
 /* INFO :: canvas area - ouput node*/
+$handle-margin: 1.5px;
+
+// hide the handle in the output node
+.rfWrapper .handle-output{
+    visibility: hidden;
+    left: -$handle-margin;
+}
+
 // react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
 .rfWrapper .react-flow__node-outputNode.selected {
@@ -236,6 +244,9 @@
     border-radius: $code-and-output-border-radius;
     padding: 4px;
     font-size: 10px;
+
+    // comment out if you want the arrow of the edge stick to the output node:
+    margin-left: $handle-margin; 
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNode{
@@ -245,8 +256,8 @@
     max-width: 100%;
     max-height: 100%;
     overflow: auto;
-    min-width: 25px;
-    min-height: 25px;
+    min-width: $min-output-node-size;
+    min-height: $min-output-node-size;
 
     .selected {
         background-color: $node-background-selected;
@@ -260,7 +271,7 @@
         top: 0;
 
         // style within OutputNodeButtonsArea
-        width: 25px;
+        width: $min-output-node-size;
         height: 40px;
         display: flex;
         flex-direction: column;
@@ -288,10 +299,10 @@
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNodeEmpty {
-    min-height: 25px;
-    max-height: 25px;
-    min-width: 25px;
-    max-width: 25px;
+    min-height: $min-output-node-size;
+    max-height: $min-output-node-size;
+    min-width: $min-output-node-size;
+    max-width: $min-output-node-size;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -302,6 +313,12 @@
     }
 }
 /* INFO :: canvas area - group node*/
+// hide the handle on the group node
+.rfWrapper .handle-group-top,
+.rfWrapper .handle-group-bottom {
+    visibility: hidden;
+}
+
 /*frame around bubble cell*/
 .rfWrapper .react-flow__node-group {
     background: $group-node-background;

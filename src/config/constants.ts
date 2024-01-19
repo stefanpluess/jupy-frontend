@@ -30,6 +30,7 @@ export const MIN_HEIGHT_GROUP = 50;
 export const MAX_WIDTH = 600;
 export const MAX_HEIGHT = 500;
 export const PADDING = 15;
+export const MIN_OUTPUT_SIZE = 25; // there is a constant for it as well in _variables.scss
 
 // INFO :: order functionality
 export const EXPORT_ACTION = 'export';
