@@ -15,7 +15,7 @@ import { useUpdateHistory } from '.';
  * @param id - The id of the parent node.
  */
 export function useBubbleBranchClick(id: NodeProps['id']) {
-    const { setEdges, setNodes, getNodes, getEdges, getNode } = useReactFlow();
+    const { setEdges, setNodes, getNodes, getEdges, getNode, fitView} = useReactFlow();
     const store = useStoreApi();
     const path = usePath();
     const { token, setLatestExecutionOutput, setLatestExecutionCount } = useWebSocketStore(selectorGeneral, shallow);
@@ -93,6 +93,9 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
             edges.concat([childEdge])
         );
 
+        // zoom to the new group node: 
+        await new Promise(resolve => setTimeout(resolve, 400));
+        fitView({ padding: 1.5, duration: 800, nodes: [{ id: childNodeId }] }); 
     }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, setNodeIdToWebsocketSession, updateExportImportHistory]);
 
   return onBranchOut;
