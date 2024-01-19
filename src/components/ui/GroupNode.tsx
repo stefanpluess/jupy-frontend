@@ -14,7 +14,8 @@ import {
   useReactFlow,
   useStore,
   useStoreApi,
-  Node
+  Node,
+  ReactFlowProvider
 } from "reactflow";
 import { NodeResizer } from "@reactflow/node-resizer";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -33,7 +34,8 @@ import {
   faForward,
   faCircleInfo,
   faArrowDownUpAcrossLine,
-  faForwardFast
+  faForwardFast,
+  faCodeCommit
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -52,7 +54,8 @@ import {
   useRunAll, 
   useRemoveGroupNode, 
   useCellBranch,
-  useCellBranchReset
+  useCellBranchReset,
+  useUpdateHistory,
 } from "../../helpers/hooks";
 import { 
   exportToJupyterNotebook, 
@@ -61,6 +64,7 @@ import {
   sortNodes
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
+import useExecutionStore from "../../helpers/executionStore";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { 
   startWebsocket, 
@@ -70,7 +74,8 @@ import {
 //COMMENT :: Internal modules UI
 import { 
   CustomConfirmModal, 
-  CustomInformationModal 
+  CustomInformationModal,
+  ExecutionGraph
 } from "../ui";
 //COMMENT :: Internal modules CONFIG
 import {
@@ -84,7 +89,8 @@ import {
   RUNALL_ACTION,
   EXPORT_ACTION,
   RUNBRANCH_ACTION,
-  NORMAL_NODE
+  NORMAL_NODE,
+  ExecInfoT
 } from "../../config/constants";
 import {
   lineStyle,
@@ -154,7 +160,7 @@ function GroupNode({ id, data }: NodeProps) {
   const queues = useNodesStore((state) => state.queues[id]); // listen to the queues of the group node
   const executionState = useNodesStore((state) => state.groupNodesExecutionStates[id]); // can be undefined
   const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
-  const setNodeIdToMsgId = useWebSocketStore((state) => state.setNodeIdToMsgId);
+  const setmsgIdToExecInfo = useWebSocketStore((state) => state.setMsgIdToExecInfo);
   const deleteOutput = useDeleteOutput();
   // INFO :: 🛑INTERRUPT KERNEL
   const clearQueue = useNodesStore((state) => state.clearQueue);
@@ -175,6 +181,13 @@ function GroupNode({ id, data }: NodeProps) {
   const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
   const getOutputsForNodeId = useNodesStore((state) => state.getOutputsForNodeId);
   const [, forceUpdate] = useState<{}>();
+  // INFO :: execution graph
+  const [showExecutionGraph, setShowExecutionGraph] = useState(false);
+  // INFO :: HISTORY
+  const updateExportImportHistory = useUpdateHistory();
+  const addToHistory = useExecutionStore((state) => state.addToHistory);
+  const clearHistory = useExecutionStore((state) => state.clearHistory);
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -254,7 +267,7 @@ function GroupNode({ id, data }: NodeProps) {
         // execute the next item
         const msg_id = uuidv4();
         const message = generateMessage(msg_id, code);
-        setNodeIdToMsgId({ [msg_id]: simpleNodeId });
+        setmsgIdToExecInfo({ [msg_id]: { nodeId: simpleNodeId, executedParent: id, code: code } });
         if (wsRunning) {
           const outputNodeId= simpleNodeId + "_output";
           deleteOutput(outputNodeId);
@@ -274,6 +287,13 @@ function GroupNode({ id, data }: NodeProps) {
   const deleteGroup = async () => {
     removeGroupNode(id, true);
     setModalState("showConfirmModalDelete", false);
+    // get the deleted id for the execution graph
+    const childNodeIds = Array.from(store.getState().nodeInternals.values())
+    .filter((n) => n.parentNode === id)
+    .map((n) => n.id);
+    // create and array with id and childNodeIds
+    const deletedIds = [id, ...childNodeIds];
+    addDeletedNodeIds(deletedIds);
   };
 
   /* DETACH */
@@ -383,6 +403,7 @@ function GroupNode({ id, data }: NodeProps) {
     const activeSession = node_id ? getNodeIdToWebsocketSession(node_id)?.session! : session;
     await axios.post(`${serverURL}/api/kernels/${activeSession.kernel.id}/restart`);
     oldWs.close();
+    clearHistory(node_id ?? id);
     const newWs = await startWebsocket(activeSession.id!, activeSession.kernel.id!, token, setLatestExecutionOutput, setLatestExecutionCount);
     setNodeIdToWebsocketSession(node_id ?? id, newWs, undefined); // only update the ws, keep the session
 
@@ -427,6 +448,7 @@ function GroupNode({ id, data }: NodeProps) {
     ws.close();
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     await axios.delete(`${serverURL}/api/sessions/`+session.id);
+    clearHistory(id);
     setModalState("showConfirmModalShutdown", false);
   };
 
@@ -509,23 +531,29 @@ function GroupNode({ id, data }: NodeProps) {
   };
 
   const fetchParentState = async (node_id: string | null = null) => {
-    var parentKernel, childKernel;
+    var parentId, childId;
     // fetch parent state for the given node
     if (node_id) {
       const node = getNode(node_id);
       if (!node || !node.data.predecessor) return;
-      parentKernel = getNodeIdToWebsocketSession(node.data.predecessor)?.session?.kernel.id!;
-      childKernel = getNodeIdToWebsocketSession(node_id)?.session?.kernel.id!;
-
+      parentId = node.data.predecessor;
+      childId = node_id;
     // fetch parent state for THIS node
     } else {
       if (!predecessor || !predecessorRunning) return;
-      parentKernel = getNodeIdToWebsocketSession(predecessor.id)?.session?.kernel.id!;
-      // using simply "session" here results in old value, that's why getNodeIdToWebsocketSession is used
-      childKernel = getNodeIdToWebsocketSession(id)?.session?.kernel.id!; 
+      parentId = predecessor.id;
+      childId = id;
     }
+    const parentKernel = getNodeIdToWebsocketSession(parentId)?.session?.kernel.id!;
+    const childKernel = getNodeIdToWebsocketSession(childId)?.session?.kernel.id!;
     const dill_path = path.split('/').slice(0, -1).join('/');
-    await passParentState(token, dill_path, parentKernel, childKernel);
+    const {parent_exec_count, child_exec_count} = await passParentState(token, dill_path, parentKernel, childKernel);
+    updateExportImportHistory({
+      parent_id: parentId,
+      parent_exec_count: parent_exec_count ?? 0,
+      child_id: childId,
+      child_exec_count: child_exec_count ?? 0,
+    });
   };
 
   // INFO :: 🛑INTERRUPT KERNEL
@@ -550,7 +578,12 @@ function GroupNode({ id, data }: NodeProps) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     const requestBody = { "kernel_id": session?.kernel.id };
     const response = await axios.post(`${serverURL}/canvas_ext/installed`, requestBody);
-    setInstalledPackages(response.data);
+    setInstalledPackages(response.data.packages);
+    addToHistory(id, {
+      node_id: id, // provide the bubble itself in case of installed packages
+      execution_count: response.data.execution_count,
+      type: ExecInfoT.LoadLibraries,
+    });
   }
 
   const renderKernelInfo = () => {
@@ -603,6 +636,38 @@ function GroupNode({ id, data }: NodeProps) {
       </div>
     )
   }
+
+  // INFO :: execution graph
+  const toggleExecutionGraph = () => {
+    if (showExecutionGraph) setShowExecutionGraph(false);
+    else setShowExecutionGraph(true);
+  };
+
+  const renderToggleExecutionGraph = () => {
+    return (
+      // COMMENT :: button to show execution graph
+      <button
+        className="exegraph-button nodrag"
+        title="Show execution graph"
+        onClick={toggleExecutionGraph}
+      >
+        <FontAwesomeIcon className="exegraph-button-icon" icon={faCodeCommit}/>
+      </button>
+    )
+  };
+ 
+  const renderExecutionGraph = () => {
+    return (
+      showExecutionGraph &&
+      (
+      <div className = "exegraph-flow-container">
+        <ReactFlowProvider>
+          <ExecutionGraph id={id} />
+        </ReactFlowProvider>
+      </div>
+      )
+    )
+  };
 
   const displayExecutionState = useCallback(() => {
     if (runBranchActive) return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Running Branch...</div>
@@ -775,6 +840,9 @@ function GroupNode({ id, data }: NodeProps) {
         <FontAwesomeIcon className="icon" icon={faCircleInfo}/>
       </div>}
       {wsRunning && showKernelInfo && renderKernelInfo()}
+      {/* INFO :: execution graph */}
+      {renderToggleExecutionGraph()}
+      {renderExecutionGraph()}
     </div>
   );
 }

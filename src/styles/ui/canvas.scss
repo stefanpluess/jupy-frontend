@@ -79,6 +79,12 @@
                                     inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
         }
 
+        // highlight the node that is hovered over in the execution graph
+        &.hoveredInExecutionGraph{
+            box-shadow: 0px 0px 20px 2px rgba(255, 0, 106, 0.6), 
+                                    inset 0px 0px 20px 4px rgba(255, 0, 106, 0.6);
+        }
+
         .simpleNodewrapper {
             @include commonSimpleNodewrapper;
 
@@ -303,6 +309,17 @@
     box-shadow: $node-box-shadow-not-active; 
     resize: both;
     width: auto;
+
+    &.selected {
+        border-width: 2px;
+        box-shadow: $node-box-shadow;
+    }
+
+    // highlight the node that is hovered over in the execution graph
+    &.hoveredInExecutionGraph{
+        box-shadow: 0px 0px 12px 2px #ff0072;
+        background-color: rgba(255, 0, 106, 0.3);
+    }
 }
 
 .rfWrapper .react-flow__node-group.nodeDraggedFromSideBar{
@@ -318,11 +335,6 @@
 /*shade around bubble cell when hovering/selecting */
 .rfWrapper .react-flow__node-group:hover {
     box-shadow: $node-box-shadow; 
-}
-
-.rfWrapper .react-flow__node-group.selected {
-    border-width: 2px;
-    box-shadow: $node-box-shadow;
 }
 
 // branch out disabled
@@ -442,15 +454,296 @@
     color: rgba(255, 119, 0, 0.416);
 }
 
+/* INFO :: group node - commit graph */
+.rfWrapper .exegraph-button{
+    border: none;
+    background-color: transparent;
+    color: transparent;
+    left: 9px;
+    top: 5px;
+    position: absolute;
+    transform: $icon-base-transform-scale;
+
+    .exegraph-button-icon {
+        color: rgba(255, 255, 255, 0.65);
+
+        &:hover {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        &:active {
+            transform: $icon-active-transform-scale;
+        }
+    }
+}
+
+.rfWrapper .exegraph-flow-container {
+    text-align: left;
+    padding: 5px;
+    position: absolute;
+    top: 0px;
+    left: -165px;
+    height: 100%;
+    width: 155px;
+    background-color: rgb(30, 30, 30);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.571);
+    overflow: auto;
+    
+    &:hover {
+        box-shadow: 0px 0px 6px 0px rgba(255, 255, 255, 0.4);
+    }
+
+    .exegraph-flow-panel-empty{
+        margin-top: 0%;
+        margin-left: 0%;
+        width: 100%;
+        height: 100%;
+        color: rgb(255, 255, 255);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        
+        .exegraph-flow-panel-empty-text{
+            font-size: 8px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            text-align: center;
+        }  
+    }
+
+    .exegraph-flow-panel{
+        display: flex;
+        justify-content: space-between; /* Distributes space between the child elements */
+        flex-direction: column;
+        margin-right: -2%; // shift the panel a little bit to the right
+
+        // buttons on the panel
+        .exegraph-flow-button{
+            border: none;
+            background-color: transparent;
+            color: transparent;
+            margin-bottom: 10px;
+
+
+            .exegraph-flow-button-icon{
+                font-size: 15px;
+                color: rgb(151, 151, 151);
+                transition: all 0.3s ease; 
+
+                &:hover {
+                    color: rgba(255, 255, 255, 0.9);
+                    transform: $exe-graph-icon-hover-transform-scale;
+                }
+
+                &:active {
+                    transform: $exe-graph-icon-active-transform-scale;
+                }
+            }
+        }
+    }
+}
+
+.rfWrapper .react-flow__node-exeGraphNode {
+    display: flex;
+    border-radius: 100%;
+    box-shadow: none;
+    width: 25px;
+    height: 25px;
+
+    .exegraph-node-wrapper{
+        background-color: rgb(255, 255, 255);
+        border-radius: 100%;
+        width: 100%;
+        height: 100%;
+
+        position: relative; /* Allows absolute positioning inside it */
+        display: flex; /* Aligns the elements horizontally */
+        align-items: center; /* Centers them vertically */
+
+        &.deleted {
+            background-color: rgb(128, 128, 128);
+        }
+
+        transition: all 0.3s ease; 
+        &:hover { 
+            box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.5);
+        }
+        &:active {
+            background-color: rgba(234, 0, 255, 0.4);
+        }
+        
+        .exegraph-node-count {
+            // position the count in the middle-left of the wrapper
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 50%;
+            left: 0;
+            transform: translate(-150%, -50%);
+
+            width: 20px;
+            height: 20px;
+
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .exegraph-node-body {
+            // position body in the center of the circle
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+    
+            border-radius: 100%;
+            width: 100%;
+            height: 100%;
+    
+            display: flex;
+            justify-content: center; /* Center icon horizontally */
+            align-items: center; /* Center icon vertically */
+            
+            .exegraph-node-body-button{
+                border-radius: 100%;
+                width: 100%;
+                height: 100%;
+                border: none;
+                background-color: transparent;
+                color: rgb(0, 0, 0);
+            }
+
+            .exegraph-node-body-button-icon {
+                // Style for icon inside the circle
+                font-size: 10px;
+            }
+            .exegraph-node-body-button-icon-small{
+                font-size: 6px;
+                // display this icon in the top right corner inside the body
+                position: absolute; /* Position relative to exegraph-node-wrapper */
+                top: 0;
+                right: 0;
+                transform: translate(-50%, 80%); /* Adjust to be top-right of the circle */
+            }
+        }
+
+        .exegraph-node-top-button {
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 0;
+            right: 0;
+            transform: translate(100%, -50%); /* Adjust to be top-right of the circle */
+
+            /* Style for top right icon */
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+
+            .exegraph-node-top-button-icon{
+                transition: all 0.3s ease; 
+
+                &:hover {
+                    color: rgba(234, 0, 255, 0.6);
+                    transform: $exe-graph-icon-hover-transform-scale;
+                }
+
+                &:active {
+                    transform: $exe-graph-icon-active-transform-scale;
+                }
+            }
+        }
+    }
+
+    .react-flow__handle {
+        visibility: hidden;
+    }
+}
+
+.rfWrapper .exegraph-panel-code{
+    background-color: rgb(0, 0, 0);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.571);
+    color: rgb(255, 255, 255);
+    font-size: 15px;
+    text-align: left;
+
+    // make it resizable
+    resize: both;
+    overflow: auto;
+    width: 20%; // initial width
+    height: 20%; // initial height
+    max-width: 50%;
+    max-height: 50%;
+    min-width: 10%;
+    min-height: 10%;
+    position: relative;
+    &::after { 
+        /* Pseudo-element for the gripper icon */
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: 0;
+    }
+
+    &:hover {
+        box-shadow: 0px 0px 6px 0px rgba(255, 255, 255, 0.4);
+    }
+
+    .exegraph-panel-code-body{
+        font-family: monospace;
+    }
+    
+    .exegraph-panel-code-header{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        @include copyContentButton;
+
+        .exegraph-panel-code-header-title{
+            padding-top: 5px;
+        }
+
+        .exegraph-panel-code-header-button{
+            border: none;
+            background-color: transparent;
+            color: transparent;
+            cursor: pointer;
+
+            // dsiplay the button in the top right corner of the header
+            margin-right: -1%;
+
+            .exegraph-panel-code-header-button-icon{
+                color: rgb(255, 255, 255);
+
+                &:hover {
+                    color: rgba(223, 223, 223, 0.5);
+                }
+
+                &:active {
+                    transform: scale(0.8);
+                }
+            }
+        
+        }
+    }
+}
+
 /* INFO :: canvas area - Kernel info */
 .rfWrapper .infoicon {
     color: rgba(255, 255, 255, 0.658);
     right: 9px;
     top: 5px;
     position: absolute;
-    transform: scale(1.5);
+    transform: $icon-base-transform-scale;
     &:active {
-        transform: scale(1.25);
+        transform: $icon-active-transform-scale;
       }
     :hover {
         color: rgba(255, 255, 255, 0.41);

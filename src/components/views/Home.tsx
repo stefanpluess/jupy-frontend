@@ -34,8 +34,10 @@ import withReactContent from "sweetalert2-react-content";
 import Swal from "sweetalert2";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCircleQuestion
+  faCircleQuestion,
+  faCircleXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
@@ -69,6 +71,7 @@ import {
 } from "../../helpers/websocket";
 import useNodesStore from "../../helpers/nodesStore";
 import useSettingsStore from "../../helpers/settingsStore";
+import useExecutionStore from "../../helpers/executionStore";
 //COMMENT :: Internal modules CONFIG
 import {
   GROUP_NODE,
@@ -79,6 +82,7 @@ import {
   OUTPUT_NODE,
   FLOATING_EDGE,
   NORMAL_EDGE,
+  EXECUTION_GRAPH_PANEL,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -101,6 +105,7 @@ import "../../styles/ui/canvas.scss";
 import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import 'react-toastify/dist/ReactToastify.css';
+import CopyButton from "../buttons/CopyContentButton";
 
 /**
  * Home component, which is the main component of the application.
@@ -124,7 +129,7 @@ function DynamicGrouping() {
     (edge: Edge | Connection) => setEdges((eds) => addEdge(edge, eds)),
     [setEdges]
   );
-  const { screenToFlowPosition, getIntersectingNodes } = useReactFlow();
+  const { screenToFlowPosition, getIntersectingNodes, fitView } = useReactFlow();
   const store = useStoreApi();
   const path = usePath();
   document.title = path.split("/").pop() + " - Jupy Canvas";
@@ -159,6 +164,14 @@ function DynamicGrouping() {
   useUpdateNodesExeCountAndOuput();
   useChangeExpandParent();
   useChangeFloatingEdges();
+  // INFO :: execution graph
+  const fitViewNodeId = useExecutionStore((state) => state.fitViewNodeId);
+  const setFitViewNodeId = useExecutionStore((state) => state.setFitViewNodeId);
+  const hoveredNodeId = useExecutionStore((state) => state.hoveredNodeId);
+  const setHoveredNodeId = useExecutionStore((state) => state.setHoveredNodeId);
+  const clickedNodeCode = useExecutionStore((state) => state.clickedNodeCode);
+  const setClickedNodeCode = useExecutionStore((state) => state.setClickedNodeCode);
+  const [showCode, setShowCode] = useState(false);
 
   // Remove the resizeObserver error
   useEffect(() => {
@@ -480,6 +493,49 @@ function DynamicGrouping() {
     resetCellBranch();
   }
 
+  // INFO :: execution graph
+  // transfer to node on click in the execution graph
+  useEffect(() => {
+    if (fitViewNodeId) {
+      fitView({ padding: 0.8, duration: 800, nodes: [{ id: fitViewNodeId }] });
+    }
+  }, [fitViewNodeId]);
+
+  // enable to user to focus the same node again after the user paned or zoomed the viewport
+  const onMoveStart = () => {
+    setFitViewNodeId(undefined);
+  };
+  
+  // change the class name of the node that is hovered in the execution graph
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => {
+      // Check if the node is the hovered one or has the specific class name
+      const isHoveredNode = n.id === hoveredNodeId;
+      const hasHoveredClass = n.className === 'hoveredInExecutionGraph';
+  
+      if (isHoveredNode) {
+        return { ...n, className: 'hoveredInExecutionGraph' };
+      } else if (hasHoveredClass) {
+        return { ...n, className: undefined };
+      }
+  
+      return n; // Return the node as-is if none of the above conditions are met
+    }));
+  }, [hoveredNodeId]);
+
+  // show the code of the code cell in <Panel> that was clicked in the execution graph
+  useEffect(() => {
+    if (clickedNodeCode) {
+      setShowCode(true);
+    }
+  }, [clickedNodeCode]);
+
+  const closeCodePanel = () => {
+    setShowCode(false);
+    setClickedNodeCode(undefined);
+    setHoveredNodeId(undefined);
+  }
+
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
     return (
@@ -559,6 +615,7 @@ function DynamicGrouping() {
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
           onNodeClick={onNodeClick}
+          onMoveStart={onMoveStart}
           nodesDraggable={!isCellBranchActive.isActive}
           elementsSelectable={!isCellBranchActive.isActive}
           zoomOnDoubleClick={!isCellBranchActive.isActive}
@@ -585,6 +642,50 @@ function DynamicGrouping() {
             showInteractive={true}
             position="bottom-right"
           />
+          {/* Panel for showing the code from the execution graph */}
+          {showCode && (
+            <Panel 
+              position="top-left"
+              className="exegraph-panel-code"
+              >
+                <div className="exegraph-panel-code-header">
+                  <CopyButton 
+                    title="Copy Text from Cell"
+                    className="cellButton"
+                    nodeType={EXECUTION_GRAPH_PANEL}
+                    stringToCopy={clickedNodeCode}
+                  />
+                  <h6 className="exegraph-panel-code-header-title">Past 🐍 Code</h6>
+                  <button
+                    className="exegraph-panel-code-header-button"
+                    onClick={closeCodePanel}
+                  >
+                    <FontAwesomeIcon className='exegraph-panel-code-header-button-icon' icon={faCircleXmark} />
+                  </button>
+                </div>
+                <div className="exegraph-panel-code-body">
+                  <MonacoEditor
+                    height="400px"
+                    language="python"
+                    theme="vs-dark"
+                    value={clickedNodeCode}
+                    options={{
+                      padding: { top: 3, bottom: 3 },
+                      selectOnLineNumbers: true,
+                      readOnly: true,
+                      automaticLayout: true,
+                      scrollbar: {
+                        vertical: 'hidden', // Hide vertical scrollbar
+                        horizontal: 'hidden', // Hide horizontal scrollbar
+                      },
+                      minimap: {
+                        enabled: false, // Disable the minimap
+                      },
+                    }}
+                    />
+                </div>
+            </Panel>
+          )}
           <Panel position="top-center">
             <SuccessAlert />
             <ErrorAlert />

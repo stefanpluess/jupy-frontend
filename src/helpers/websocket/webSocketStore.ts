@@ -1,5 +1,5 @@
 import { createWithEqualityFn } from 'zustand/traditional';
-import { ExecutionCount, ExecutionOutput, NodeIdToMsgId } from '../../config/types';
+import { ExecutionCount, ExecutionOutput, MsgIdToExecInfo } from '../../config/types';
 /*
   WebSocket store based on zustand with functions relted to:
     - execution count
@@ -17,8 +17,8 @@ export type WebSocketState = {
     setLatestExecutionOutput: (newObj: ExecutionOutput) => void;
 
     // INFO :: mapping of node id to message id
-    nodeIdToMsgId: NodeIdToMsgId;
-    setNodeIdToMsgId: (newObj: NodeIdToMsgId) => void;
+    msgIdToExecInfo: MsgIdToExecInfo;
+    setMsgIdToExecInfo: (newObj: MsgIdToExecInfo) => void;
 
     // INFO :: token
     token: string; // extracted from .env file
@@ -42,12 +42,12 @@ const useWebSocketStore = createWithEqualityFn<WebSocketState>((set, get) => ({
     },
     
     // INFO :: mapping of node id to message id
-    nodeIdToMsgId: {} as NodeIdToMsgId,
-    setNodeIdToMsgId: (newObj: NodeIdToMsgId) => {
-        // using the previous state, we can update the nodeIdToMsgId mapping
+    msgIdToExecInfo: {} as MsgIdToExecInfo,
+    setMsgIdToExecInfo: (newObj: MsgIdToExecInfo) => {
+        // using the previous state, we can update the MsgIdToExecInfo mapping
         set((state) => ({
-            nodeIdToMsgId: {
-                ...state.nodeIdToMsgId,
+            msgIdToExecInfo: {
+                ...state.msgIdToExecInfo,
                 ...newObj,
             },
         }));
