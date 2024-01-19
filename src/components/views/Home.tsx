@@ -234,17 +234,17 @@ function DynamicGrouping() {
       // const wrapperBounds = wrapperRef.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
       let position = screenToFlowPosition({
-        x: event.clientX - 20,
-        y: event.clientY - 20,
+        x: event.clientX - 20, //REVIEW
+        y: event.clientY - 20, //REVIEW
       });
-      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : 
-                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined;
+      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : //REVIEW
+                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined; //REVIEW
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40,
-        height: 40,
+        width: 40,  //REVIEW
+        height: 40, //REVIEW
       }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
@@ -280,8 +280,8 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 400,
-            height: 40,
+            width: 40, //REVIEW
+            height: 40, //REVIEW
           },
           groupNode
         ) ?? { x: 0, y: 0 };
