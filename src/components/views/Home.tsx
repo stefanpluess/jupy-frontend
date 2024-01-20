@@ -20,7 +20,6 @@ import ReactFlow, {
   Edge,
   Connection,
   MiniMap,
-  Controls,
   Panel,
   SelectionMode,
 } from "reactflow";
@@ -96,6 +95,8 @@ import {
   nodes as initialNodes,
   edges as initialEdges,
 } from "../../config/initial-elements";
+// COMMENT :: buttons
+import FlowControls from "../buttons/FlowControls";
 //COMMENT :: Styles
 import "reactflow/dist/style.css";
 import "@reactflow/node-resizer/dist/style.css";
@@ -143,7 +144,7 @@ function DynamicGrouping() {
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
   const snapGridSetting = useSettingsStore((state) => state.snapGrid);
   const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
-
+  const isInteractive = useSettingsStore((state) => state.isInteractive);
   // INFO :: alerts
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
@@ -616,9 +617,9 @@ function DynamicGrouping() {
           onDrop={onDrop}
           onNodeClick={onNodeClick}
           onMoveStart={onMoveStart}
-          nodesDraggable={!isCellBranchActive.isActive}
-          elementsSelectable={!isCellBranchActive.isActive}
           zoomOnDoubleClick={!isCellBranchActive.isActive}
+          nodesDraggable={!(isCellBranchActive.isActive) && isInteractive}
+          elementsSelectable={!(isCellBranchActive.isActive) && isInteractive}
           onDragOver={onDragOver}
           proOptions={proOptions}
           fitView
@@ -636,12 +637,7 @@ function DynamicGrouping() {
           <Background gap={30} variant={BackgroundVariant.Dots} />
           <SelectedNodesToolbar />
           <MiniMap position={"top-right"} zoomable pannable />
-          <Controls
-            showFitView={true}
-            showZoom={true}
-            showInteractive={true}
-            position="bottom-right"
-          />
+          <FlowControls />
           {/* Panel for showing the code from the execution graph */}
           {showCode && (
             <Panel 

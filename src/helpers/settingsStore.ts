@@ -27,6 +27,10 @@ export type SettingsStore = {
     // INFO :: grid settings
     snapGrid: boolean;
     setSnapGrid: (snapGrid: boolean) => void;
+
+    // INFO :: setting the interactivity of the graph
+    isInteractive: boolean;
+    setIsInteractive: () => void;
 };
 
 const useSettingsStore = createWithEqualityFn<SettingsStore>((set, get) => ({
@@ -74,6 +78,9 @@ const useSettingsStore = createWithEqualityFn<SettingsStore>((set, get) => ({
         localStorage.setItem('snapGrid', snapGrid.toString());
     },
 
+    //INFO :: setting the interactivity of the graph
+    isInteractive: true,
+    setIsInteractive: () => set({ isInteractive: !get().isInteractive }),
 }));
 
 export default useSettingsStore;
