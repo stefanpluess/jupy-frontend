@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useReactFlow, Node } from 'reactflow';
 import useNodesStore from '../nodesStore';
-import { NORMAL_NODE, TOP_DOWN_ORDER } from '../../config/constants';
+import { MARKDOWN_NODE, NORMAL_NODE, TOP_DOWN_ORDER } from '../../config/constants';
 import { useInsertOutput } from '.';
 import useSettingsStore from '../settingsStore';
 
@@ -16,6 +16,7 @@ function useRunAll() {
     const setInfluenceStateForGroupNode = useNodesStore((state) => state.setInfluenceStateForGroupNode);
     const insertOutput = useInsertOutput();
     const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+    const setEditMode = useNodesStore((state) => state.setMarkdownNodeEditMode);
 
     /* Given a group node, puts all children into the queue based on their y position inside the group */
     const runAll = useCallback( async (group_node_id: string, selected_node_ids: string[], disable_edges: boolean) => {
@@ -23,6 +24,7 @@ function useRunAll() {
         const groupNode = getNode(group_node_id);
         if (!groupNode) return;
         const childNodes = nodes.filter((node) => node.parentNode === group_node_id && node.type === NORMAL_NODE);
+        const markdownNodes = nodes.filter((node) => node.parentNode === group_node_id && node.type === MARKDOWN_NODE);
         // check if selected_node_ids is empty
         let sortedChildNodes: Node<any>[] = [];
         if (selected_node_ids.length === 0) {
@@ -51,6 +53,10 @@ function useRunAll() {
         executableChildNodes.forEach((node) => {
             setNodeIdToExecCount(node.id, '*');
             addToQueue(group_node_id, node.id, node.data.code);
+        });
+        // for each markdown node, set the edit mode to false
+        markdownNodes.forEach((node) => {
+            setEditMode(node.id, false);
         });
       }, [addToQueue, getNodes, setNodeIdToExecCount, nodeIdToExecCount, getNode, setInfluenceStateForGroupNode, insertOutput, runAllOrderSetting]);
 

@@ -49,7 +49,14 @@ function MarkdownNode({ id, data }: NodeProps) {
   );
   const { deleteElements, getNodes } = useReactFlow();
   const detachNodes = useDetachNodes();
-  const [editMode, setEditMode] = useState(data?.editMode || false);
+  const editMode = useNodesStore((state) => state.markdownNodesEditMode[id]);
+  const setEditMode = useNodesStore((state) => state.setMarkdownNodeEditMode);
+  useEffect(() => {
+    if (editMode === undefined) {
+      setEditMode(id, data?.editMode || false);
+    }
+  }, [id, data?.editMode, setEditMode, editMode]);
+
   // INFO :: 🧫 CELL BRANCH
   const parentNodeId = useStore(
     (store) => store.nodeInternals.get(id)?.parentNode
@@ -94,7 +101,7 @@ function MarkdownNode({ id, data }: NodeProps) {
     return getResizeBoundaries(id);
   }, isEqual);
 
-  const createMarkdown = () => setEditMode(false);
+  const createMarkdown = () => setEditMode(id, false);
 
   const toolbar = (
     <NodeToolbar className="nodrag">
@@ -171,7 +178,7 @@ function MarkdownNode({ id, data }: NodeProps) {
             <div
               className="textareaNode"
               style={{ paddingLeft: "4px", height: "100%", width: "100%" }}
-              onDoubleClick={() => setEditMode(true)}
+              onDoubleClick={() => setEditMode(id, true)}
             >
               <ReactMarkdown className="markdown">{data.code}</ReactMarkdown>
             </div>

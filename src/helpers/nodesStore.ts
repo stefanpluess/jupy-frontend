@@ -76,6 +76,10 @@ export type NodesStore = {
     // INFO :: dragging nodes
     isDraggedFromSidebar: boolean;
     setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => void;
+
+    // INFO :: markdown nodes edit mode
+    markdownNodesEditMode: { [nodeId: string]: boolean };
+    setMarkdownNodeEditMode: (nodeId: string, editMode: boolean) => void;
 };
 
 const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
@@ -329,6 +333,17 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
   setIsDraggedFromSidebar: (isDraggedFromSidebar: boolean) => {
     set((state) => ({
       isDraggedFromSidebar: isDraggedFromSidebar
+    }))
+  },
+
+  // INFO :: markdown nodes edit mode
+  markdownNodesEditMode: {},
+  setMarkdownNodeEditMode: (nodeId: string, editMode: boolean) => {
+    set((state) => ({
+        markdownNodesEditMode: {
+          ...state.markdownNodesEditMode,
+          [nodeId]: editMode
+        }
     }))
   },
 }));
