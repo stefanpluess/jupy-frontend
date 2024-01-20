@@ -95,6 +95,7 @@ import {
   nodes as initialNodes,
   edges as initialEdges,
 } from "../../config/initial-elements";
+import { positionNode } from "../../config/types";
 // COMMENT :: buttons
 import FlowControls from "../buttons/FlowControls";
 //COMMENT :: Styles
@@ -301,6 +302,59 @@ function DynamicGrouping() {
 
       // INFO :: dragging nodes from sidebar
       setIsDraggedFromSidebar(false);
+
+
+      // TESTME : assign the group node as a parent if dropped on a code cell
+      if (type === GROUP_NODE) {
+        const groupNodeIntersections = getIntersectingNodes({
+          x: position.x,
+          y: position.y,
+          width: 800,  //REVIEW
+          height: 500, //REVIEW
+        }).filter((n) => n.type !== GROUP_NODE);
+
+        if (groupNodeIntersections.length === 0) return;
+
+        groupNodeIntersections.forEach((node) => {
+          console.log("any intersecting node: ", node);
+          if (!node.parentNode){
+            // if parentNodes is undefined assign this groupNode as a parent
+            const newPosition = getNodePositionInsideParent(
+              {
+                position: node.position,
+                width: node.width ?? 800, // default value if node.width is null or undefined //REVIEW
+                height: node.height ?? 500, // default value if node.height is null or undefined //REVIEW
+              } as positionNode,
+              {
+                position: newNode.position,
+                width: 800, //REVIEW
+                height: 500, //REVIEW
+              } as positionNode
+            );
+
+            setNodes((nds) => {
+              return nds.map((n) => {
+                if (n.id === node.id) {
+                  const updatedNode = { 
+                    ...n,
+                    position: newPosition,
+                    parentNode: newNode.id,
+                  };
+
+                  if (expandParentSetting) {
+                    updatedNode.expandParent = true;
+                  } else {
+                    updatedNode.extent = EXTENT_PARENT;
+                  }
+                  return updatedNode;
+                }
+                return { ...n };
+              });
+            });
+          }
+        });
+      }
+      // TESTME -------------------------------------------------- end
     }
   };
 

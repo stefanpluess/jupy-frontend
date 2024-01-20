@@ -198,3 +198,9 @@ export type Session = {
 export type InstalledPackages = {
     [key: string]: string;
 }
+
+export type positionNode = { 
+    width: number; 
+    height: number, 
+    position: { x: number; y: number } 
+};

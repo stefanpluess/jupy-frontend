@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
 import { Position } from 'reactflow';
-import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData, positionNode } from '../config/types';
 import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION } from '../config/constants';
 import { serverURL } from '../config/config';
 
@@ -496,7 +496,7 @@ export const getId = (prefix = NORMAL_NODE) => {
 ;}
 
 /** Method when dropping a node inside a group */
-export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
+export const getNodePositionInsideParent = (node: Partial<Node> | positionNode, groupNode: Node | positionNode) => {
     const position = node.position ?? { x: 0, y: 0 };
     const nodeWidth = node.width ?? 0;
     const nodeHeight = node.height ?? 0;
