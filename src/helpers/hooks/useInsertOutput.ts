@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Edge, Node, useReactFlow, Rect} from 'reactflow';
-import { createOutputNode } from '../utils';
+import { createOutputNode, keepPositionInsideParent } from '../utils';
 import { EXTENT_PARENT, FLOATING_EDGE, MIN_OUTPUT_SIZE, NORMAL_EDGE } from '../../config/constants';
 import useSettingsStore from '../settingsStore';
 
@@ -23,7 +23,28 @@ function useInsertOutput() {
             let outputNode = createOutputNode(getNode(node_id)!);
             // adjust the position if argument set & actually needed
             if (adjustPosition) {
-                outputNode = adjustOutputNodePosition(outputNode, node_id) ?? outputNode;
+                const groupNode = getNode(outputNode.parentNode ?? '');
+                if (groupNode === undefined) {
+                    console.log("Parent cell not found. Intersection may still exist.");
+                }
+                else{
+                    const position = keepPositionInsideParent(
+                        // the output node size
+                        {
+                            width: MIN_OUTPUT_SIZE,
+                            height: MIN_OUTPUT_SIZE,
+                        }, 
+                        // the group node in which we want to keep the output node inside
+                            groupNode,
+                        // new proposed position of the output node to check
+                        {
+                            x: outputNode.position.x,
+                            y: outputNode.position.y,
+                        }
+                    ) ?? { x: 0, y: 0 };
+                    outputNode.position = position;
+                    outputNode = adjustOutputNodePosition(outputNode, node_id) ?? outputNode;
+                }
             }
             // set the extent or expandParent
             expandParentSetting ? outputNode.expandParent = true : outputNode.extent = EXTENT_PARENT;
