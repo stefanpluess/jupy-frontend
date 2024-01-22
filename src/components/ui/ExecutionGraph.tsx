@@ -113,7 +113,6 @@ const ExecutionGraph = ({ id }: ExecutionGraphProps) => {
             edgesFocusable={false}
             zoomOnDoubleClick={false}
             deleteKeyCode={null}
-            // TODO holiding scroll and moving move moves the graph
         >
             {historyPerNode && 
               <Panel
