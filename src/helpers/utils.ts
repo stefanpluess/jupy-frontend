@@ -458,7 +458,7 @@ export function ansiToHtml(text: string): string {
 
 function convertAnsiToHtml(escapeCode: string): string {
   if (escapeCode.match(/0;31|1;31/)) {
-    return '<span style="color: #8B0000;">';
+    return '<span style="color: #ff0000;">';
   } else if (escapeCode.match(/0;32|1;32/)) {
     return '<span style="color: #00FF00;">';
   } else if (escapeCode.match(/0;33|1;33/)) {
