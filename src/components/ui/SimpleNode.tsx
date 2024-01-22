@@ -72,13 +72,13 @@ import {
   RUNBRANCH_ACTION,
   NORMAL_NODE,
 } from "../../config/constants";
+import { monacoOptions } from "../../config/config";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
 import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules BUTTONS
 import CopyButton from "../buttons/CopyContentButton";
 import useExecutionStore from "../../helpers/executionStore";
-
 /**
  * A React component that represents a code cell node on the canvas.
  * @param id - The unique identifier of the node.
@@ -384,6 +384,29 @@ function SimpleNode({ id, data }: NodeProps) {
     return "Run Code";
   }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
+  const topButtonsBar= (
+    <div className="codeCellButtons">
+      {/* COPY CELL CONTENT*/}
+      <CopyButton 
+        nodeId={id}
+        title="Copy Text from Cell"
+        className="cellButton"
+        nodeType={NORMAL_NODE} 
+      />
+      {/* STALE STATE INDICATOR */}
+      {staleState && (
+        <button
+          className="cellButton staleIcons"
+          onClick = {showInfoStaleState}
+        >
+          <FontAwesomeIcon className="stale-icon" icon={faHourglass} />
+          <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
+        </button>
+      )}
+      <div style={{width: "20px"}}/>
+    </div>
+  );
+
   return (
     <>
       {selectorCellBranch}
@@ -437,6 +460,7 @@ function SimpleNode({ id, data }: NodeProps) {
         }
       >
         <div className="inner" style={{ opacity: shouldShowOrder ? 0.5 : 1 }}>
+          {topButtonsBar}
           <MonacoEditor
             ref={editorRef}
             key={data}
@@ -452,50 +476,8 @@ function SimpleNode({ id, data }: NodeProps) {
               }
             }}
             style={{ textAlign: "left" }}
-            options={{
-              padding: { top: 3, bottom: 3 },
-              theme: "vs-dark",
-              selectOnLineNumbers: true,
-              roundedSelection: true,
-              automaticLayout: true,
-              lineNumbersMinChars: 3,
-              lineNumbers: "on",
-              folding: false,
-              scrollBeyondLastLine: false,
-              scrollBeyondLastColumn: 0,
-              fontSize: 10,
-              wordWrap: "on",
-              minimap: { enabled: false },
-              renderLineHighlightOnlyWhenFocus: true,
-              scrollbar: {
-                vertical: "auto",
-                horizontal: "auto",
-                verticalScrollbarSize: 8,
-                horizontalScrollbarSize: 6,
-              },
-            }}
+            options={monacoOptions}
           />
-          {/* INFO :: bottom bar below Monaco with buttons for code cell */}
-          <div className="bottomCodeCellButtons">
-            {/* COPY CELL CONTENT*/}
-            <CopyButton 
-              nodeId={id}
-              title="Copy Text from Cell"
-              className="cellButton"
-              nodeType={NORMAL_NODE} 
-            />
-            {/* STALE STATE INDICATOR */}
-            {staleState && (
-              <button
-                className="cellButton staleIcons"
-                onClick = {showInfoStaleState}
-              >
-                <FontAwesomeIcon className="stale-icon" icon={faHourglass} />
-                <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
-              </button>
-            )}
-            <div style={{width: "20px"}}/>
-          </div>
         </div>
         {shouldShowOrder && (
         <div className="innerOrder">

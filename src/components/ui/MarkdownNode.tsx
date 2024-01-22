@@ -33,6 +33,7 @@ import useNodesStore from "../../helpers/nodesStore";
 import useSettingsStore from "../../helpers/settingsStore";
 import { getNodeOrder } from "../../helpers/utils";
 import CopyButton from "../buttons/CopyContentButton";
+import { monacoOptions } from "../../config/config";
 
 /**
  * A React component that represents a Markdown node used in the Home component.
@@ -119,8 +120,8 @@ function MarkdownNode({ id, data }: NodeProps) {
     </NodeToolbar>
   );
 
-  const buttons = (
-    <div className="bottomCodeCellButtons">
+  const topButtonsBar = (
+    <div className="codeCellButtons">
       <CopyButton 
         nodeId={id}               
         title="Copy Text from Cell"
@@ -175,14 +176,13 @@ function MarkdownNode({ id, data }: NodeProps) {
         {selectorCellBranch}
         <div className="simpleNodewrapper">
           <div className="inner" style={{ opacity: showOrder.node === parentNode && showOrder.action === EXPORT_ACTION ? 0.5 : 1 }}>
+            {topButtonsBar}
             <div
               className="textareaNode"
-              style={{ paddingLeft: "4px", height: "100%", width: "100%" }}
               onDoubleClick={() => setEditMode(id, true)}
             >
               <ReactMarkdown className="markdown">{data.code}</ReactMarkdown>
             </div>
-            {buttons}
           </div>
           {(showOrder.node === parentNode && showOrder.action === EXPORT_ACTION) && (
           <div className="innerOrder">
@@ -200,6 +200,7 @@ function MarkdownNode({ id, data }: NodeProps) {
         {selectorCellBranch}
         <div className="simpleNodewrapper">
           <div className="inner" style={{ opacity: showOrder.node === parentNode && showOrder.action === EXPORT_ACTION ? 0.5 : 1 }}>
+            {topButtonsBar}
             <MonacoEditor
               ref={editorRef}
               key={data}
@@ -214,30 +215,8 @@ function MarkdownNode({ id, data }: NodeProps) {
                 }
               }}
               style={{ textAlign: "left" }}
-              options={{
-                padding: { top: 3, bottom: 3 },
-                theme: "vs-dark",
-                selectOnLineNumbers: true,
-                roundedSelection: true,
-                automaticLayout: true,
-                lineNumbersMinChars: 3,
-                lineNumbers: "on",
-                folding: false,
-                scrollBeyondLastLine: false,
-                scrollBeyondLastColumn: 0,
-                fontSize: 10,
-                wordWrap: "off",
-                minimap: { enabled: false },
-                renderLineHighlightOnlyWhenFocus: true,
-                scrollbar: {
-                  vertical: "auto",
-                  horizontal: "auto",
-                  verticalScrollbarSize: 8,
-                  horizontalScrollbarSize: 6,
-                },
-              }}
+              options={monacoOptions}
             />
-            {buttons}
           </div>
           {(showOrder.node === parentNode && showOrder.action === EXPORT_ACTION) && (
           <div className="innerOrder">
