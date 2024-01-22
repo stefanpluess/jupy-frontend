@@ -23,6 +23,7 @@ import { useWebSocketStore } from "../../helpers/websocket";
 import useSettingsStore from "../../helpers/settingsStore";
 import useNodesStore from "../../helpers/nodesStore";
 import { GROUP_NODE } from "../../config/constants";
+import ToggleSwitch from "../buttons/ToggleSwitch";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -60,6 +61,7 @@ const Sidebar = ({
   const setShowSettings = useSettingsStore((state) => state.setShowSettings);
   const autoSaveSetting = useSettingsStore((state) => state.autoSave);
   const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
+  const changeAutoSave = () => setAutoSaveSetting(!autoSaveSetting);
   const [isSpinning, setIsSpinning] = useState(false);
 
   const handleSettingsClick = () => {
@@ -72,10 +74,6 @@ const Sidebar = ({
   };
 
   // INFO :: autosave
-  const changeAutoSave = () => {
-    setAutoSaveSetting(!autoSaveSetting);
-  };
-
   const performAutosave = () => {
     saveNotebook(
       nodes,
@@ -193,14 +191,10 @@ const Sidebar = ({
 
         <div className="autoSaveContainer">
           <div className="autoSave">AutoSave</div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={autoSaveSetting}
-              onChange={changeAutoSave}
-            />
-            <span className="slider"></span>
-          </label>
+          <ToggleSwitch
+            checked={autoSaveSetting}
+            onChange={changeAutoSave}
+          />
         </div>
 
         {/* Settings Button */}

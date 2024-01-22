@@ -2,9 +2,10 @@
 import { Button, Modal, Row, Col, Container, Dropdown } from "react-bootstrap";
 import "../../styles/ui/canvas.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons";
+import { faGear } from "@fortawesome/free-solid-svg-icons";
 import useSettingsStore from "../../helpers/settingsStore";
 import { INSERTION_ORDER, TOP_DOWN_ORDER } from "../../config/constants";
+import ToggleSwitch from "../buttons/ToggleSwitch";
 
 type SettingsPopupProps = {
     show: boolean;
@@ -15,7 +16,7 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 
 	// INFO :: Expand parent setting
 	const expandParentSetting = useSettingsStore((state) => state.expandParent);
-  const setExpandParentSetting = useSettingsStore((state) => state.setExpandParent);
+  	const setExpandParentSetting = useSettingsStore((state) => state.setExpandParent);
 	const changeExpandParent = () => setExpandParentSetting(!expandParentSetting);
 
 	// INFO :: Floating edges setting
@@ -66,14 +67,10 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<label className="switch">
-								<input
-								type="checkbox"
+							<ToggleSwitch
 								checked={snapGridSetting}
 								onChange={changeSnapGrid}
-								/>
-								<span className="slider"></span>
-							</label>
+							/>
 						</Col>
 					</Row>
 					<Row>
@@ -85,14 +82,10 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<label className="switch">
-								<input
-								type="checkbox"
+							<ToggleSwitch
 								checked={expandParentSetting}
 								onChange={changeExpandParent}
-								/>
-								<span className="slider"></span>
-							</label>
+							/>
 						</Col>
 					</Row>
 					<Row>
@@ -104,14 +97,10 @@ const SettingsPopup = ({ show, onClose }: SettingsPopupProps) => {
 							</p>
 						</Col>
 						<Col md={2}>
-							<label className="switch">
-								<input
-								type="checkbox"
+							<ToggleSwitch
 								checked={floatingEdgesSetting}
 								onChange={changeFloatingEdges}
-								/>
-								<span className="slider"></span>
-							</label>
+							/>
 						</Col>
 					</Row>
 					<Row>
