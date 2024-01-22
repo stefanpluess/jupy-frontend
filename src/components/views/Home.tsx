@@ -82,6 +82,11 @@ import {
   FLOATING_EDGE,
   NORMAL_EDGE,
   EXECUTION_GRAPH_PANEL,
+  MIN_WIDTH,
+  MIN_HEIGHT,
+  DEFAULT_WIDTH_GROUP,
+  DEFAULT_HEIGHT_GROUP,
+  SIDEBAR_NODE_SIZE,
 } from "../../config/constants";
 import nodeTypes from "../../config/NodeTypes";
 import edgeTypes from "../../config/EdgeTypes";
@@ -233,20 +238,27 @@ function DynamicGrouping() {
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     if (wrapperRef.current) {
-      // const wrapperBounds = wrapperRef.current.getBoundingClientRect();
       const type = event.dataTransfer.getData("application/reactflow");
       let position = screenToFlowPosition({
-        x: event.clientX - 20, //REVIEW
-        y: event.clientY - 20, //REVIEW
+        // COMMENT - defines the position of a node respective to the cursor
+        x: event.clientX - 20,
+        y: event.clientY - 20,
       });
-      const nodeStyle = type === GROUP_NODE ? { width: 800, height: 500 } : //REVIEW
-                        type === (NORMAL_NODE || MARKDOWN_NODE) ? { width: 180, height: 85 } : undefined; //REVIEW
+
+      let nodeStyle;
+      if (type === GROUP_NODE) {
+          nodeStyle = { width: DEFAULT_WIDTH_GROUP, height: DEFAULT_HEIGHT_GROUP };
+      } else if (type === NORMAL_NODE || type === MARKDOWN_NODE) {
+          nodeStyle = { width: MIN_WIDTH, height: MIN_HEIGHT };
+      } else {
+          nodeStyle = undefined;
+      }
 
       const intersections = getIntersectingNodes({
         x: position.x,
         y: position.y,
-        width: 40,  //REVIEW
-        height: 40, //REVIEW
+        width: SIDEBAR_NODE_SIZE,
+        height: SIDEBAR_NODE_SIZE,
       }).filter((n) => n.type === GROUP_NODE);
       const groupNode = intersections[0];
 
@@ -282,8 +294,8 @@ function DynamicGrouping() {
         newNode.position = getNodePositionInsideParent(
           {
             position,
-            width: 40, //REVIEW
-            height: 40, //REVIEW
+            width: MIN_WIDTH,
+            height: MIN_HEIGHT,
           },
           groupNode
         ) ?? { x: 0, y: 0 };
@@ -304,31 +316,30 @@ function DynamicGrouping() {
       setIsDraggedFromSidebar(false);
 
 
-      // TESTME : assign the group node as a parent if dropped on a code cell
+      // assign the group node as a parent if dropped on a code cell
       if (type === GROUP_NODE) {
         const groupNodeIntersections = getIntersectingNodes({
           x: position.x,
           y: position.y,
-          width: 800,  //REVIEW
-          height: 500, //REVIEW
+          width: DEFAULT_WIDTH_GROUP,
+          height: DEFAULT_HEIGHT_GROUP,
         }).filter((n) => n.type !== GROUP_NODE);
 
         if (groupNodeIntersections.length === 0) return;
 
         groupNodeIntersections.forEach((node) => {
-          console.log("any intersecting node: ", node);
           if (!node.parentNode){
             // if parentNodes is undefined assign this groupNode as a parent
             const newPosition = getNodePositionInsideParent(
               {
                 position: node.position,
-                width: node.width ?? 800, // default value if node.width is null or undefined //REVIEW
-                height: node.height ?? 500, // default value if node.height is null or undefined //REVIEW
+                width: node.width ?? DEFAULT_WIDTH_GROUP, // default value if node.width is null or undefined
+                height: node.height ?? DEFAULT_HEIGHT_GROUP, // default value if node.height is null or undefined
               } as positionNode,
               {
                 position: newNode.position,
-                width: 800, //REVIEW
-                height: 500, //REVIEW
+                width: DEFAULT_WIDTH_GROUP,
+                height: DEFAULT_HEIGHT_GROUP,
               } as positionNode
             );
 
@@ -354,7 +365,6 @@ function DynamicGrouping() {
           }
         });
       }
-      // TESTME -------------------------------------------------- end
     }
   };
 

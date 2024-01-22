@@ -69,8 +69,8 @@
 .wrapper .sidebar aside div[class^='react-flow__node-'] {
     box-sizing: border-box;
     font-size: 12px;
-    width: 40px; // REVIEW
-    height: 40px; // REVIEW
+    width: $sidebar-node-size;
+    height: $sidebar-node-size;
     color: $shared-text-color;
     margin-bottom: 0.2em;
     cursor: pointer;

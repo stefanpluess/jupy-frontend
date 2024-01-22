@@ -32,7 +32,7 @@
     position: relative;
     border-radius: $node-border-radius;
     flex-grow: 1;
-    min-height: 85px;
+    min-height: $min-height;
 }
 
 @mixin commonInner{

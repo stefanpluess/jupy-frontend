@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
 import { Position } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData, positionNode } from '../config/types';
-import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION, MIN_WIDTH, MIN_HEIGHT } from '../config/constants';
 import { serverURL } from '../config/config';
 
 
@@ -26,8 +26,8 @@ export const modifyInitialNotebook = async (path: string) => {
         source: [],
         metadata: {},
         position: { x: 210, y: 160 },
-        width: 180,
-        height: 85,
+        width: MIN_WIDTH,
+        height: MIN_HEIGHT,
         parentNode: bubbleId,
         outputs: [],
       }

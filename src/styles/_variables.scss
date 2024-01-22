@@ -20,11 +20,13 @@ $icon-active-transform-scale: scale(1.25);
 $exe-graph-icon-hover-transform-scale: scale(1.3);
 $exe-graph-icon-active-transform-scale: scale(0.6);
 // size
-$min-output-node-size: 25px;
+$min-output-node-size: 25px; // min size of the output node, there is a constant for it as well in constants.ts
+$min-height: 85px; // min height of the code & markdown cell, there is a constant for it as well in constants.ts
 
 //COMMENT - sidebar - variables might be used across many files
 $sidebar-node-box-shadow-selected-hover: 0px 0px 16px 0px rgba(255, 255, 255, 0.5);
 $sidebar-node-border-width: 2px;
+$sidebar-node-size: 40px; // size of the node in the sidebar, there is a constant for it as well in constants.ts
 
 // COMMENT - minimap & controls - variables might be used across many files
 $minimap-controls-box-shadow: 0px 0px 16px 0 rgba(0, 0, 0, 0.7);
