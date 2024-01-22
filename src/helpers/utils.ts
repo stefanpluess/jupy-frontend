@@ -6,13 +6,13 @@ import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LEN
 import { serverURL } from '../config/config';
 
 
-/** Method to modify the initial notebook to contain 1 bubble and 1 code cell */
+/** Method to modify the initial notebook to contain 1 group cell and 1 code cell */
 export const modifyInitialNotebook = async (path: string) => {
-  const bubbleId = getId(GROUP_NODE);
+  const groupId = getId(GROUP_NODE);
   const notebookContent = {
     cells: [
       {
-        id: bubbleId,
+        id: groupId,
         cell_type: 'group',
         metadata: {},
         position: { x: 0, y: 0 },
@@ -28,7 +28,7 @@ export const modifyInitialNotebook = async (path: string) => {
         position: { x: 210, y: 160 },
         width: MIN_WIDTH,
         height: MIN_HEIGHT,
-        parentNode: bubbleId,
+        parentNode: groupId,
         outputs: [],
       }
     ],

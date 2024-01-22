@@ -110,8 +110,8 @@
     border-width: $sidebar-node-border-width;
 }
 
-/* INFO :: sidebar - bubble cell*/
-/*frame around bubble cell*/
+/* INFO :: sidebar - group cell*/
+/*frame around group cell*/
 .wrapper .sidebar .react-flow__node-group {
     background: $group-node-background;
     border: $node-border;
@@ -120,7 +120,7 @@
     width: auto;
 }
 
-/*shade around bubble cell when hovering/selecting */
+/*shade around group cell when hovering/selecting */
 .wrapper .sidebar .react-flow__node-group.selected,
 .wrapper .sidebar .react-flow__node-group:hover {
     box-shadow: $sidebar-node-box-shadow-selected-hover;
@@ -136,7 +136,7 @@
     width: auto;
     border-radius: $node-border-radius;
 }
-/*shade around bubble cell when hovering/selecting */
+/*shade around group cell when hovering/selecting */
 .wrapper .sidebar .react-flow__node-mdNode.selected,
 .wrapper .sidebar .react-flow__node-mdNode:hover {
     box-shadow: $sidebar-node-box-shadow-selected-hover;

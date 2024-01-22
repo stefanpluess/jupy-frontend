@@ -117,8 +117,8 @@ import useSettingsStore from "../../helpers/settingsStore";
  * - Knowledge Passing: allows for the passing of the kernel state from the parent to the child
  * 
  *  Toolbar above the node defines addtional functionalities like:
- * - Delete Group: deletes the group node and all its child nodes
- * - Delete Bubble: deletes the group node but keeps the child nodes
+ * - Delete Kernel: deletes the group node and all its child nodes
+ * - Detach Kernel: deletes the group node but keeps the child nodes
  * - Branch Out: creates a new group node with the selected node as the predecessor
  * - Restart Kernel: restarts the kernel
  * - Shutdown Kernel: shuts down the kernel
@@ -202,7 +202,7 @@ function GroupNode({ id, data }: NodeProps) {
     if (ws) addEventListeners();
   }, [ws]);
 
-  /* function to know if any code cell in the given node_id bubble had an error */
+  /* function to know if any code cell in the given node_id group node had an error */
   const anyChildHasError = useCallback((node_id: string) => {
     const children = getNodes().filter((n) => n.parentNode === node_id && n.type === NORMAL_NODE);
     for (const child of children) {
@@ -580,7 +580,7 @@ function GroupNode({ id, data }: NodeProps) {
     const response = await axios.post(`${serverURL}/canvas_ext/installed`, requestBody);
     setInstalledPackages(response.data.packages);
     addToHistory(id, {
-      node_id: id, // provide the bubble itself in case of installed packages
+      node_id: id, // provide the group node itself in case of installed packages
       execution_count: response.data.execution_count,
       type: ExecInfoT.LoadLibraries,
     });
@@ -706,10 +706,10 @@ function GroupNode({ id, data }: NodeProps) {
         minHeight={minHeight}
       />
       <NodeToolbar className="nodrag">
-        <button onClick={onDelete} title="Delete Bubble 🫧">
+        <button onClick={onDelete} title="Delete Kernel 🗑️">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />
         </button>
-        {/* {hasChildNodes && <button onClick={onDetach} title="Delete Bubble 🫧">
+        {/* {hasChildNodes && <button onClick={onDetach} title="Detach Kernel">
             <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
           </button>} */}
         {wsRunning && <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
@@ -722,7 +722,7 @@ function GroupNode({ id, data }: NodeProps) {
         onMouseEnter={() => setShowOrder(id, RUNALL_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForward} />
         </button>}
-        {(wsRunning && data.predecessor) && <button onClick={onRunBranch} title="Run Branch up until Bubble ⏩"
+        {(wsRunning && data.predecessor) && <button onClick={onRunBranch} title="Run Branch up until Kernel ⏩"
         onMouseEnter={() => setShowOrder(id, RUNBRANCH_ACTION)} onMouseLeave={() => setShowOrder('', '')}>
           <FontAwesomeIcon className="icon" icon={faForwardFast} />
         </button>}
@@ -751,7 +751,7 @@ function GroupNode({ id, data }: NodeProps) {
             <FontAwesomeIcon className="icon-disabled" icon={faArrowDownUpAcrossLine}/>
           </button>
         ) : (
-          <button onClick={onCellBranchStart} title="Split Bubble: Pick cells and split the bubble ✂️">
+          <button onClick={onCellBranchStart} title="Split Kernel: Pick cells and split the kernel ✂️">
             <FontAwesomeIcon className="icon" icon={faArrowDownUpAcrossLine}/>
           </button>
         )}
@@ -794,16 +794,16 @@ function GroupNode({ id, data }: NodeProps) {
         confirmText="Shutdown"
       />
       <CustomConfirmModal 
-        title="Delete Bubble?" 
-        message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " All cells will be deleted" + (wsRunning ? " and all variables will be lost!" : "!")}
+        title="Delete Kernel?" 
+        message={"Are you sure you want to delete the group" + (wsRunning ? " and shutdown the kernel?" : "?") + " All cells will be deleted" + (wsRunning ? " and all variables will be lost!" : "!")}
         show={modalStates.showConfirmModalDelete} 
         onHide={continueWorking} 
         onConfirm={deleteGroup} 
         confirmText="Delete"
       />
       {/* <CustomConfirmModal 
-        title="Delete Bubble?" 
-        message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " The cells will remain" + (wsRunning ? ", but all variables will be lost!": "!")}
+        title="Detach Kernel?" 
+        message={"Are you sure you want to delete the group" + (wsRunning ? " and shutdown the kernel?" : "?") + " The cells will remain" + (wsRunning ? ", but all variables will be lost!": "!")}
         show={modalStates.showConfirmModalDetach} 
         onHide={continueWorking} 
         onConfirm={detachGroup} 

@@ -319,7 +319,7 @@ $handle-margin: 1.5px;
     visibility: hidden;
 }
 
-/*frame around bubble cell*/
+/*frame around group cell*/
 .rfWrapper .react-flow__node-group {
     background: $group-node-background;
     border: $node-border;
@@ -349,7 +349,7 @@ $handle-margin: 1.5px;
     background-color: #ff007336;
 }
 
-/*shade around bubble cell when hovering/selecting */
+/*shade around group cell when hovering/selecting */
 .rfWrapper .react-flow__node-group:hover {
     box-shadow: $node-box-shadow; 
 }

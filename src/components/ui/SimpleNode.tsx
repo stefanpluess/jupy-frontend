@@ -376,11 +376,11 @@ function SimpleNode({ id, data }: NodeProps) {
 
   /* run code button title */
   const buttonTitle = useCallback(() => {
-    if (!hasParent) return "Connect to a Bubble cell to run code!";
+    if (!hasParent) return "Connect to a kernel to run code!";
     if (!wsRunning) return "The kernel is currently not running!";
     if (parentExecutionState?.state === KERNEL_BUSY_FROM_PARENT) return "Wait for knowledge passing to finish!";
-    if (hasBusyPred(parentNode!)) return "Wait for parent Bubble to finish!";
-    if (hasBusySucc(parentNode!)) return "Wait for child Bubble to finish or turn influence off!";
+    if (hasBusyPred(parentNode!)) return "Wait for parent Kernel to finish!";
+    if (hasBusySucc(parentNode!)) return "Wait for child Kernel to finish or turn influence off!";
     return "Run Code";
   }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
@@ -430,7 +430,7 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
 
           {hasParent && (
-            <button title="Ungroup Code Cell from Bubble Cell" onClick={onDetach}>
+            <button title="Ungroup Code Cell from the Kernel" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}

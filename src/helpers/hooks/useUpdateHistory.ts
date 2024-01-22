@@ -16,14 +16,14 @@ function useUpdateHistory() {
     const updateExportImportHistory = useCallback((obj: UpdateExportImportHistoryT) => {
         // EXPORT
         addToHistory(obj.parent_id, {
-            node_id: obj.parent_id, // provide the bubble itself in case of export
+            node_id: obj.parent_id, // provide the group node itself in case of export
             execution_count: obj.parent_exec_count,
             type: ExecInfoT.Export,
         });
 
         // IMPORT
         addToHistory(obj.child_id, {
-            node_id: obj.parent_id, // provide the parent bubble in case of import (from whom the knowledge is imported)
+            node_id: obj.parent_id, // provide the parent group node in case of import (from whom the knowledge is imported)
             execution_count: obj.child_exec_count,
             type: ExecInfoT.LoadParent,
         });

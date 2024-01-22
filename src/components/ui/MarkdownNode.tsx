@@ -111,7 +111,7 @@ function MarkdownNode({ id, data }: NodeProps) {
       </button>
       {hasParent && (
         <button
-          title="Ungroup Markdown Cell from Bubble Cell"
+          title="Ungroup Markdown Cell from the Kernel"
           onClick={onDetach}
         >
           <FontAwesomeIcon className="icon" icon={faObjectUngroup} />

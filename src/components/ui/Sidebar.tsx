@@ -155,7 +155,7 @@ const Sidebar = ({
         >
           {gripIndicator}
         </div>
-        <div className="label">Bubble</div>
+        <div className="label">kernel</div>
 
         {/* DRAGGABLE NODE */}
         <div
@@ -169,7 +169,7 @@ const Sidebar = ({
         >
           {gripIndicator}
         </div>
-        <div className="label">Code</div>
+        <div className="label">code</div>
 
         {/* DRAGGABLE MARKDOWN NODE */}
         <div
@@ -183,7 +183,7 @@ const Sidebar = ({
         >
           {gripIndicator}
         </div>
-        <div className="label">Markdown</div>
+        <div className="label">markdown</div>
       </div>
 
 

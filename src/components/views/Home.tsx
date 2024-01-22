@@ -642,8 +642,8 @@ function DynamicGrouping() {
     const filteredIds = clickedNodeOrder.filter((id) => !id.includes('output'));
     return (
       <Alert show={isCellBranchActive.isActive && !isCellBranchActive.isConfirmed} variant="secondary">
-        <Alert.Heading>Pick code cells and split the bubble ✂️</Alert.Heading>
-        <p> <u>New bubble cell</u> will be created as a parent of this bubble.<br/>
+        <Alert.Heading>Pick code cells and split the kernel ✂️</Alert.Heading>
+        <p> <u>New kernel cell</u> will be created as a parent of this kernel.<br/>
         The chosen code cells will run in the specified order on <u>new parent</u>.<br/>
         Output cells are selected automatically. </p>
         <p><strong>Cells selected: {filteredIds.length}</strong></p>

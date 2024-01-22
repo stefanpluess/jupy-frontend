@@ -208,7 +208,7 @@ function SimpleOutputNode({
         {!isSimpleNodeLocked ? (
           hasParent && (
             <button
-              title="Ungroup OutputCell from BubbleCell"
+              title="Ungroup OutputCell from Kernel"
               onClick={onDetach}
             >
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
