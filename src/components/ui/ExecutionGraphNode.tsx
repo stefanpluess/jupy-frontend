@@ -2,6 +2,7 @@
 import {
     useState,
     useCallback,
+    useEffect,
     memo,
   } from "react";
 import {
@@ -36,6 +37,7 @@ const infoLoadLibraries = "List of libraries 📚 available in this kernel was l
 
 function ExecutionGraphNode({ id, data }: NodeProps) {
   const setFitViewNodeId = useExecutionStore((state) => state.setFitViewNodeId);
+  const hoveredNodeId = useExecutionStore((state) => state.hoveredNodeId);
   const setHoveredNodeId = useExecutionStore((state) => state.setHoveredNodeId);
   const setClickedNodeCode = useExecutionStore((state) => state.setClickedNodeCode);
   const deletedNodeIds = useExecutionStore((state) => state.deletedNodeIds);
@@ -106,12 +108,18 @@ function ExecutionGraphNode({ id, data }: NodeProps) {
       if (isNodeDeleted) {
         return;
       }
-      // unhighlight the node if it was not clicked
+      // unhighlight the node if it was not clicked or window with code was closed
       if (canUnhighlight) {
         setHoveredNodeId(undefined);
       }
     }
   }, [isNodeDeleted, canUnhighlight, setHoveredNodeId]);
+
+  useEffect(() => { 
+    if (hoveredNodeId === undefined) {
+      setCanUnhighlight(true);
+    }
+  }, [hoveredNodeId]);
 
   // INFO :: TRANSPORT logic
   const transportToCodeCell = useCallback(() => {
