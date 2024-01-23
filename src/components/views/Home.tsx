@@ -36,7 +36,7 @@ import {
   faCircleQuestion,
   faCircleXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
+import MonacoEditor from "@uiw/react-monacoeditor";
 //COMMENT :: Internal modules UI
 import { 
   Sidebar, 
@@ -234,6 +234,66 @@ function DynamicGrouping() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [nodes, edges]);
 
+  /* when dropping a bubble on a code cell, assign the code cell as a child of the bubble */
+  const handleBubbleDropOnCodeCell = (groupNode: Node) => {
+    const groupNodeIntersections = getIntersectingNodes({
+      x: groupNode.position.x,
+      y: groupNode.position.y,
+      width: groupNode.width ?? DEFAULT_WIDTH_GROUP,
+      height: groupNode.height ?? DEFAULT_HEIGHT_GROUP,
+    }).filter((n) => n.type !== GROUP_NODE);
+
+    if (groupNodeIntersections.length === 0) return;
+
+    groupNodeIntersections.forEach((node) => {
+      if (!node.parentNode){
+        // if parentNodes is undefined assign this groupNode as a parent
+        const newPosition = getNodePositionInsideParent(
+          {
+            position: node.position,
+            width: node.width ?? DEFAULT_WIDTH_GROUP, // default value if node.width is null or undefined
+            height: node.height ?? DEFAULT_HEIGHT_GROUP, // default value if node.height is null or undefined
+          } as positionNode,
+          {
+            position: groupNode.position,
+            width: groupNode.width ?? DEFAULT_WIDTH_GROUP,
+            height: groupNode.height ?? DEFAULT_HEIGHT_GROUP,
+          } as positionNode
+        );
+
+        const isLockOn = onDragStartData.isLockOn;
+        const isNodeAllowed = checkNodeAllowed(node.id);
+        setNodes((nds) => {
+          return nds.map((n) => {
+            if (n.id === node.id) {
+              const updatedNode = { 
+                ...n,
+                position: newPosition,
+                parentNode: groupNode.id,
+                className: '',
+              };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
+            }
+            // if 🔒 lock is ✅ then update also connected node
+            else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
+              const position = getNodePositionInsideParent(n, groupNode) ?? { x: 0, y: 0 };
+              const updatedNode = {
+                ...n,
+                position,
+                parentNode: groupNode.id,
+                className: '',
+              };
+              expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT as 'parent';
+              return updatedNode;
+            }
+            return { ...n };
+          });
+        });
+      }
+    });
+  };
+
   //INFO :: functions
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
@@ -315,63 +375,18 @@ function DynamicGrouping() {
       // INFO :: dragging nodes from sidebar
       setIsDraggedFromSidebar(false);
 
-
       // assign the group node as a parent if dropped on a code cell
-      if (type === GROUP_NODE) {
-        const groupNodeIntersections = getIntersectingNodes({
-          x: position.x,
-          y: position.y,
-          width: DEFAULT_WIDTH_GROUP,
-          height: DEFAULT_HEIGHT_GROUP,
-        }).filter((n) => n.type !== GROUP_NODE);
-
-        if (groupNodeIntersections.length === 0) return;
-
-        groupNodeIntersections.forEach((node) => {
-          if (!node.parentNode){
-            // if parentNodes is undefined assign this groupNode as a parent
-            const newPosition = getNodePositionInsideParent(
-              {
-                position: node.position,
-                width: node.width ?? DEFAULT_WIDTH_GROUP, // default value if node.width is null or undefined
-                height: node.height ?? DEFAULT_HEIGHT_GROUP, // default value if node.height is null or undefined
-              } as positionNode,
-              {
-                position: newNode.position,
-                width: DEFAULT_WIDTH_GROUP,
-                height: DEFAULT_HEIGHT_GROUP,
-              } as positionNode
-            );
-
-            setNodes((nds) => {
-              return nds.map((n) => {
-                if (n.id === node.id) {
-                  const updatedNode = { 
-                    ...n,
-                    position: newPosition,
-                    parentNode: newNode.id,
-                  };
-
-                  if (expandParentSetting) {
-                    updatedNode.expandParent = true;
-                  } else {
-                    updatedNode.extent = EXTENT_PARENT;
-                  }
-                  return updatedNode;
-                }
-                return { ...n };
-              });
-            });
-          }
-        });
-      }
+      if (type === GROUP_NODE) handleBubbleDropOnCodeCell(newNode);
     }
   };
 
   //INFO :: onNodeDrag... Callbacks
   const onNodeDragStop = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (!canRunOnNodeDrag(node)) return;
+      if (!canRunOnNodeDrag(node)) {
+        handleBubbleDropOnCodeCell(node);
+        return;
+      }
       /* function calculates intersections, i.e., the group nodes 
       that the moved node might now be inside of.*/
       const intersections = getIntersectingNodes(node)
@@ -417,7 +432,7 @@ function DynamicGrouping() {
         setNodes(nextNodes);
       }
     },
-    [getIntersectingNodes, setNodes, store, onDragStartData]
+    [handleBubbleDropOnCodeCell, getIntersectingNodes, setNodes, store, onDragStartData]
   );
 
   const onNodeDragStart = useCallback(
@@ -453,31 +468,28 @@ function DynamicGrouping() {
 
   const onNodeDrag = useCallback(
     (_: MouseEvent, node: Node) => {
-      if (!canRunOnNodeDrag(node)) return;
+      /* In case we are dragging a group node, we look for intersecting nodes of other types.
+      Else, we look for intersection group nodes. */
       const intersections = getIntersectingNodes(node)
-                              .filter((n) => n.type === GROUP_NODE);
-      const intersectingGroupNode = intersections.map((n) => n.id); // highlight the group nodes that the node is intersecting with
-      /* groupClassName will be 'active' if there is at least one intersection
-      and the parent node of the current node is not the first intersection. */
-      const groupClassName = intersections.length && 
+                              .filter((n) => (node.type === GROUP_NODE) ? n.type !== GROUP_NODE : n.type === GROUP_NODE);
+      const intersectingNodes = intersections.map((n) => n.id); // highlight the nodes that the node is intersecting with
+      // className will be 'active'/'highlighted if there is at least one intersection
+      const className = intersections.length && 
                              node.parentNode !== intersections[0]?.id
-                             ? 'active' 
+                             ? (node.type !== GROUP_NODE) ? 'active' : 'highlighted'
                              : '';
       const isLockOn = onDragStartData.isLockOn;
       const isNodeAllowed = checkNodeAllowed(node.id);
       // update the nodes
       setNodes((nds) => {
         return nds.map((n) => {
-          if (n.type === GROUP_NODE) {
-            return { ...n, className: intersectingGroupNode.includes(n.id) ? groupClassName : ''}; // highlight the group nodes that the node is intersecting with
-          } else if (n.id === node.id) {
+          if (n.id === node.id) {
             return { 
               ...n, 
               position: node.position
             };
-          }
           // if 🔒 lock is ✅ then update also connected node
-          else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
+          } else if (isNodeAllowed && n.id === onDragStartData.connectedNodeId && isLockOn) {
             const newPosition = {
               x: onDragStartData.connectedNodePosition.x + 
                 (node.position.x - onDragStartData.nodePosition.x),
@@ -492,12 +504,14 @@ function DynamicGrouping() {
               // we have parent and are inside parent
               const position = keepPositionInsideParent(n, groupNode, newPosition) 
                                ?? { x: 0, y: 0 };
-              /*keep the connected node inside the group node if 
-              it is close to the bounds and has a parent already*/
+              // keep the connected node inside the group node if it is close to the bounds and has a parent already
               return {...n, position: position};
             } else{
               return {...n, position: newPosition};
             }
+          } else if (!n.parentNode) {
+            // highlight the nodes that the node is intersecting with
+            return { ...n, className: intersectingNodes.includes(n.id) ? className : ''};
           }
           return { ...n };
         });
@@ -576,10 +590,10 @@ function DynamicGrouping() {
     setNodes((nds) => nds.map((n) => {
       // Check if the node is the hovered one or has the specific class name
       const isHoveredNode = n.id === hoveredNodeId;
-      const hasHoveredClass = n.className === 'hoveredInExecutionGraph';
+      const hasHoveredClass = n.className === 'highlighted';
   
       if (isHoveredNode) {
-        return { ...n, className: 'hoveredInExecutionGraph' };
+        return { ...n, className: 'highlighted' };
       } else if (hasHoveredClass) {
         return { ...n, className: undefined };
       }
@@ -725,7 +739,7 @@ function DynamicGrouping() {
                 </div>
                 <div className="exegraph-panel-code-body">
                   <MonacoEditor
-                    height="400px"
+                    height="1000px" // ensure it is large enough
                     language="python"
                     theme="vs-dark"
                     value={clickedNodeCode}
@@ -741,6 +755,7 @@ function DynamicGrouping() {
                       minimap: {
                         enabled: false, // Disable the minimap
                       },
+                      wordWrap: "on",
                     }}
                     />
                 </div>

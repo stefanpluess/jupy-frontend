@@ -34,8 +34,8 @@ export const MIN_WIDTH = 180;
  */
 export const MIN_HEIGHT = 85;
 
-export const MIN_WIDTH_GROUP = 50;
-export const MIN_HEIGHT_GROUP = 50;
+export const MIN_WIDTH_GROUP = 200;
+export const MIN_HEIGHT_GROUP = 100;
 
 /**
  * The default width for a group node when dropping it from the sidebar.
