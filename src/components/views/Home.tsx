@@ -670,7 +670,7 @@ function DynamicGrouping() {
           >
             <FontAwesomeIcon className="cellBranchHelp-icon" icon={faCircleQuestion} />
           </button>
-          <Button onClick={confirmCellBranch} as="input" type="button" value="Confirm" variant="success"/>
+          <Button onClick={confirmCellBranch} as="input" type="button" value="Confirm" variant="success" disabled={filteredIds.length === 0}/>
         </div>
       </Alert>
     );

@@ -273,17 +273,11 @@ export default function FileExplorer() {
   const shutdownSessions = async (file: Content) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     setShuttingFiles([...shuttingFiles, file.path]);
-    file.sessions?.forEach(async (session_id: string) => {
+    for (const session_id of file.sessions || []) {
       await axios.delete(`${serverURL}/api/sessions/${session_id}`);
-    });
-    // wait for the sessions to be shut down before refreshing the page
-    setTimeout(() => {
-      getContentsFromPath();
-      setShuttingFiles(
-        shuttingFiles.filter((path: string) => path !== file.path)
-      );
-    }, 1000);
-    console.log("Sessions shut down");
+    };
+    setShuttingFiles(shuttingFiles.filter((path: string) => path !== file.path));
+    getContentsFromPath();
   };
 
   /* Sort function based on the current sort column and direction */

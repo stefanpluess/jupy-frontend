@@ -26,7 +26,6 @@ export const initialModalStates = {
   showConfirmModalRestart: false,
   showConfirmModalShutdown: false,
   showConfirmModalDelete: false,
-  showConfirmModalDetach: false,
   showConfirmModalReconnect: false,
   showConfirmModalRunAll: false,
   showConfirmModalRunBranch: false,

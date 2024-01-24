@@ -2,7 +2,7 @@ import { NodeProps, useReactFlow, useStoreApi, Node } from 'reactflow';
 import { useCallback } from 'react';
 import { shallow } from 'zustand/shallow';
 import { getId, passParentState, sortNodes } from '../utils';
-import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE } from '../../config/constants';
+import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE, MIN_WIDTH_GROUP, MIN_HEIGHT_GROUP } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
@@ -42,8 +42,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         }
         const parentWidth = Number(parentNode.style.width);
         const parentHeight = Number(parentNode.style.height);
-        const childWidth = 0.8*parentWidth;
-        const childHeight = 0.8*parentHeight;
+        const childWidth = Math.max(MIN_WIDTH_GROUP, 0.8 * parentWidth);
+        const childHeight = Math.max(MIN_HEIGHT_GROUP, 0.8 * parentHeight);
         const childPosX = parentNode.position.x + 0.5*parentWidth - 0.5*childWidth;
         const childPosY = parentNode.position.y + 1.3*parentHeight;
         // create a unique id for the child node

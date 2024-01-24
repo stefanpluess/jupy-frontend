@@ -85,12 +85,12 @@ import {
   KERNEL_BUSY_FROM_PARENT,
   MIN_WIDTH_GROUP,
   MIN_HEIGHT_GROUP,
-  PADDING,
   RUNALL_ACTION,
   EXPORT_ACTION,
   RUNBRANCH_ACTION,
   NORMAL_NODE,
-  ExecInfoT
+  ExecInfoT,
+  PADDING
 } from "../../config/constants";
 import {
   lineStyle,
@@ -125,6 +125,7 @@ import useSettingsStore from "../../helpers/settingsStore";
  * - Interrupt Kernel: interrupts the kernel
  * - Reconnect Kernel: reconnects the kernel
  * - Run All: runs all code cells in the group node
+ * - Run Branch: runs all code cells in all successeors up until this group node
  * - Export to Jupyter Notebook: exports the group node to a Jupyter Notebook
  */
 
@@ -222,8 +223,8 @@ function GroupNode({ id, data }: NodeProps) {
     if (childNodes.length === 0) {
       // if there are no child nodes, return the default width and height
       return {
-        minWidth: MIN_WIDTH_GROUP + PADDING * 2,
-        minHeight: MIN_HEIGHT_GROUP + PADDING * 2,
+        minWidth: MIN_WIDTH_GROUP,
+        minHeight: MIN_HEIGHT_GROUP,
         hasChildNodes: childNodes.length > 0,
       };
     } else {
@@ -296,18 +297,6 @@ function GroupNode({ id, data }: NodeProps) {
     addDeletedNodeIds(deletedIds);
   };
 
-  /* DETACH */
-  const onDetach = async () => setModalState("showConfirmModalDetach", true);
-
-  const detachGroup = async () => {
-    const childNodeIds = Array.from(store.getState().nodeInternals.values())
-      .filter((n) => n.parentNode === id)
-      .map((n) => n.id);
-    detachNodes(childNodeIds, id);
-    removeGroupNode(id, false);
-    setModalState("showConfirmModalDetach", false);
-  };
-
   /* BRANCH OUT */
   const handleBranchOut = useBubbleBranchClick(id);
 
@@ -337,29 +326,28 @@ function GroupNode({ id, data }: NodeProps) {
         if (newGroupNodeId === '') return;
         // assignment of picked nodes to the new group node 
         await new Promise(resolve => setTimeout(resolve, 500)); // wait until branching is done
-        // if some nodes were picked then proceed
-        if (pickedNodeIds.length !== 0) {
-          // assign the picked nodes to the new group node
-          const allNodes: Node[] = store.getState().getNodes()
-              .map((n) => {
-                  if (pickedNodeIds.includes(n.id)) return {...n, parentNode: newGroupNodeId};
-                  return n;
-              })
-              .sort(sortNodes);
-          setNodes(allNodes);
-          // execute selected nodes on the new group node
-          await new Promise(resolve => setTimeout(resolve, 1000)); // wait until websocket is connected
-          fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] }); // zoom to the new group node
-          await runAllInGroup(newGroupNodeId, pickedNodeIds, true);
-          setIsBranching(false); // end of cell branch
-          resetCellBranch(); // reset cell branch state back to default
-          // when the kernel is idle, set the influence state to true (make edge flow again by default)
-          while (getExecutionStateForGroupNode(newGroupNodeId).state !== KERNEL_IDLE) {
-            // console.log('Waiting for kernel ' + newGroupNodeId + ' to be idle');
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
-          setInfluenceStateForGroupNode(id, true); 
+        // if no nodes were picked, return (should never happen, because button is disabled)
+        if (pickedNodeIds.length === 0) return;
+        // assign the picked nodes to the new group node
+        const allNodes: Node[] = store.getState().getNodes()
+            .map((n) => {
+                if (pickedNodeIds.includes(n.id)) return {...n, parentNode: newGroupNodeId};
+                return n;
+            })
+            .sort(sortNodes);
+        setNodes(allNodes);
+        // execute selected nodes on the new group node
+        await new Promise(resolve => setTimeout(resolve, 1000)); // wait until websocket is connected
+        fitView({ padding: 0.4, duration: 800, nodes: [{ id: newGroupNodeId }] }); // zoom to the new group node
+        await runAllInGroup(newGroupNodeId, pickedNodeIds, true);
+        setIsBranching(false); // end of cell branch
+        resetCellBranch(); // reset cell branch state back to default
+        // when the kernel is idle, set the influence state to true (make edge flow again by default)
+        while (getExecutionStateForGroupNode(newGroupNodeId).state !== KERNEL_IDLE) {
+          // console.log('Waiting for kernel ' + newGroupNodeId + ' to be idle');
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
+        setInfluenceStateForGroupNode(id, true); 
       } catch (error) {
           console.error("An error occurred during the cell branch:", error);
       }
@@ -524,7 +512,6 @@ function GroupNode({ id, data }: NodeProps) {
     if (modalStates.showConfirmModalRestart) setModalState("showConfirmModalRestart", false);
     if (modalStates.showConfirmModalShutdown) setModalState("showConfirmModalShutdown", false);
     if (modalStates.showConfirmModalDelete) setModalState("showConfirmModalDelete", false);
-    if (modalStates.showConfirmModalDetach) setModalState("showConfirmModalDetach", false);
     if (modalStates.showConfirmModalReconnect) setModalState("showConfirmModalReconnect", false);
     if (modalStates.showConfirmModalRunAll) setModalState("showConfirmModalRunAll", false);
     if (modalStates.showConfirmModalRunBranch) setModalState("showConfirmModalRunBranch", false);
@@ -709,9 +696,6 @@ function GroupNode({ id, data }: NodeProps) {
         <button onClick={onDelete} title="Delete Bubble 🫧">
           <FontAwesomeIcon className="icon" icon={faTrashAlt} />
         </button>
-        {/* {hasChildNodes && <button onClick={onDetach} title="Delete Bubble 🫧">
-            <FontAwesomeIcon className="icon" icon={faTrashArrowUp} />
-          </button>} */}
         {wsRunning && <button onClick={interruptKernel} title="Interrupt Kernel ⛔"> 
           <FontAwesomeIcon className="icon" icon={faSquare} />
         </button>}
@@ -801,14 +785,6 @@ function GroupNode({ id, data }: NodeProps) {
         onConfirm={deleteGroup} 
         confirmText="Delete"
       />
-      {/* <CustomConfirmModal 
-        title="Delete Bubble?" 
-        message={"Are you sure you want to delete the bubble" + (wsRunning ? " and shutdown the kernel?" : "?") + " The cells will remain" + (wsRunning ? ", but all variables will be lost!": "!")}
-        show={modalStates.showConfirmModalDetach} 
-        onHide={continueWorking} 
-        onConfirm={detachGroup} 
-        confirmText="Delete"
-      /> */}
       <CustomConfirmModal 
         title="Restart Kernel before Run All?" 
         message="Do you want to restart the kernel before running all? If yes, all variables will be lost!" 
