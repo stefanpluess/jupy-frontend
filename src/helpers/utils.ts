@@ -411,7 +411,7 @@ export function createOutputNode(node: Node, outputParent?: string) {
     // position it on the right of the given position
     position: {
       x: node.position.x + node.width! + 50,
-      y: node.position.y + node.height! / 2,
+      y: (node.position.y + node.height! / 2) - 17.5,
     },
     data: {
       outputs: [] as OutputNodeData[],

@@ -80,7 +80,7 @@
         }
 
         // highlight the node that is hovered over in the execution graph
-        &.hoveredInExecutionGraph{
+        &.highlighted{
             box-shadow: 0px 0px 20px 2px rgba(255, 0, 106, 0.6), 
                                     inset 0px 0px 20px 4px rgba(255, 0, 106, 0.6);
         }
@@ -247,6 +247,10 @@ $handle-margin: 1.5px;
 
     // comment out if you want the arrow of the edge stick to the output node:
     margin-left: $handle-margin; 
+
+    &.highlighted{
+        box-shadow: 0px 0px 20px 2px rgba(255, 0, 106, 0.6);
+    }
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNode{
@@ -333,7 +337,7 @@ $handle-margin: 1.5px;
     }
 
     // highlight the node that is hovered over in the execution graph
-    &.hoveredInExecutionGraph{
+    &.highlighted{
         box-shadow: 0px 0px 12px 2px #ff0072;
         background-color: rgba(255, 0, 106, 0.3);
     }
@@ -389,7 +393,6 @@ $handle-margin: 1.5px;
             @include commonInner;
 
             .textareaNode {
-                padding-left: 4px;
                 height: 100%;
                 width: 100%;
                 @include commonStyleCodeAndMarkdownCell;
@@ -701,8 +704,8 @@ $handle-margin: 1.5px;
 
     // make it resizable
     resize: both;
-    overflow: auto;
-    width: 20%; // initial width
+    overflow-y: hidden;
+    width: 25%; // initial width
     height: 20%; // initial height
     max-width: 50%;
     max-height: 50%;
@@ -733,7 +736,7 @@ $handle-margin: 1.5px;
         @include copyContentButton;
 
         .exegraph-panel-code-header-title{
-            padding-top: 5px;
+            padding-top: 7px;
         }
 
         .exegraph-panel-code-header-button{
@@ -742,8 +745,7 @@ $handle-margin: 1.5px;
             color: transparent;
             cursor: pointer;
 
-            // dsiplay the button in the top right corner of the header
-            margin-right: -1%;
+            margin-right: -1px; // ensure resize icon is always visible
 
             .exegraph-panel-code-header-button-icon{
                 color: rgb(255, 255, 255);
