@@ -80,7 +80,7 @@ const Sidebar = ({
       edges,
       token,
       path,
-      setShowSuccessAlert,
+      null, // prevent success alert from showing
       setShowErrorAlert
     );
   };
@@ -217,7 +217,7 @@ const Sidebar = ({
               edges,
               token,
               path,
-              setShowSuccessAlert,
+              setShowSuccessAlert, // enable success alert
               setShowErrorAlert
             );
           }}

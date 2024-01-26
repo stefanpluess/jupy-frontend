@@ -305,7 +305,7 @@ export async function saveNotebook(nodes: Node[], edges: Edge[], token: string,
   const notebookData: NotebookPUT = createJSON(nodes, edges);
   try {
     await updateNotebook(token, notebookData, path);
-    setShowSuccessAlert(true);
+    if (setShowSuccessAlert) setShowSuccessAlert(true);
   } catch (error) {
     setShowErrorAlert(true);
     console.error("Error saving notebook:", error);
