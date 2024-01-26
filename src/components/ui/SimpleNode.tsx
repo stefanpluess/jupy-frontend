@@ -191,7 +191,7 @@ function SimpleNode({ id, data }: NodeProps) {
     if (!data.typeable) return;
     setTimeout(() => {
       if (editorRef.current) editorRef.current.editor?.focus();
-    }, 10); // TODO: check whether 10ms is fine
+    }, 10);
   }, []);
 
   // INFO :: 🚀 EXECUTION COUNT - handling update of execution count

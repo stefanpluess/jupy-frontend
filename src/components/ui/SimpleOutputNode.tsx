@@ -124,7 +124,6 @@ function SimpleOutputNode({
         );
       }
 
-      // TODO :: correctly handle \r in output
       // before adding to the output, if a \r is present, remove everything before it from the end of currentGroup.output
       // const indexOfCarriageReturn = strippedOutput[indexOfCorrectOutput].indexOf("\r");
       // if (indexOfCarriageReturn >= 0) {

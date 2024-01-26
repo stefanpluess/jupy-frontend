@@ -72,7 +72,6 @@ export function useCellBranch(id: NodeProps['id']) {
             var loadParentState = true;
             // if the predecessor node is not running, we won't pass the state
             if (!getWsRunningForNode(predecessorNode.id)) loadParentState = false;
-            // TODO: check if edge was turned off? -> don't load state ???
 
             // actually pass the state
             if (loadParentState) {

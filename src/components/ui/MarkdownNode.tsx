@@ -92,7 +92,7 @@ function MarkdownNode({ id, data }: NodeProps) {
     if (!data.typeable) return;
     setTimeout(() => {
       if (editorRef.current) editorRef.current.editor?.focus();
-    }, 10); // TODO: check whether 10ms is fine
+    }, 10);
   }, []);
 
   // INFO :: resizing logic
