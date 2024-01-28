@@ -1,61 +1,94 @@
 @import '../variables';
 /* INFO :: sidebar*/
- /*color navigation bar */
+// .sidebar aside holds nodeContainer and settingsContainer
  .wrapper .sidebar aside {
     border-right: 1px solid #333;
-    padding: 15px;
+    padding: 3px;
     font-size: 12px;
     font-weight: 600;
     background-color: $shared-bg-color;
     color: $shared-text-color;
     height: 100%;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
-/*cells in navbar */
+
+.wrapper .sidebar .label {
+    color: #f5f5f5;
+    font-size: 12px;
+    margin-bottom: 1em;
+}
+
+// nodeContainer hold all 'react-flow__node-' and 'label' elements
+.wrapper .sidebar .nodeContainer{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-top: 1em;
+}
+
+// settingsContainer holds autosave, settings and save button
+.wrapper .sidebar .settingsContainer{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 0.5em;
+    user-select: none;
+
+    .autoSaveContainer{
+        margin-bottom: 1.1em;
+
+        .autoSave{ 
+            color: $shared-text-color;
+            font-size: 10px ;
+            font-weight: 1000;
+        }
+
+        $switch_width: 35px;
+        $switch_height: 15px;
+        $translate_x_minus: -(34px);
+        $translate_x_plus: 6px;
+        @include custom-switch($switch_width, $switch_height, $translate_x_minus, $translate_x_plus);
+    }
+
+    .settingsButton{
+        margin-bottom: 0.5em;
+    }
+
+    .saveButton{
+        margin-bottom: 0.1em;
+    }
+}
+
+// INFO :: commong styling for all draggable nodes in the side bar
 .wrapper .sidebar aside div[class^='react-flow__node-'] {
     box-sizing: border-box;
     font-size: 12px;
-    width: 40px;
-    height: 40px;
+    width: $sidebar-node-size;
+    height: $sidebar-node-size;
+    color: $shared-text-color;
+    margin-bottom: 0.2em;
+    cursor: pointer;
+    user-select: none;
     position: relative;
-    color: $shared-text-color;
-    cursor: pointer;
-    margin-bottom: 35px;
-}
+    
+    &:active{
+        cursor: grabbing;
+        box-shadow: 0px 0px 15px 2px rgba(255, 255, 255, 0.9)
+    }
 
-.autoSave{ 
-    color: $shared-text-color;
-    font-size: 10px ;
-    font-weight: 1000;
-    margin-bottom: -4px;
-}
-
-.saveButton{
-    margin-top: 10px;
-}
-
-.sliderOn {
-    background-color: $shared-bg-color;
-    border: none;
-    color: green;
-    font-size: 25px;
-    top: 0;
-    left: 0;
-    height: 100%;
-    cursor: pointer;
-}
-
-.sliderOff {
-    background-color: $shared-bg-color;
-    border: none;
-    color: red;
-    font-size: 25px;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: grab;
+    .gripIndicator{
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: $shared-text-color;
+    }
 }
 
 /* INFO :: sidebar - code cell*/
@@ -77,8 +110,8 @@
     border-width: $sidebar-node-border-width;
 }
 
-/* INFO :: sidebar - bubble cell*/
-/*frame around bubble cell*/
+/* INFO :: sidebar - group cell*/
+/*frame around group cell*/
 .wrapper .sidebar .react-flow__node-group {
     background: $group-node-background;
     border: $node-border;
@@ -87,7 +120,7 @@
     width: auto;
 }
 
-/*shade around bubble cell when hovering/selecting */
+/*shade around group cell when hovering/selecting */
 .wrapper .sidebar .react-flow__node-group.selected,
 .wrapper .sidebar .react-flow__node-group:hover {
     box-shadow: $sidebar-node-box-shadow-selected-hover;
@@ -103,7 +136,7 @@
     width: auto;
     border-radius: $node-border-radius;
 }
-/*shade around bubble cell when hovering/selecting */
+/*shade around group cell when hovering/selecting */
 .wrapper .sidebar .react-flow__node-mdNode.selected,
 .wrapper .sidebar .react-flow__node-mdNode:hover {
     box-shadow: $sidebar-node-box-shadow-selected-hover;

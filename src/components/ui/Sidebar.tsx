@@ -1,17 +1,18 @@
 //COMMENT :: External modules/libraries
 import { 
   DragEvent, 
-  useEffect, 
-  useState 
+  useEffect,
+  useState,
 } from "react";
 import { 
   Node, 
-  Edge 
+  Edge, 
+  useReactFlow
 } from "reactflow";
 import {
   faSave,
-  faToggleOff,
-  faToggleOn,
+  faGear,
+  faGripVertical
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
@@ -19,6 +20,10 @@ import { Button } from "react-bootstrap";
 import { saveNotebook } from "../../helpers/utils";
 import { usePath } from "../../helpers/hooks";
 import { useWebSocketStore } from "../../helpers/websocket";
+import useSettingsStore from "../../helpers/settingsStore";
+import useNodesStore from "../../helpers/nodesStore";
+import { GROUP_NODE } from "../../config/constants";
+import ToggleSwitch from "../buttons/ToggleSwitch";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -49,42 +54,59 @@ const Sidebar = ({
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
-  const [isAutosave, setIsAutosave] = useState(false);
+  // INFO :: dragging nodes from sidebar
+  const setIsDraggedFromSidebar = useNodesStore((state) => state.setIsDraggedFromSidebar)
+  const { setNodes} = useReactFlow();
+  // INFO :: autosave
+  const setShowSettings = useSettingsStore((state) => state.setShowSettings);
+  const autoSaveSetting = useSettingsStore((state) => state.autoSave);
+  const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
+  const changeAutoSave = () => setAutoSaveSetting(!autoSaveSetting);
+  const [isSpinning, setIsSpinning] = useState(false);
 
-  const changeAutoSave = () => {
-    if (isAutosave) {
-      setIsAutosave(false);
-    } else {
-      setIsAutosave(true);
-    }
+  const handleSettingsClick = () => {
+    setShowSettings(true);
+    setIsSpinning(true);
+
+    setTimeout(() => {
+      setIsSpinning(false);
+    }, 300);
   };
 
+  // INFO :: autosave
   const performAutosave = () => {
     saveNotebook(
       nodes,
       edges,
       token,
       path,
-      setShowSuccessAlert,
+      null, // prevent success alert from showing
       setShowErrorAlert
     );
   };
 
-  useEffect(() => {
-    let autosaveInterval: string | number | NodeJS.Timer | undefined;
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (autoSaveSetting) performAutosave();
+  };
 
-    if (isAutosave) {
-      autosaveInterval = setInterval(performAutosave, 30000); // 30 seconds=30000 milliseconds
+  useEffect(() => {
+    let autosaveInterval: NodeJS.Timeout | undefined;
+
+    if (autoSaveSetting) {
+      autosaveInterval = setInterval(performAutosave, 20000); // 20 seconds=20000 milliseconds
     } else {
       clearInterval(autosaveInterval);
     }
 
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     // Clean up the interval when component unmounts or when isAutosave changes
     return () => {
       clearInterval(autosaveInterval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [
-    isAutosave,
+    autoSaveSetting,
     nodes,
     edges,
     token,
@@ -93,69 +115,116 @@ const Sidebar = ({
     setShowErrorAlert,
   ]);
 
+  // INFO :: indicator for draggable nodes and dragging from the side bar
+  const gripIndicator = <FontAwesomeIcon className="gripIndicator" icon={faGripVertical} size="xl"/>;
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    setNodes((nds) => {
+      return nds.map((n) => {
+        if (n.type === GROUP_NODE) {
+          return { ...n, className: "nodeDraggedFromSideBar"};
+        } 
+        return { ...n };
+      });
+    });
+    setIsDraggedFromSidebar(true);
+  };
+  const handleDraggingEnd = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    setNodes((nds) => {
+      return nds.map((n) => {
+        if (n.type === GROUP_NODE) {
+          return { ...n, className: "" };
+        } 
+        return { ...n };
+      });
+    });
+    setIsDraggedFromSidebar(false);
+  };
+
   return (
     <aside>
-      <div
-        className="react-flow__node-group"
-        onDragStart={(event: DragEvent) => onDragStart(event, "group")}
-        draggable
-      >
-        <div className="label">Bubble</div>
-      </div>
-      <div
-        className="react-flow__node-node"
-        onDragStart={(event: DragEvent) => onDragStart(event, "node")}
-        draggable
-      >
-        <div className="label">Code</div>
-      </div>
-      <div
-        className="react-flow__node-mdNode"
-        onDragStart={(event: DragEvent) => onDragStart(event, "mdNode")}
-        draggable
-      >
-        <div className="label">Markdown</div>
-      </div>
-
-      <div className="autoSave">AutoSave</div>
-
-      {!isAutosave ? (
-        <button
-          title="Activate Autosave"
-          onClick={changeAutoSave}
-          className="sliderOff"
+      <div className = "nodeContainer">
+        {/* DRAGGABLE GROUP NODE */}
+        <div
+          className="react-flow__node-group"
+          title={"Drag me ➡️ to create a new kernel"}
+          onDragStart={(event: DragEvent) => onDragStart(event, "group")}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleDraggingEnd}
+          onDragEnd={handleDraggingEnd}
+          draggable
         >
-          <div className="autoSave">OFF</div>
+          {gripIndicator}
+        </div>
+        <div className="label">kernel</div>
 
-          <FontAwesomeIcon className="" icon={faToggleOff} />
-        </button>
-      ) : (
-        <button
-          title="Deactivate Autosave"
-          onClick={changeAutoSave}
-          className="sliderOn"
+        {/* DRAGGABLE NODE */}
+        <div
+          className="react-flow__node-node"
+          title={"Drag me ➡️ to create a new code cell"}
+          onDragStart={(event: DragEvent) => onDragStart(event, "node")}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleDraggingEnd}
+          onDragEnd={handleDraggingEnd}
+          draggable
         >
-          <div className="autoSave">ON</div>
-          <FontAwesomeIcon icon={faToggleOn} />
-        </button>
-      )}
+          {gripIndicator}
+        </div>
+        <div className="label">code</div>
 
-      <Button
-        variant="success"
-        className="saveButton"
-        onClick={() => {
-          saveNotebook(
-            nodes,
-            edges,
-            token,
-            path,
-            setShowSuccessAlert,
-            setShowErrorAlert
-          );
-        }}
-      >
-        <FontAwesomeIcon icon={faSave} />
-      </Button>
+        {/* DRAGGABLE MARKDOWN NODE */}
+        <div
+          className="react-flow__node-mdNode"
+          title={"Drag me ➡️ to create a new markdown cell"}
+          onDragStart={(event: DragEvent) => onDragStart(event, "mdNode")}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleDraggingEnd}
+          onDragEnd={handleDraggingEnd}
+          draggable
+        >
+          {gripIndicator}
+        </div>
+        <div className="label">markdown</div>
+      </div>
+
+
+      <div className = "settingsContainer">
+
+        <div className="autoSaveContainer">
+          <div className="autoSave">AutoSave</div>
+          <ToggleSwitch
+            checked={autoSaveSetting}
+            onChange={changeAutoSave}
+          />
+        </div>
+
+        {/* Settings Button */}
+        <Button 
+          className="settingsButton"
+          title="Settings"
+          variant="secondary"
+          onClick={handleSettingsClick}
+        >
+          <FontAwesomeIcon icon={faGear} spin={isSpinning} />
+        </Button>
+
+        <Button
+          variant="success"
+          className="saveButton"
+          title="Save Notebook"
+          onClick={() => {
+            saveNotebook(
+              nodes,
+              edges,
+              token,
+              path,
+              setShowSuccessAlert, // enable success alert
+              setShowErrorAlert
+            );
+          }}
+        >
+          <FontAwesomeIcon icon={faSave} />
+        </Button>
+      </div>
     </aside>
   );
 };

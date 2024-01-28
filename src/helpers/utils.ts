@@ -1,9 +1,44 @@
 import axios from 'axios'
-import type { Edge, Node } from 'reactflow';
-import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData } from '../config/types';
-import { EXTENT_PARENT, GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH } from '../config/constants';
+import type { Edge, Node, XYPosition } from 'reactflow';
+import { Position } from 'reactflow';
+import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData, positionNode } from '../config/types';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION, MIN_WIDTH, MIN_HEIGHT } from '../config/constants';
 import { serverURL } from '../config/config';
 
+
+/** Method to modify the initial notebook to contain 1 group cell and 1 code cell */
+export const modifyInitialNotebook = async (path: string) => {
+  const groupId = getId(GROUP_NODE);
+  const notebookContent = {
+    cells: [
+      {
+        id: groupId,
+        cell_type: 'group',
+        metadata: {},
+        position: { x: 0, y: 0 },
+        width: 600,
+        height: 400,
+      },
+      {
+        id: getId(NORMAL_NODE),
+        cell_type: 'code',
+        execution_count: null,
+        source: [],
+        metadata: {},
+        position: { x: 210, y: 160 },
+        width: MIN_WIDTH,
+        height: MIN_HEIGHT,
+        parentNode: groupId,
+        outputs: [],
+      }
+    ],
+    metadata: {},
+    nbformat: 4,
+    nbformat_minor: 5
+  };
+  await axios.put(`${serverURL}/api/contents/${path}`, { content: notebookContent, type: 'notebook' })
+    .catch((err) => console.log(err));
+}
 
 /** Method to create the nodes given the JSON upon rendering a notebook for the first time */
 export function createInitialElements(cells: NotebookCell[]): { initialNodes: Node[], initialEdges: Edge[] } {
@@ -39,7 +74,6 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
       node.parentNode = cell.parentNode;
-      node.extent = EXTENT_PARENT;
     };
     // for each code node, create an output node (if it has been executed before)
     if (cell.cell_type === 'code' && node.data.executionCount.execCount !== "") {
@@ -50,7 +84,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         const output = output_cell.output_type === 'execute_result' ? output_cell.data['text/plain'] :
                        output_cell.output_type === 'stream' ? output_cell.text :
                        output_cell.output_type === 'display_data' ? output_cell.data['image/png'] ?? output_cell.data['text/plain'] :
-                       output_cell.output_type === 'error' ? output_cell.traceback?.map(removeEscapeCodes).join('\n') : '';
+                       output_cell.output_type === 'error' ? output_cell.traceback?.join('\n') : '';
         const newOutputData: OutputNodeData = {
           output: output,
           isImage: output_cell.isImage!,
@@ -170,8 +204,9 @@ export function createJSON(nodes: Node[], edges: Edge[]): NotebookPUT {
 }
 
 /** Method to export to a normal .ipynb (getting rid of all additional fields) */
-export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string) {
-
+export async function exportToJupyterNotebook(nodes: Node[], groupNodeId: string, fileName: string, order: string) {
+  // if the order is top-down, sort the nodes by their y position
+  if (order === TOP_DOWN_ORDER) nodes.sort((a, b) => a.position.y - b.position.y);
   const cells: NotebookCell[] = [];
   nodes.forEach((node: Node) => {
     if (node.parentNode !== groupNodeId) return;
@@ -270,7 +305,7 @@ export async function saveNotebook(nodes: Node[], edges: Edge[], token: string,
   const notebookData: NotebookPUT = createJSON(nodes, edges);
   try {
     await updateNotebook(token, notebookData, path);
-    setShowSuccessAlert(true);
+    if (setShowSuccessAlert) setShowSuccessAlert(true);
   } catch (error) {
     setShowErrorAlert(true);
     console.error("Error saving notebook:", error);
@@ -301,16 +336,20 @@ export async function getKernelspecs(token: string) {
 
 /** Method to pass the parent state to a child */
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
+  var parent_exec_count, child_exec_count;
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   await axios.post(`${serverURL}/canvas_ext/export`, { 'kernel_id': parent_kernel_id })
+    .then((res) => parent_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // wait for 200ms to ensure the state was actually saved
   await new Promise(resolve => setTimeout(resolve, 200));
   await axios.post(`${serverURL}/canvas_ext/import`, { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+    .then((res) => child_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // delete the dill file that was saved
   await axios.delete(`${serverURL}/api/contents/${dill_path !== '' ? dill_path + '/' : ''}${parent_kernel_id}.pkl`)
     .catch((err) => console.log(err));
+  return {parent_exec_count, child_exec_count};
 }
 
 /** Method to analyze code (static analysis) after executing a code cell */
@@ -371,8 +410,8 @@ export function createOutputNode(node: Node, outputParent?: string) {
     type: OUTPUT_NODE,
     // position it on the right of the given position
     position: {
-      x: node.position.x + 255,
-      y: node.position.y +22,
+      x: node.position.x + node.width! + 50,
+      y: (node.position.y + node.height! / 2) - 17.5,
     },
     data: {
       outputs: [] as OutputNodeData[],
@@ -382,16 +421,58 @@ export function createOutputNode(node: Node, outputParent?: string) {
   if (typeof(outputParent) === 'string') {
     // COMMENT - same part of code used in useDuplicateCell.ts
     newOutputNode.parentNode = outputParent;
-    newOutputNode.extent = EXTENT_PARENT;
   } else if (node.parentNode) {
     newOutputNode.parentNode = node.parentNode;
-    newOutputNode.extent = EXTENT_PARENT;
   }
   return newOutputNode;
 }
 
-export function removeEscapeCodes(str: string) {
-  return str.replace(/\u001b\[[0-9;]*m/g, '');
+/* Functions to properly display color coding */
+export function ansiToHtml(text: string): string {
+  let html = '';
+  let inEscapeCode = false;
+  let currentCode = '';
+
+  for (const char of text) {
+    if (char === '\u001b') {
+      inEscapeCode = true;
+      currentCode = char;
+    } else if (inEscapeCode) {
+      currentCode += char;
+      if (char.match(/[a-zA-Z]/)) {
+        inEscapeCode = false;
+        if (currentCode.endsWith('m')) {
+          html += convertAnsiToHtml(currentCode);
+        } else {
+          html += currentCode;
+        }
+        currentCode = '';
+      }
+    } else {
+      html += char;
+    }
+  }
+
+  return html;
+}
+
+function convertAnsiToHtml(escapeCode: string): string {
+  if (escapeCode.match(/0;31|1;31/)) {
+    return '<span style="color: #ff0000;">';
+  } else if (escapeCode.match(/0;32|1;32/)) {
+    return '<span style="color: #00FF00;">';
+  } else if (escapeCode.match(/0;33|1;33/)) {
+    return '<span style="color: #FFD700;">';
+  } else if (escapeCode.match(/0;34|1;34/)) {
+    return '<span style="color: #0000FF;">';
+  } else if (escapeCode.match(/0;36|1;36/)) {
+    return '<span style="color: #00FFFF;">';
+  } else if (escapeCode.match(/0;37|1;37/) || escapeCode === '\u001b[0m') {
+    return '<span style="color: #FFFFFF;">';
+    // return '</span>'
+  } else {
+    return '';
+  }
 }
 
 /** Method to make sure that parent nodes are rendered before their children */
@@ -415,7 +496,7 @@ export const getId = (prefix = NORMAL_NODE) => {
 ;}
 
 /** Method when dropping a node inside a group */
-export const getNodePositionInsideParent = (node: Partial<Node>, groupNode: Node) => {
+export const getNodePositionInsideParent = (node: Partial<Node> | positionNode, groupNode: Node | positionNode) => {
     const position = node.position ?? { x: 0, y: 0 };
     const nodeWidth = node.width ?? 0;
     const nodeHeight = node.height ?? 0;
@@ -511,3 +592,134 @@ export const checkNodeAllowed = (id: string) : boolean => {
   }
   return false;
 }
+
+
+/* ================== helpers for floating edges ================== */
+function getNodeIntersection(intersectionNode: Node, targetNode: Node) {
+  // https://math.stackexchange.com/questions/1724792/an-algorithm-for-finding-the-intersection-point-between-a-center-of-vision-and-a
+  const {
+    width: intersectionNodeWidth,
+    height: intersectionNodeHeight,
+    positionAbsolute: intersectionNodePosition,
+  } = intersectionNode;
+  const targetPosition = targetNode.positionAbsolute;
+
+  const w = intersectionNodeWidth! / 2;
+  const h = intersectionNodeHeight! / 2;
+
+  const x2 = intersectionNodePosition!.x + w;
+  const y2 = intersectionNodePosition!.y + h;
+  const x1 = targetPosition!.x + targetNode.width! / 2;
+  const y1 = targetPosition!.y + targetNode.height! / 2;
+
+  const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h);
+  const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h);
+  const a = 1 / (Math.abs(xx1) + Math.abs(yy1));
+  const xx3 = a * xx1;
+  const yy3 = a * yy1;
+  const x = w * (xx3 + yy3) + x2;
+  const y = h * (-xx3 + yy3) + y2;
+
+  return { x, y };
+}
+
+// returns the position (top,right,bottom or right) passed node compared to the intersection point
+function getEdgePosition(node: Node, intersectionPoint: XYPosition) {
+  const n = { ...node.positionAbsolute, ...node };
+  const nx = Math.round(n.x!);
+  const ny = Math.round(n.y!);
+  const px = Math.round(intersectionPoint.x);
+  const py = Math.round(intersectionPoint.y);
+
+  if (px <= nx + 1) {
+    return Position.Left;
+  }
+  if (px >= nx + n.width! - 1) {
+    return Position.Right;
+  }
+  if (py <= ny + 1) {
+    return Position.Top;
+  }
+  if (py >= ny + n.height! - 1) {
+    return Position.Bottom;
+  }
+
+  return Position.Top;
+}
+
+// returns the parameters (sx, sy, tx, ty, sourcePos, targetPos) you need to create an edge
+export function getEdgeParams(source: Node, target: Node) {
+  const sourceIntersectionPoint = getNodeIntersection(source, target);
+  const targetIntersectionPoint = getNodeIntersection(target, source);
+
+  const sourcePos = getEdgePosition(source, sourceIntersectionPoint);
+  const targetPos = getEdgePosition(target, targetIntersectionPoint);
+
+  return {
+    sx: sourceIntersectionPoint.x,
+    sy: sourceIntersectionPoint.y,
+    tx: targetIntersectionPoint.x,
+    ty: targetIntersectionPoint.y,
+    sourcePos,
+    targetPos,
+  };
+}
+
+/* ================== helpers for ordering of nodes ================== */
+export function getNodeOrder(node_id: string, hovered_parent: string, allNodes: Node[], order: string, action: string) {
+  // if action is not EXPORT_ACTION, remove all MARKDOWN_NODES
+  var nodes = (action !== EXPORT_ACTION) ? allNodes.filter((node: Node) => node.type !== MARKDOWN_NODE) : allNodes;
+
+  if (action !== RUNBRANCH_ACTION) {
+    // fetch all NORMAL_NODES and MARKDOWN_NODES (from specified parent) in the order they are in the graph.
+    nodes = nodes.filter((node: Node) => (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) && node.parentNode === hovered_parent);
+  } else {
+    // Keep the nodes IF: 1. parent is the hovered_parent OR hovered_parent is a successor of parent (recursively)
+    nodes = nodes.filter((node: Node) => {
+      if (node.type === NORMAL_NODE || node.type === MARKDOWN_NODE) {
+        if (node.parentNode === hovered_parent) return true;
+        else return isSuccessor(allNodes, node.parentNode!, hovered_parent);
+      } else return false;
+    });
+  }
+
+  // from the hovered_parent, go up the chain of predecessors until you reach the top one (and keep them in a list)
+  const groupNodes = [hovered_parent] as string[];
+  var predecessor = allNodes.find((node: Node) => node.id === hovered_parent)?.data.predecessor;
+  while (predecessor !== undefined) {
+    groupNodes.push(predecessor);
+    predecessor = allNodes.find((node: Node) => node.id === predecessor)?.data.predecessor;
+  }
+
+  // First sort by parent (based on the index of node.parentNode in groupNodes -> the higher, the earlier)
+  nodes.sort((a, b) => {
+    const a_index = groupNodes.indexOf(a.parentNode!);
+    const b_index = groupNodes.indexOf(b.parentNode!);
+    if (a_index > b_index) return -1;
+    else if (a_index < b_index) return 1;
+    // if order is top-down, sort by y-value additionally
+    if (order === TOP_DOWN_ORDER) {
+      return a.position.y - b.position.y;
+    } else {
+      return 0;
+    }
+  });
+  
+  const index = nodes.findIndex((node: Node) => node.id === node_id);
+  return index + 1;
+}
+
+export const isSuccessor = (allNodes: Node[], nodeId: string, potentialSuccessor: string): boolean => {
+  // recursively check whether the potentialSuccessor is a successor of the node
+  const node = allNodes.find((node: Node) => node.id === nodeId);
+  if (!node?.data.successors) {
+    return false;
+  } else if (node?.data.successors.includes(potentialSuccessor)) {
+    return true;
+  } else {
+    for (const successor of node?.data.successors) {
+      if (isSuccessor(allNodes, successor, potentialSuccessor)) return true;
+    }
+    return false;
+  }
+};

@@ -35,17 +35,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   width: 8px;
 }
 
- /*color of labels for in navbar*/
-.wrapper .label {
-  position: absolute;
-  bottom: 0;
-  width: 100px;
-  left: 50%;
-  transform: translate(-50%, 120%);
-  color: #f5f5f5;
-  font-size: 12px;
-}
-
 .wrapper .rinputCentered{
   position: fixed;
   width: 10%;
@@ -75,63 +64,9 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
  margin-top: 0px;
 }
 
-.wrapper .oinputCentered {
-  background-color: transparent;
-  border-color: transparent;
-  color: white;
-  position: absolute;
-  color: #f5f5f5;
-  display: flex;
-  justify-content: left;
-  align-items: center;
-  margin-left: 100%;
-  margin-top: -12px;
-}
-
-.wrapper .obuttonArea {
-  background-color: transparent;
-  border-color: transparent;
-  color: white;
-  font-size: 16px;
-}
-
-.wrapper .obuttonArea:hover {
-  background-color: transparent;
-  border-color: transparent;
-  color: grey;
-}
-
-.wrapper .oUpper {
-  margin-right: 0px
-}
-
-.wrapper .oLower {
-  margin-left: -50%;
-  margin-bottom: -50px;
-}
-
-.wrapper .oLower:disabled {
-  margin-left: -50%;
-  margin-bottom: -40px;
-  color: red;
-}
-
-.oClicked {
+/* widely used style of all -icon class names*/
+.wrapper .icon {
   transform: scale(0.8);
-}
-
-.oClickedSave {
-  transform: scale(0.8);
-}
-
-.clicked {
-  transform: scale(0.8);
-}
-
- /*color of the lower button area in code cell*/
-.wrapper .buttonArea {
-  bottom: 0;
-  left: 6px;
 }
 
  /*color of the lower button icons in code cell*/
@@ -150,7 +85,7 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
   font-size: 20px;
 }
 
- /*color of the play button icons in code cell when not attached to bubble cell*/
+ /*color of the play button icons in code cell when not attached to group cell*/
 .wrapper .playButton:disabled {
   background-color: transparent;
   border-color: transparent;
@@ -214,10 +149,6 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 /*lower button area changes color when hovering over it*/
 .wrapper .bRight:hover, .bLeft:hover{
   color: rgba(223, 223, 223, 0.502);
-}
-
-.wrapper .icon {
-  transform: scale(0.8);
 }
 
 /*execution count*/
@@ -293,25 +224,4 @@ The 'wrapper' div is then divided into two columns, 'sidebar' and 'rfWrapper':
 
 .comment-buttons button {
   margin-left: 8px;
-}
-
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #888 #f0f0f0;
-  overflow-y: scroll;
-  overflow-x: scroll;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #888;
-  border-radius: 20px;
-  min-height: 80px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
 }

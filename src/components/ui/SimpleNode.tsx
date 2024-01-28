@@ -13,11 +13,12 @@ import {
   NodeProps,
   useStore,
   useReactFlow,
-  NodeResizeControl
+  NodeResizeControl,
+  Panel
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faCopy,
+  faClone,
   faCommentAlt,
   faTrashAlt,
   faObjectUngroup,
@@ -29,9 +30,9 @@ import {
   faLockOpen,
   faStopCircle,
   faHourglass,
-  faTriangleExclamation,
+  faTriangleExclamation
 } from "@fortawesome/free-solid-svg-icons";
-import MonacoEditor from "@uiw/react-monacoeditor";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 //COMMENT :: Internal modules HELPERS
@@ -48,8 +49,9 @@ import {
   useAnalyzeStaleState
 } from "../../helpers/hooks";
 import { 
-  analyzeCode, 
-  getConnectedNodeId 
+  getConnectedNodeId,
+  getNodeOrder,
+  isSuccessor,
 } from "../../helpers/utils";
 import useNodesStore from "../../helpers/nodesStore";
 import { 
@@ -65,11 +67,18 @@ import {
   EXEC_CELL_NOT_YET_RUN,
   MIN_WIDTH,
   MIN_HEIGHT,
-  CONTROL_STLYE
+  CONTROL_STLYE,
+  EXPORT_ACTION,
+  RUNBRANCH_ACTION,
+  NORMAL_NODE,
 } from "../../config/constants";
+import { monacoOptions } from "../../config/config";
 //COMMENT :: Internal modules UI
 import { ResizeIcon} from "../ui";
-
+import useSettingsStore from "../../helpers/settingsStore";
+//COMMENT :: Internal modules BUTTONS
+import CopyButton from "../buttons/CopyContentButton";
+import useExecutionStore from "../../helpers/executionStore";
 /**
  * A React component that represents a code cell node on the canvas.
  * @param id - The unique identifier of the node.
@@ -85,7 +94,7 @@ import { ResizeIcon} from "../ui";
  */
 
 function SimpleNode({ id, data }: NodeProps) {
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, getNodes } = useReactFlow();
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
@@ -103,7 +112,7 @@ function SimpleNode({ id, data }: NodeProps) {
   );
   const staleState = useNodesStore((state) => state.staleState[id] ?? false);
   const setStaleState = useNodesStore((state) => state.setStaleState);
-  const analyzeStaleState = useAnalyzeStaleState(id);
+  const analyzeStaleState = useAnalyzeStaleState();
   // INFO :: 0️⃣ empty output type functionality
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
@@ -120,6 +129,10 @@ function SimpleNode({ id, data }: NodeProps) {
   const [transitioning, setTransitioning] = useState(false);
   const toggleLock = useNodesStore((state) => state.toggleLock);
   const isLocked = useNodesStore((state) => state.locks[id]);
+  // INFO :: 🧫 CELL BRANCH
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [nodeNumber, setNodeNumber] = useState('');
   // INFO :: DUPLICATE CELL
   const handleDuplicateCell = useDuplicateCell(id);
   
@@ -131,13 +144,39 @@ function SimpleNode({ id, data }: NodeProps) {
     // isEqual needed for rerendering purposes
     return getResizeBoundaries(id);
   }, isEqual);
+  const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+
+  // INFO :: show order
+  const showOrder = useNodesStore((state) => state.showOrder);
+	const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+	const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  const fetchNodeOrder = useCallback(() => {
+    const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
+    const number = getNodeOrder(id, showOrder.node, getNodes(), order, showOrder.action);
+    return number;
+  }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
 
   const initialRender = useRef(true);
-  const wsRunning = useNodesStore(
-    (state) => state.groupNodesWsStates[parentNode!] ?? true
-  );
+  const wsParent = useNodesStore((state) => state.nodeIdToWebsocketSession[parentNode!]?.ws);
+  const wsRunning = useNodesStore((state) => state.getWsRunningForNode(parentNode!)); // can be undefined
   const token = useWebSocketStore((state) => state.token);
   const executeOnSuccessors = useExecuteOnSuccessors();
+  const [, forceUpdate] = useState<{}>();
+  // INFO :: execution graph
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
+
+  useEffect(() => {
+    const addEventListeners = async () => {
+      // add a open and a close listener (for initial render, ensure correct ws status is shown)
+      wsParent.addEventListener("open", () => forceUpdate({}) );
+      wsParent.addEventListener("close", () => forceUpdate({}) );
+      return () => { // remove them when component unmounts
+        wsParent.removeEventListener("open", () => forceUpdate({}) );
+        wsParent.removeEventListener("close", () => forceUpdate({}) );
+      };
+    }
+    if (wsParent) addEventListeners();
+  }, [wsParent]);
 
   const hasError = useCallback(() => {
     if (!outputs) return false;
@@ -146,12 +185,32 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [outputs]);
 
-  const handleExecCountChange = useCallback(async () => {
+  /* right after insertion, allow the user to immediately type */
+  const editorRef = useRef<RefEditorInstance | null>(null);
+  useEffect(() => {
+    if (!data.typeable) return;
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.editor?.focus();
+    }, 10);
+  }, []);
+
+  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
+  useEffect(() => {
+    const handleStaleStateAndExecCountChange = async () => {
+      if (executionCount !== "*") {
+        const assignedVariables = await analyzeStaleState(id); // INFO :: 😴 STALE STATE
+        handleExecCountChange(assignedVariables);
+      }
+    };
+    handleStaleStateAndExecCountChange();
+  }, [executionCount]);
+
+  const handleExecCountChange = useCallback(async (assignedVariables: string[] | undefined) => {
     if (hasParent) {
       data.executionCount.execCount = executionCount; // set it to the data prop
       const groupId = parent!.id;
       if (hasError()) stopFurtherExecution(false);
-      else await executeOnSuccessors(parent!.id);
+      else await executeOnSuccessors(parent!.id, assignedVariables);
       setExecutionStateForGroupNode(groupId, {nodeId: id, state: KERNEL_IDLE});
       removeFromQueue(groupId); // INFO :: queue 🚶‍♂️🚶‍♀️🚶‍♂️functionality
     }
@@ -159,18 +218,10 @@ function SimpleNode({ id, data }: NodeProps) {
     if (outputs && outputs.length === 0) setOutputTypeEmpty(id + "_output", true);
   }, [executionCount, hasParent, hasError, outputs, setExecutionStateForGroupNode, removeFromQueue, executeOnSuccessors]);
 
-  // INFO :: 🚀 EXECUTION COUNT - handling update of execution count
-  useEffect(() => {
-    if (executionCount !== "*") {
-      analyzeStaleState(); // INFO :: 😴 STALE STATE
-      handleExecCountChange();
-    } 
-  }, [executionCount]);
-
   // INFO :: 🟢 RUN CODE
   const runCode = useCallback(async () => {
     if (!data.code || data.code.trim() === '') return;
-    if (executionCount === "") await insertOutput([id]); // if the execution count is "", create an output node and add an edge
+    if (executionCount === "") await insertOutput([id], true); // if the execution count is "", create an output node and add an edge
     if (parent) {
       const groupId = parent.id;
       setNodeIdToExecCount(id, "*");
@@ -181,7 +232,8 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: 🛑INTERRUPT KERNEL
   const interruptKernel = useCallback(() => {
     if (parent) {
-      onInterrupt(token, parent.data.session.kernel.id);
+      const parentKernelId = getNodeIdToWebsocketSession(parent.id).session.kernel.id!;
+      onInterrupt(token, parentKernelId);
       stopFurtherExecution(true);
     } else {
       console.warn("interruptKernel: parent is undefined");
@@ -201,8 +253,11 @@ function SimpleNode({ id, data }: NodeProps) {
 
  // INFO :: 🗑️DELETE CELL
   // when deleting the node, automatically delete the output node as well
-  const deleteNode = () =>
+  const deleteNode = () => {
     deleteElements({ nodes: [{ id }, { id: id + "_output" }] });
+    // get the deleted id for the execution graph
+    addDeletedNodeIds([id]);
+  }
 
   const onDetach = () => {
     if (isLocked) {
@@ -253,11 +308,6 @@ function SimpleNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
-  const copyCode = () => {
-    let copyText = data.code;
-    navigator.clipboard.writeText(copyText);
-  };
-
   const onAdditionalSettings = () => {
     let text =
       "This feature is currently still under construction. We will let you know when it is ready to use!";
@@ -279,6 +329,38 @@ function SimpleNode({ id, data }: NodeProps) {
     }, 300);
   };
 
+  // INFO :: 🧫 CELL BRANCH
+  useEffect( () => {
+    // filter to exclude the output node ids and markdown node ids
+    const clickedNodeOrderFiltered = clickedNodeOrder.filter((id) => !id.includes("_output") && !id.includes("mdNode"));
+    // find the position of the id inside clickedNodeOrder
+    const position = clickedNodeOrderFiltered.indexOf(id);
+    // set the node number
+    if (position === -1) {
+      setNodeNumber('');
+    }
+    else{
+      setNodeNumber((position + 1).toString());
+    }
+  }, [clickedNodeOrder]);
+
+  const selectorCellBranch = (
+    isCellBranchActive.isActive && isCellBranchActive.id === parentNode && (
+      <Panel position="top-left" style={{ position: "absolute", top: "-1.5em", left: "-1.5em"}}>
+        {nodeNumber === '' ? (
+          <span className="dotNumberEmpty">{'\u00A0'}</span>
+          ) : (
+            <span className="dotNumberSelected">{nodeNumber}</span>
+          )
+        }
+      </Panel>)
+  );
+
+  const shouldShowOrder = (
+    showOrder.node === parentNode || 
+    (showOrder.action === RUNBRANCH_ACTION && isSuccessor(getNodes(), parentNode!, showOrder.node))
+  );
+
   const hasBusySucc = useHasBusySuccessors();
   const hasBusyPred = useHasBusyPredecessor();
 
@@ -292,8 +374,42 @@ function SimpleNode({ id, data }: NodeProps) {
     );
   }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
 
+  /* run code button title */
+  const buttonTitle = useCallback(() => {
+    if (!hasParent) return "Connect to a kernel to run code!";
+    if (!wsRunning) return "The kernel is currently not running!";
+    if (parentExecutionState?.state === KERNEL_BUSY_FROM_PARENT) return "Wait for knowledge passing to finish!";
+    if (hasBusyPred(parentNode!)) return "Wait for parent Kernel to finish!";
+    if (hasBusySucc(parentNode!)) return "Wait for child Kernel to finish or turn influence off!";
+    return "Run Code";
+  }, [hasParent, wsRunning, parentExecutionState, hasBusyPred, hasBusySucc]);
+
+  const topButtonsBar= (
+    <div className="codeCellButtons">
+      {/* COPY CELL CONTENT*/}
+      <CopyButton 
+        nodeId={id}
+        title="Copy Text from Cell"
+        className="cellButton"
+        nodeType={NORMAL_NODE} 
+      />
+      {/* STALE STATE INDICATOR */}
+      {staleState && (
+        <button
+          className="cellButton staleIcons"
+          onClick = {showInfoStaleState}
+        >
+          <FontAwesomeIcon className="stale-icon" icon={faHourglass} />
+          <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
+        </button>
+      )}
+      <div style={{width: "20px"}}/>
+    </div>
+  );
+
   return (
     <>
+      {selectorCellBranch}
       <NodeResizeControl
         style={CONTROL_STLYE}
         minWidth={MIN_WIDTH}
@@ -310,11 +426,11 @@ function SimpleNode({ id, data }: NodeProps) {
           </button>
 
           <button onClick={duplicateCell} title="Duplicate Cell">
-            <FontAwesomeIcon className="icon" icon={faCopy} />
+            <FontAwesomeIcon className="icon" icon={faClone} />
           </button>
 
           {hasParent && (
-            <button title="Ungroup CodeCell from BubbleCell" onClick={onDetach}>
+            <button title="Ungroup Code Cell from the Kernel" onClick={onDetach}>
               <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
             </button>
           )}
@@ -326,7 +442,7 @@ function SimpleNode({ id, data }: NodeProps) {
           >
             <FontAwesomeIcon className="icon" icon={faCommentAlt} />
           </button>
-
+          
           <button
             title="Additonal cell settings"
             onClick={onAdditionalSettings}
@@ -343,8 +459,10 @@ function SimpleNode({ id, data }: NodeProps) {
             : "simpleNodewrapper"
         }
       >
-        <div className="inner">
+        <div className="inner" style={{ opacity: shouldShowOrder ? 0.5 : 1 }}>
+          {topButtonsBar}
           <MonacoEditor
+            ref={editorRef}
             key={data}
             className="textareaNode nodrag"
             language="python"
@@ -358,52 +476,13 @@ function SimpleNode({ id, data }: NodeProps) {
               }
             }}
             style={{ textAlign: "left" }}
-            options={{
-              padding: { top: 3, bottom: 3 },
-              theme: "vs-dark",
-              selectOnLineNumbers: true,
-              roundedSelection: true,
-              automaticLayout: true,
-              lineNumbersMinChars: 3,
-              lineNumbers: "on",
-              folding: false,
-              scrollBeyondLastLine: false,
-              scrollBeyondLastColumn: 0,
-              fontSize: 10,
-              wordWrap: "on",
-              minimap: { enabled: false },
-              renderLineHighlightOnlyWhenFocus: true,
-              scrollbar: {
-                vertical: "auto",
-                horizontal: "auto",
-                verticalScrollbarSize: 8,
-                horizontalScrollbarSize: 6,
-              },
-            }}
+            options={monacoOptions}
           />
-          {/* INFO :: bottom bar below Monaco with buttons for code cell */}
-          <div className="bottomCodeCellButtons">
-            {/* COPY CELL */}
-            <button
-              title="Copy Text from Cell"
-              className="cellButton"
-              onClick={copyCode}
-            >
-              <FontAwesomeIcon className="copy-icon" icon={faCopy} />
-            </button>
-            {/* STALE STATE INDICATOR */}
-            {staleState && (
-              <button
-                className="cellButton staleIcons"
-                onClick = {showInfoStaleState}
-              >
-                <FontAwesomeIcon className="stale-icon" icon={faHourglass} />
-                <FontAwesomeIcon className="stalewarning-icon" icon={faTriangleExclamation} />
-              </button>
-            )}
-            <div style={{width: "20px"}}/>
-          </div>
         </div>
+        {shouldShowOrder && (
+        <div className="innerOrder">
+          {fetchNodeOrder()}
+        </div>)}
       </div>
       <Handle type="source" position={Position.Right}>
         <div>
@@ -413,7 +492,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(executionCount !== "*") ? (
                 // allowing to run code only if there is no error & we are not running the code
                 <button
-                  title="Run Code"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -438,7 +517,7 @@ function SimpleNode({ id, data }: NodeProps) {
               {(isHovered || !hasParent) ? (
                 // show the run button when we hover over it
                 <button
-                  title="Error: Fix your Code and then let's try it again mate"
+                  title={buttonTitle()}
                   className="rinputCentered playButton rcentral"
                   onClick={runCode}
                   disabled={!canBeRun()}
@@ -452,10 +531,9 @@ function SimpleNode({ id, data }: NodeProps) {
                   {(executionCount !== "*") ? (
                     // show the error button when we don't hover over it and nothing is running
                     <button
-                      title="Error: Fix your Code and then let's try it again mate"
+                      title={buttonTitle()}
                       className="rinputCentered playErrorButton rcentral"
                       onClick={runCode}
-                      disabled={!canBeRun()}
                       onMouseEnter={() => setIsHovered(true)}
                      >
                       <FontAwesomeIcon className="icon" icon={faXmarkCircle} />

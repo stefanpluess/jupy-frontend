@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { useReactFlow } from 'reactflow';
 import useNodesStore from '../nodesStore';
+import useExecutionStore from '../executionStore';
 import { useWebSocketStore } from "../websocket";
 import axios from "axios";
 import { 
   KERNEL_IDLE,
-  KERNEL_BUSY_FROM_PARENT 
+  KERNEL_BUSY_FROM_PARENT, 
+  ExecInfoT
 } from '../../config/constants';
 import { toast } from 'react-toastify';
 import { serverURL } from '../../config/config';
@@ -22,6 +24,12 @@ function useExecuteOnSuccessors() {
     const token = useWebSocketStore((state) => state.token);
     const setExecutionStateForGroupNode = useNodesStore((state) => state.setExecutionStateForGroupNode);
     const setHadRecentErrorForGroupNode = useNodesStore((state) => state.setHadRecentErrorForGroupNode);
+    const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
+    const addToHistory = useExecutionStore((state) => state.addToHistory);
+
+    // stale state analysis
+    const getUsedIdentifiersForGroupNodes = useNodesStore((state) => state.getUsedIdentifiersForGroupNodes);
+    const setStaleState = useNodesStore((state) => state.setStaleState);
 
     /**
      * Returns an array of all successors of a given node that are influenced by a group node.
@@ -47,7 +55,7 @@ function useExecuteOnSuccessors() {
      * @param {string} node_id - The ID of the node to execute the code on its successors.
      */
     // INFO :: version1 -> each child is run and awaited separately
-    const executeOnSuccessors = useCallback(async (node_id: string) => {
+    const executeOnSuccessors = useCallback(async (node_id: string, assignedVariables: string[] | undefined) => {
       const influencedSuccs = influencedSuccessors(node_id);
       const queue = allQueues[node_id];
       if (!queue || queue.length === 0) return;
@@ -56,27 +64,44 @@ function useExecuteOnSuccessors() {
       for (const succ of influencedSuccs) {
         if (succsToSkip.includes(succ)) continue;
         // console.log("run code " + code + " on successor: " + succ);
-        const succNode = getNode(succ);
+        const succKernelId = getNodeIdToWebsocketSession(succ)?.session.kernel.id!;
         const requestBody = {
           "code": code,
-          'kernel_id': succNode?.data.session?.kernel.id
+          'kernel_id': succKernelId
         }
         setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         await axios.post(`${serverURL}/canvas_ext/execute`, requestBody)
         .then((res) => {
-          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
+          addToHistory(succ, {
+            node_id: simpleNodeId,
+            execution_count: res.data.execution_count,
+            type: ExecInfoT.PropagateExecution,
+            code: code,
+          });
+          setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE});
           if (res.data.status === "error") {
             toast.error("An error occured when executing the code on a child:\n"+ res.data.ename+": "+res.data.evalue);
             setHadRecentErrorForGroupNode(succ, {hadError: true, timestamp: new Date()});
             succsToSkip.push(...influencedSuccessors(succ)); // skip all successors of this successor in case of error
+          } else {
+            // If code was executed on successor, perform stale state analysis
+            if (!assignedVariables) return;
+            const dictUsedIdentifiersPerCell = getUsedIdentifiersForGroupNodes(succ);
+            const staleNodeIds: string[] = [];
+            for (const nodeId in dictUsedIdentifiersPerCell) {
+              const variablesUsedInNode = dictUsedIdentifiersPerCell[nodeId];
+              const hasCommonElement = assignedVariables.some(variable => variablesUsedInNode.includes(variable));
+              if (hasCommonElement) staleNodeIds.push(nodeId);
+            }
+            staleNodeIds.forEach(nodeId => setStaleState(nodeId, true)); // mark stale nodes
           }
         }).catch((err) => {
           setExecutionStateForGroupNode(succ, {nodeId: simpleNodeId, state: KERNEL_IDLE})
         });
         await new Promise(resolve => setTimeout(resolve, 10));
       }
-    }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode]);
+    }, [influencedSuccessors, getNode, token, allQueues, setExecutionStateForGroupNode, setHadRecentErrorForGroupNode, getUsedIdentifiersForGroupNodes, setStaleState]);
 
     
     // INFO :: version2 -> children are awaited all together

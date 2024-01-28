@@ -8,15 +8,15 @@ This project transforms Jupyter notebooks to overcome their limitations:
 
 - **Unlimited space**: interact with Jupyter on a 2D-Canvas.
 
-- **Dynamic Branching**: Branch as much as you want, each branch becomes a new virtual Bubble Cell which is each an individual kernel.
+- **Dynamic Branching**: Branch as much as you want, each branch becomes a new virtual Kernel Cell which is each an individual kernel.
 
-- **Flexible Cells**: Create unlimited cells within each and every bubble.
+- **Flexible Cells**: Create unlimited cells within each and every kernel.
 
-- **Bubble Groups**: Organize content in bubbles, connected through edges.
+- **Kernel Groups**: Organize content in kernels, connected through edges.
 
-- **Effortless Updates**: Changes in parent bubbles propagate to child bubbles.
+- **Effortless Updates**: Changes in parent kernels propagate to child kernels.
 
-- **Isolated Siblings**: Sibling Bubbles work independently.
+- **Isolated Siblings**: Sibling Kernels work independently.
 
 Experience unparalleled flexibility, organization and productivity in the future of notebooks. 
 Welcome to a new era of data exploration and code development!

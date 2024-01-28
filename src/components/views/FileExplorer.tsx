@@ -32,7 +32,8 @@ import {
 //COMMENT :: Internal modules HELPERS
 import { 
   getKernelspecs, 
-  getSessions 
+  getSessions,
+  modifyInitialNotebook,
 } from "../../helpers/utils";
 import { useWebSocketStore } from "../../helpers/websocket";
 import { usePath } from "../../helpers/hooks";
@@ -83,6 +84,16 @@ export default function FileExplorer() {
     fileToRename: null,
     newFileName: "",
   });
+  const [textFieldRef, setTextFieldRef] = useState<HTMLInputElement | null>(null);
+
+  /* useEffect to automatically select the file name when starting to edit */
+  useEffect(() => {
+    if (!textFieldRef) return;
+    // Set focus on the text field and select everything but the file extension
+    textFieldRef.focus();
+    const lastDotIndex = textFieldRef.value.lastIndexOf(".");
+    textFieldRef.setSelectionRange(0, lastDotIndex);
+  }, [textFieldRef]);
 
   const fetchKernelSpecs = async () => {
     const res = await getKernelspecs(token);
@@ -122,7 +133,7 @@ export default function FileExplorer() {
   };
 
   const goBack = () => {
-    navigate(path.split("/").slice(0, -1).join("/"));
+    navigate("..", { relative: "path" });
   };
 
   /* useEffect to initially fetch the contents / sessions and setup polling */
@@ -183,7 +194,9 @@ export default function FileExplorer() {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     await axios
       .post(`${serverURL}/api/contents/${path}`, { type: "notebook" })
-      .then((res) => {
+      .then(async (res) => {
+        // after creating the notebook, initially update its contents
+        await modifyInitialNotebook(res.data.path);
         const newPath = res.data.path;
         openFile(newPath);
       })
@@ -260,17 +273,11 @@ export default function FileExplorer() {
   const shutdownSessions = async (file: Content) => {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     setShuttingFiles([...shuttingFiles, file.path]);
-    file.sessions?.forEach(async (session_id: string) => {
+    for (const session_id of file.sessions || []) {
       await axios.delete(`${serverURL}/api/sessions/${session_id}`);
-    });
-    // wait for the sessions to be shut down before refreshing the page
-    setTimeout(() => {
-      getContentsFromPath();
-      setShuttingFiles(
-        shuttingFiles.filter((path: string) => path !== file.path)
-      );
-    }, 1000);
-    console.log("Sessions shut down");
+    };
+    setShuttingFiles(shuttingFiles.filter((path: string) => path !== file.path));
+    getContentsFromPath();
   };
 
   /* Sort function based on the current sort column and direction */
@@ -364,6 +371,7 @@ export default function FileExplorer() {
           <Form>
             <Form.Group controlId="newFileName">
               <Form.Control
+                ref={(ref: HTMLInputElement | null) => setTextFieldRef(ref)}
                 size="sm"
                 placeholder="New file name"
                 type="text"
@@ -374,6 +382,12 @@ export default function FileExplorer() {
                     newFileName: e.target.value,
                   })
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleRename();
+                  }
+                }}
               />
             </Form.Group>
           </Form>
@@ -391,7 +405,7 @@ export default function FileExplorer() {
         <button
           className={"btn btn-sm btn-outline-primary renameButtonLeft"}
           onClick={() => startRenaming(file)}
-          title="Rename"
+          title="Rename" 
         >
           <FontAwesomeIcon icon={faPen} />
         </button>
@@ -534,10 +548,10 @@ export default function FileExplorer() {
                       {renamingInfo.fileToRename?.name !== file.name && (
                         <>
                           {file.type === "directory" && (
-                            <FontAwesomeIcon icon={faFolder} />
+                            <FontAwesomeIcon icon={faFolder} color="#3498db"/>
                           )}
                           {file.type === "notebook" && (
-                            <FontAwesomeIcon icon={faBook} />
+                            <FontAwesomeIcon icon={faBook} color="#5e5e5e"/>
                           )}
                           {file.type === "file" && (
                             <><FontAwesomeIcon icon={faFile} />&nbsp;</>

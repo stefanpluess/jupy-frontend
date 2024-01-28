@@ -15,10 +15,18 @@ $node-box-shadow-not-active-lighter: 0px 0px 8px 0px rgba(255, 255, 255, 0.2);
 $node-box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.5);
 $node-box-shadow-lighter: 0px 0px 12px 0px rgba(255, 255, 255, 0.4);
 $node-box-shadow-selected: 0px 0px 12px 2px rgba(255, 255, 255, 0.5);
+$icon-base-transform-scale: scale(1.5);
+$icon-active-transform-scale: scale(1.25);
+$exe-graph-icon-hover-transform-scale: scale(1.3);
+$exe-graph-icon-active-transform-scale: scale(0.6);
+// size
+$min-output-node-size: 25px; // min size of the output node, there is a constant for it as well in constants.ts
+$min-height: 85px; // min height of the code & markdown cell, there is a constant for it as well in constants.ts
 
 //COMMENT - sidebar - variables might be used across many files
 $sidebar-node-box-shadow-selected-hover: 0px 0px 16px 0px rgba(255, 255, 255, 0.5);
 $sidebar-node-border-width: 2px;
+$sidebar-node-size: 40px; // size of the node in the sidebar, there is a constant for it as well in constants.ts
 
 // COMMENT - minimap & controls - variables might be used across many files
 $minimap-controls-box-shadow: 0px 0px 16px 0 rgba(0, 0, 0, 0.7);
@@ -26,3 +34,141 @@ $minimap-controls-border: 1px solid #95679e;
 
 // COMMENT - toolbar
 $toolbar-background: #b6b6b6;
+
+// COMMENT - custom slider
+@mixin custom-switch($switch-width, $switch-height, $translate-x-minus, $translate-x-plus) {
+    .switch input {
+        display: none;
+    }
+
+    .switch {
+        display: inline-block;
+        width: $switch-width;
+        height: $switch-height;
+        transform: translateY(50%);
+        position: relative;
+    }
+
+    .slider {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 30px;
+        box-shadow: 0 0 0 2px #777, 0 0 4px #777;
+        cursor: pointer;
+        border: 4px solid transparent;
+        overflow: hidden;
+        transition: 0.2s;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        width: 100%;
+        height: 100%;
+        background-color: #777;
+        border-radius: 30px;
+        transform: translateX($translate-x-minus);
+        transition: 0.2s;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX($translate-x-plus);
+        background-color: limeGreen;
+    }
+
+    input:checked + .slider {
+        box-shadow: 0 0 0 2px limeGreen, 0 0 8px limeGreen;
+    }
+}
+
+// COMMENT - custom tick checked animation button
+@mixin checkedAnimation{
+
+    .tickChecked {
+        width: 12px;
+        height: 12px;
+    }
+
+    .path {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 0;
+        &.circle {
+            -webkit-animation: dash .5s ease-in-out;
+            animation: dash .5s ease-in-out;
+        }
+        &.line {
+            stroke-dashoffset: 1000;
+            -webkit-animation: dash .5s .20s ease-in-out forwards;
+            animation: dash .5s .20s ease-in-out forwards;
+        }
+        &.check {
+            stroke-dashoffset: -100;
+            -webkit-animation: dash-check .5s .20s ease-in-out forwards;
+            animation: dash-check .5s .20s ease-in-out forwards;
+        }
+    }
+
+    @-webkit-keyframes dash {
+     0% {
+        stroke-dashoffset: 1000;
+     }
+     100% {
+        stroke-dashoffset: 0;
+     }
+    }
+
+    @keyframes dash {
+     0% {
+        stroke-dashoffset: 1000;
+     }
+     100% {
+        stroke-dashoffset: 0;
+     }
+    }
+
+    @-webkit-keyframes dash-check {
+     0% {
+        stroke-dashoffset: -100;
+     }
+     100% {
+        stroke-dashoffset: 900;
+     }
+    }
+
+    @keyframes dash-check {
+     0% {
+        stroke-dashoffset: -100;
+     }
+     100% {
+        stroke-dashoffset: 900;
+     }
+    }
+}
+
+
+// button used to copy the content of code, markdown cell and output cell
+@mixin copyContentButton{
+    .copy-icon:hover{
+        color: rgba(223, 223, 223, 0.5);
+    }
+    .copy-icon:active{
+        transform: scale(0.8);
+    }
+    // check icon animation when content is copied
+    @include checkedAnimation;
+}
+
+// button used to save the graph in the output cell
+@mixin saveGraphButton{
+    .save-icon:hover{
+        color: rgba(223, 223, 223, 0.5);
+    }
+    .save-icon:active{
+        transform: scale(0.8);
+    }
+    // check icon animation when content is saved
+    @include checkedAnimation;
+}

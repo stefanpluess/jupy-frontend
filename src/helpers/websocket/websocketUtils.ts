@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { removeEscapeCodes } from '../utils';
 import { WebSocketState } from './webSocketStore';
 import { Session } from '../../config/types';
 import { serverURL, serverWSURL } from '../../config/config';
@@ -76,7 +75,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
         } else if (msg_type === 'stream') {
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
-                output: removeEscapeCodes(message.content.text),
+                output: message.content.text,
                 isImage: false,
                 outputType: 'stream',
             }
@@ -104,7 +103,7 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'error') {
-            const traceback = message.content.traceback.map(removeEscapeCodes);
+            const traceback = message.content.traceback;
             const outputObj = {
                 msg_id: message.parent_header.msg_id,
                 output: traceback.join('\n'),

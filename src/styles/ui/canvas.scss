@@ -2,13 +2,21 @@
 
 /* INFO :: canvas area = .rfWrapper*/
 /*background color canvas area*/
-.wrapper .react-flow {
+.wrapper {
     background: $shared-bg-color;
 }
 
 .wrapper .rfWrapper {
     flex-grow: 1;
     height: 100%;
+}
+
+.wrapper .nodeDraggedFromSideBar{
+    border-style: dashed;
+    border-color: $node-background-selected;
+    border-width: 0.3em;
+    background: #4e4a4a;
+    // background: rgba(78, 74, 74, 0.116);
 }
 
 @mixin commonStyleCodeAndMarkdownCell{
@@ -24,7 +32,7 @@
     position: relative;
     border-radius: $node-border-radius;
     flex-grow: 1;
-    min-height: 85px;
+    min-height: $min-height;
 }
 
 @mixin commonInner{
@@ -38,7 +46,7 @@
     padding: 0;
 }
 
-@mixin commonBottomCodeCellButtons{
+@mixin commonCodeCellButtons{
     min-width: 150px;
     min-height: 20px;
     max-height: 20px;
@@ -47,13 +55,8 @@
     justify-content: space-between;
     font-size: 10px;
 
-    .copy-icon:hover {
-        color: rgba(223, 223, 223, 0.502);
-    }
-
-    .copy-icon:active {
-        transform: scale(0.8);
-    }
+    // copy content button used in simple, markdown and output cell
+    @include copyContentButton;
 }
 
 /* INFO :: canvas area - simple node*/
@@ -76,6 +79,12 @@
                                     inset 0px 0px 40px 4px rgba(255, 255, 255, 0.35);
         }
 
+        // highlight the node that is hovered over in the execution graph
+        &.highlighted{
+            box-shadow: 0px 0px 20px 2px rgba(255, 0, 106, 0.6), 
+                                    inset 0px 0px 20px 4px rgba(255, 0, 106, 0.6);
+        }
+
         .simpleNodewrapper {
             @include commonSimpleNodewrapper;
 
@@ -88,8 +97,8 @@
                     @include commonStyleCodeAndMarkdownCell;
                 }
 
-                .bottomCodeCellButtons {
-                    @include commonBottomCodeCellButtons;
+                .codeCellButtons {
+                    @include commonCodeCellButtons;
 
                     .staleIcons{
                         color: #fff201;
@@ -122,6 +131,17 @@
 
                     }
                 }
+            }
+
+            .innerOrder {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 3em;
+                color: white;
+                // opacity: 1;
+                // z-index: 10;
             }
         }
     }
@@ -166,7 +186,38 @@
     }
 }
 
+// Scrollbars style
+.rfWrapper ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.rfWrapper ::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background: rgba(0,0,0,0.1);
+}
+.rfWrapper ::-webkit-scrollbar-thumb{
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:hover{
+    background: rgba(0,0,0,0.4);
+}
+.rfWrapper ::-webkit-scrollbar-thumb:active{
+    background: rgba(0, 0, 0, 0.6);
+}
+.rfWrapper ::-webkit-scrollbar-corner {
+    background-color: transparent;
+}
+
 /* INFO :: canvas area - ouput node*/
+$handle-margin: 1.5px;
+
+// hide the handle in the output node
+.rfWrapper .handle-output{
+    visibility: hidden;
+    left: -$handle-margin;
+}
+
 // react-flow__node react-flow__node-outputNode
 /*color of the output cell*/
 .rfWrapper .react-flow__node-outputNode.selected {
@@ -177,9 +228,6 @@
     box-shadow: $node-box-shadow;
 }
 
-.rfWrapper .errorMessage{
-    color: red;
-}
 /* 
     ".rfWrapper .react-flow__node-outputNode" is the general class from reactflow,
     ".OutputNode" or ".OutputNodeEmpty" is the class from the output 
@@ -196,6 +244,13 @@
     border-radius: $code-and-output-border-radius;
     padding: 4px;
     font-size: 10px;
+
+    // comment out if you want the arrow of the edge stick to the output node:
+    margin-left: $handle-margin; 
+
+    &.highlighted{
+        box-shadow: 0px 0px 20px 2px rgba(255, 0, 106, 0.6);
+    }
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNode{
@@ -205,11 +260,32 @@
     max-width: 100%;
     max-height: 100%;
     overflow: auto;
-    min-width: 25px;
-    min-height: 25px;
+    min-width: $min-output-node-size;
+    min-height: $min-output-node-size;
 
     .selected {
         background-color: $node-background-selected;
+    }
+
+    // buttons at the top right corner of the output node
+    .OutputNodeButtonsArea {
+        //push completely OutputNodeButtonsArea outside the right edge of its container => OutputNode
+        position: absolute;
+        margin-left: 100%;
+        top: 0;
+
+        // style within OutputNodeButtonsArea
+        width: $min-output-node-size;
+        height: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        // copy content button used in simple, markdown and output node
+        @include copyContentButton;
+
+        // save graph button used to save the graph in output node
+        @include saveGraphButton;
     }
 }
 
@@ -227,10 +303,10 @@
 }
 
 .rfWrapper .react-flow__node-outputNode .OutputNodeEmpty {
-    min-height: 25px;
-    max-height: 25px;
-    min-width: 25px;
-    max-width: 25px;
+    min-height: $min-output-node-size;
+    max-height: $min-output-node-size;
+    min-width: $min-output-node-size;
+    max-width: $min-output-node-size;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -241,22 +317,45 @@
     }
 }
 /* INFO :: canvas area - group node*/
-/*frame around bubble cell*/
+// hide the handle on the group node
+.rfWrapper .handle-group-top,
+.rfWrapper .handle-group-bottom {
+    visibility: hidden;
+}
+
+/*frame around group cell*/
 .rfWrapper .react-flow__node-group {
     background: $group-node-background;
     border: $node-border;
     box-shadow: $node-box-shadow-not-active; 
     resize: both;
     width: auto;
-}
-/*shade around bubble cell when hovering/selecting */
-.rfWrapper .react-flow__node-group:hover {
-    box-shadow: $node-box-shadow; 
+
+    &.selected {
+        border-width: 2px;
+        box-shadow: $node-box-shadow;
+    }
+
+    // highlight the node that is hovered over in the execution graph
+    &.highlighted{
+        box-shadow: 0px 0px 12px 2px #ff0072;
+        background-color: rgba(255, 0, 106, 0.3);
+    }
 }
 
-.rfWrapper .react-flow__node-group.selected {
-    border-width: 2px;
-    box-shadow: $node-box-shadow;
+.rfWrapper .react-flow__node-group.nodeDraggedFromSideBar{
+    background: rgba(85, 48, 81, 0.6);
+}
+
+// highlight the group nodes that the node is intersecting with
+.rfWrapper .react-flow__node-group.active{
+    box-shadow: 0px 0px 12px 2px #ff0072;
+    background-color: #ff007336;
+}
+
+/*shade around group cell when hovering/selecting */
+.rfWrapper .react-flow__node-group:hover {
+    box-shadow: $node-box-shadow; 
 }
 
 // branch out disabled
@@ -294,12 +393,31 @@
             @include commonInner;
 
             .textareaNode {
+                height: 100%;
+                width: 100%;
                 @include commonStyleCodeAndMarkdownCell;
+
+                .markdown{
+                    max-height: 100%;
+                    max-width: 100%;
+                    overflow: auto;
+                }
             }
 
-            .bottomCodeCellButtons {
-                @include commonBottomCodeCellButtons;
+            .codeCellButtons {
+                @include commonCodeCellButtons;
             }
+        }
+
+        .innerOrder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: white;
+            // opacity: 1;
+            // z-index: 10;
         }
     }
 }
@@ -365,15 +483,295 @@
     color: rgba(255, 119, 0, 0.416);
 }
 
+/* INFO :: group node - commit graph */
+.rfWrapper .exegraph-button{
+    border: none;
+    background-color: transparent;
+    color: transparent;
+    left: 9px;
+    top: 5px;
+    position: absolute;
+    transform: $icon-base-transform-scale;
+
+    .exegraph-button-icon {
+        color: rgba(255, 255, 255, 0.65);
+
+        &:hover {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        &:active {
+            transform: $icon-active-transform-scale;
+        }
+    }
+}
+
+.rfWrapper .exegraph-flow-container {
+    text-align: left;
+    padding: 5px;
+    position: absolute;
+    top: 0px;
+    left: -165px;
+    height: 100%;
+    width: 155px;
+    background-color: rgb(30, 30, 30);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.571);
+    overflow: auto;
+    
+    &:hover {
+        box-shadow: 0px 0px 6px 0px rgba(255, 255, 255, 0.4);
+    }
+
+    .exegraph-flow-panel-empty{
+        margin-top: 0%;
+        margin-left: 0%;
+        width: 100%;
+        height: 100%;
+        color: rgb(255, 255, 255);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        
+        .exegraph-flow-panel-empty-text{
+            font-size: 8px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            text-align: center;
+        }  
+    }
+
+    .exegraph-flow-panel{
+        display: flex;
+        justify-content: space-between; /* Distributes space between the child elements */
+        flex-direction: column;
+        margin-right: -2%; // shift the panel a little bit to the right
+
+        // buttons on the panel
+        .exegraph-flow-button{
+            border: none;
+            background-color: transparent;
+            color: transparent;
+            margin-bottom: 10px;
+
+
+            .exegraph-flow-button-icon{
+                font-size: 15px;
+                color: rgb(151, 151, 151);
+                transition: all 0.3s ease; 
+
+                &:hover {
+                    color: rgba(255, 255, 255, 0.9);
+                    transform: $exe-graph-icon-hover-transform-scale;
+                }
+
+                &:active {
+                    transform: $exe-graph-icon-active-transform-scale;
+                }
+            }
+        }
+    }
+}
+
+.rfWrapper .react-flow__node-exeGraphNode {
+    display: flex;
+    border-radius: 100%;
+    box-shadow: none;
+    width: 25px;
+    height: 25px;
+
+    .exegraph-node-wrapper{
+        background-color: rgb(255, 255, 255);
+        border-radius: 100%;
+        width: 100%;
+        height: 100%;
+
+        position: relative; /* Allows absolute positioning inside it */
+        display: flex; /* Aligns the elements horizontally */
+        align-items: center; /* Centers them vertically */
+
+        &.deleted {
+            background-color: rgb(128, 128, 128);
+        }
+
+        transition: all 0.3s ease; 
+        &:hover { 
+            box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.5);
+        }
+        &:active {
+            background-color: rgba(234, 0, 255, 0.4);
+        }
+        
+        .exegraph-node-count {
+            // position the count in the middle-left of the wrapper
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 50%;
+            left: 0;
+            transform: translate(-150%, -50%);
+
+            width: 20px;
+            height: 20px;
+
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .exegraph-node-body {
+            // position body in the center of the circle
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+    
+            border-radius: 100%;
+            width: 100%;
+            height: 100%;
+    
+            display: flex;
+            justify-content: center; /* Center icon horizontally */
+            align-items: center; /* Center icon vertically */
+            
+            .exegraph-node-body-button{
+                border-radius: 100%;
+                width: 100%;
+                height: 100%;
+                border: none;
+                background-color: transparent;
+                color: rgb(0, 0, 0);
+            }
+
+            .exegraph-node-body-button-icon {
+                // Style for icon inside the circle
+                font-size: 10px;
+            }
+            .exegraph-node-body-button-icon-small{
+                font-size: 6px;
+                // display this icon in the top right corner inside the body
+                position: absolute; /* Position relative to exegraph-node-wrapper */
+                top: 0;
+                right: 0;
+                transform: translate(-50%, 80%); /* Adjust to be top-right of the circle */
+            }
+        }
+
+        .exegraph-node-top-button {
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+
+            position: absolute; /* Position relative to exegraph-node-wrapper */
+            top: 0;
+            right: 0;
+            transform: translate(100%, -50%); /* Adjust to be top-right of the circle */
+
+            /* Style for top right icon */
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+
+            .exegraph-node-top-button-icon{
+                transition: all 0.3s ease; 
+
+                &:hover {
+                    color: rgba(234, 0, 255, 0.6);
+                    transform: $exe-graph-icon-hover-transform-scale;
+                }
+
+                &:active {
+                    transform: $exe-graph-icon-active-transform-scale;
+                }
+            }
+        }
+    }
+
+    .react-flow__handle {
+        visibility: hidden;
+    }
+}
+
+.rfWrapper .exegraph-panel-code{
+    background-color: rgb(0, 0, 0);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.571);
+    color: rgb(255, 255, 255);
+    font-size: 15px;
+    text-align: left;
+
+    // make it resizable
+    resize: both;
+    overflow-y: hidden;
+    width: 25%; // initial width
+    height: 20%; // initial height
+    max-width: 50%;
+    max-height: 50%;
+    min-width: 10%;
+    min-height: 10%;
+    position: relative;
+    &::after { 
+        /* Pseudo-element for the gripper icon */
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: 0;
+    }
+
+    &:hover {
+        box-shadow: 0px 0px 6px 0px rgba(255, 255, 255, 0.4);
+    }
+
+    .exegraph-panel-code-body{
+        font-family: monospace;
+    }
+    
+    .exegraph-panel-code-header{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        @include copyContentButton;
+
+        .exegraph-panel-code-header-title{
+            padding-top: 7px;
+        }
+
+        .exegraph-panel-code-header-button{
+            border: none;
+            background-color: transparent;
+            color: transparent;
+            cursor: pointer;
+
+            margin-right: -1px; // ensure resize icon is always visible
+
+            .exegraph-panel-code-header-button-icon{
+                color: rgb(255, 255, 255);
+
+                &:hover {
+                    color: rgba(223, 223, 223, 0.5);
+                }
+
+                &:active {
+                    transform: scale(0.8);
+                }
+            }
+        
+        }
+    }
+}
+
 /* INFO :: canvas area - Kernel info */
 .rfWrapper .infoicon {
     color: rgba(255, 255, 255, 0.658);
     right: 9px;
     top: 5px;
     position: absolute;
-    transform: scale(1.5);
+    transform: $icon-base-transform-scale;
     &:active {
-        transform: scale(1.25);
+        transform: $icon-active-transform-scale;
       }
     :hover {
         color: rgba(255, 255, 255, 0.41);
@@ -463,3 +861,77 @@
       opacity: 1;
     }
 }
+
+/* INFO :: styles for the user selecting the nodes - CELL BRANCH */
+@mixin spanCommon {
+    border-radius: 0.8em;
+    -moz-border-radius: 0.8em;
+    -webkit-border-radius: 0.8em;
+    color: #ffffff;
+    display: inline-block;
+    font-weight: bold;
+    line-height: 1.6em;
+    margin-right: 15px;
+    text-align: center;
+    width: 1.6em;
+    -webkit-box-shadow: 0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    -moz-box-shadow:    0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    box-shadow:         0.1em 0.2em 0.2em 0em rgba(0, 0, 0, 0.75);
+    border: 1px solid rgb(255, 255, 255);
+    transition: background 0.2s ease; 
+}
+
+.dotNumberEmpty {
+    background: transparent;
+    @include spanCommon;
+}
+
+.dotNumberSelected {
+    background: #3589F9; 
+    @include spanCommon;
+}
+
+.buttonsAreaCellBranch{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.rfWrapper .cellBranchHelp-icon {
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 25px;
+    &:hover{
+        color: rgba(0, 0, 0, 0.3);
+    }
+    &:active{
+        transform: scale(0.8);
+    }
+}
+/* INFO :: styles for the settings popup */
+.settingSliderOn {
+    background-color: white;
+    border: none;
+    color: rgb(0, 128, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(0, 128, 0, 0.7);
+    }
+}
+
+.settingSliderOff {
+    background-color: white;
+    border: none;
+    color: rgb(255, 0, 0);
+    font-size: x-large;
+
+    :hover {
+        color: rgba(255, 0, 0, 0.6);
+    }
+}
+
+$switch_width: 40px;
+$switch_height: 20px;
+$translate_x_minus: -(20px);
+$translate_x_plus: 20px;
+@include custom-switch($switch_width, $switch_height, $translate_x_minus, $translate_x_plus);

@@ -6,7 +6,7 @@ import {
 import { 
   useNodes, 
   Node, 
-  getRectOfNodes, 
+  getNodesBounds, 
   NodeToolbar, 
   useStoreApi, 
   useReactFlow 
@@ -44,6 +44,8 @@ import {
   NORMAL_NODE, 
   OUTPUT_NODE
 } from '../../config/constants';
+import useSettingsStore from '../../helpers/settingsStore';
+import useExecutionStore from '../../helpers/executionStore';
 
 /**
  * This component renders a toolbar for selected nodes on the canvas space.
@@ -56,7 +58,8 @@ export default function SelectedNodesToolbar() {
   const nodes = useNodes();
   const { setNodes, deleteElements } = useReactFlow();
   const store = useStoreApi();
-  const groupNodesWsStates = useNodesStore((state) => state.groupNodesWsStates);
+  const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
+  const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
   // only allow grouping for nodes that are not already grouped and are not group nodes
   const selectedNodes = nodes.filter((node) => node.selected);
   const groupableNodes = selectedNodes.filter((node) => !node.parentNode && node.type !== GROUP_NODE);
@@ -67,20 +70,22 @@ export default function SelectedNodesToolbar() {
   const isVisible = selectedNodeIds.length > 1;
   const isVisibleGroup = groupableNodes.length > 1;
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
+  const expandParentSetting = useSettingsStore((state) => state.expandParent);
+  const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
   let hasRunningGroupNodeSelected = useCallback(() => {
     let hasRunningGroupNodeSelected = false;
     selectedNodes.forEach((node) => {
-      if (node.type === GROUP_NODE && groupNodesWsStates[node.id]) {
+      if (node.type === GROUP_NODE && getWsRunningForNode(node.id)) {
         hasRunningGroupNodeSelected = true;
       }
     });
     return hasRunningGroupNodeSelected;
-  }, [selectedNodes, groupNodesWsStates]);
+  }, [selectedNodes, getWsRunningForNode]);
 
 
   const onGroup = async () => {
-    const rectOfNodes = getRectOfNodes(groupableNodes);
+    const rectOfNodes = getNodesBounds(groupableNodes);
     const groupId = getId(GROUP_NODE);
     const parentPosition = {
       x: rectOfNodes.x,
@@ -95,23 +100,22 @@ export default function SelectedNodesToolbar() {
         width: rectOfNodes.width + PADDING * 4,
         height: rectOfNodes.height + PADDING * 4,
       },
-      data: {
-        ws: ws,
-        session: session,
-      },
+      data: {},
     };
+    setNodeIdToWebsocketSession(groupId, ws, session);
 
     const nextNodes: Node[] = nodes.map((node) => {
       if (selectedNodeIds.includes(node.id)) {
-        return {
+        const updatedNode = {
           ...node,
           position: {
             x: node.position.x - parentPosition.x + PADDING * 2,
             y: node.position.y - parentPosition.y + PADDING * 2,
           },
-          extent: EXTENT_PARENT,
           parentNode: groupId,
         };
+        expandParentSetting ? updatedNode.expandParent = true : updatedNode.extent = EXTENT_PARENT;
+        return updatedNode;
       }
 
       return node;
@@ -131,6 +135,8 @@ export default function SelectedNodesToolbar() {
     selectedNodes.forEach((node) => {
       if (node.type === GROUP_NODE) {
         removeGroupNode(node.id, false);
+        // get the deleted id for the execution graph 
+        addDeletedNodeIds([node.id]);
       }
     });
     const correspondingNodes: string[] = [];
@@ -142,6 +148,9 @@ export default function SelectedNodesToolbar() {
     // actually remove the nodes
     deleteElements({ nodes: nodesToBeDeleted });
     setShowConfirmModalDelete(false);
+    // get the deleted ids for the execution graph
+    const deletedIds = nodesToBeDeleted.map((node) => node.id);
+    addDeletedNodeIds(deletedIds);
   };
 
   const MySwal = withReactContent(Swal);

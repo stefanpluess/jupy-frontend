@@ -2,7 +2,9 @@
 import { 
   useState, 
   useCallback, 
-  memo 
+  memo, 
+  useRef,
+  useEffect
 } from "react";
 import {
   NodeToolbar,
@@ -12,20 +14,26 @@ import {
   Handle,
   Position,
   NodeResizeControl,
+  Panel,
 } from "reactflow";
 import {
-  faCopy,
+  faCheck,
   faObjectUngroup,
   faPlayCircle,
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import MonacoEditor from "@uiw/react-monacoeditor";
+import MonacoEditor, { RefEditorInstance } from "@uiw/react-monacoeditor";
 import ReactMarkdown from "react-markdown";
 //COMMENT :: Internal modules
 import { useDetachNodes, useResizeBoundaries } from "../../helpers/hooks";
-import { CONTROL_STLYE, MIN_HEIGHT, MIN_WIDTH } from "../../config/constants";
+import { CONTROL_STLYE, EXPORT_ACTION, MARKDOWN_NODE, MIN_HEIGHT, MIN_WIDTH, RUNALL_ACTION, RUNBRANCH_ACTION } from "../../config/constants";
 import ResizeIcon from "./ResizeIcon";
+import useNodesStore from "../../helpers/nodesStore";
+import useSettingsStore from "../../helpers/settingsStore";
+import { getNodeOrder } from "../../helpers/utils";
+import CopyButton from "../buttons/CopyContentButton";
+import { monacoOptions } from "../../config/config";
 
 /**
  * A React component that represents a Markdown node used in the Home component.
@@ -37,9 +45,26 @@ function MarkdownNode({ id, data }: NodeProps) {
   const hasParent = useStore(
     (store) => !!store.nodeInternals.get(id)?.parentNode
   );
-  const { deleteElements } = useReactFlow();
+  const parentNode = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
+  );
+  const { deleteElements, getNodes } = useReactFlow();
   const detachNodes = useDetachNodes();
-  const [editMode, setEditMode] = useState(data?.editMode || false);
+  const editMode = useNodesStore((state) => state.markdownNodesEditMode[id]);
+  const setEditMode = useNodesStore((state) => state.setMarkdownNodeEditMode);
+  useEffect(() => {
+    if (editMode === undefined) {
+      setEditMode(id, data?.editMode || false);
+    }
+  }, [id, data?.editMode, setEditMode, editMode]);
+
+  // INFO :: 🧫 CELL BRANCH
+  const parentNodeId = useStore(
+    (store) => store.nodeInternals.get(id)?.parentNode
+  );
+  const isCellBranchActive = useNodesStore((state) => state.isCellBranchActive);
+  const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
+  const [isPicked, setIsPicked] = useState(false);
 
   const onDelete = () => deleteElements({ nodes: [{ id }] });
   const onDetach = () => detachNodes([id]);
@@ -51,6 +76,25 @@ function MarkdownNode({ id, data }: NodeProps) {
     [data, data.code]
   );
 
+  // INFO :: show order
+  const showOrder = useNodesStore((state) => state.showOrder);
+  const runAllOrderSetting = useSettingsStore((state) => state.runAllOrder);
+  const exportOrderSetting = useSettingsStore((state) => state.exportOrder);
+  const fetchNodeOrder = useCallback(() => {
+    const order = showOrder.action === EXPORT_ACTION ? exportOrderSetting : runAllOrderSetting;
+    const number = getNodeOrder(id, showOrder.node, getNodes(), order, showOrder.action);
+    return number;
+  }, [showOrder, runAllOrderSetting, exportOrderSetting, id, parentNode, getNodes, getNodeOrder]);
+
+  /* right after insertion, allow the user to immediately type */
+  const editorRef = useRef<RefEditorInstance | null>(null);
+  useEffect(() => {
+    if (!data.typeable) return;
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.editor?.focus();
+    }, 10);
+  }, []);
+
   // INFO :: resizing logic
   const getResizeBoundaries = useResizeBoundaries();
   const { maxWidth, maxHeight } = useStore((store) => {
@@ -58,8 +102,7 @@ function MarkdownNode({ id, data }: NodeProps) {
     return getResizeBoundaries(id);
   }, isEqual);
 
-  const createMarkdown = () => setEditMode(false);
-  const copyCode = () => navigator.clipboard.writeText(data.code);
+  const createMarkdown = () => setEditMode(id, false);
 
   const toolbar = (
     <NodeToolbar className="nodrag">
@@ -68,7 +111,7 @@ function MarkdownNode({ id, data }: NodeProps) {
       </button>
       {hasParent && (
         <button
-          title="Ungroup Markdown Cell from Bubble Cell"
+          title="Ungroup Markdown Cell from the Kernel"
           onClick={onDetach}
         >
           <FontAwesomeIcon className="icon" icon={faObjectUngroup} />
@@ -77,15 +120,14 @@ function MarkdownNode({ id, data }: NodeProps) {
     </NodeToolbar>
   );
 
-  const buttons = (
-    <div className="bottomCodeCellButtons">
-      <button
+  const topButtonsBar = (
+    <div className="codeCellButtons">
+      <CopyButton 
+        nodeId={id}               
         title="Copy Text from Cell"
         className="cellButton"
-        onClick={copyCode}
-      >
-        <FontAwesomeIcon className="copy-icon" icon={faCopy} />
-      </button>
+        nodeType={MARKDOWN_NODE} 
+      />
     </div>
   );
 
@@ -100,23 +142,52 @@ function MarkdownNode({ id, data }: NodeProps) {
       <ResizeIcon />
     </NodeResizeControl>
   );
+  
+  // INFO :: 🧫 CELL BRANCH
+  useEffect( () => {
+    // find the position of the id inside clickedNodeOrder
+    const position = clickedNodeOrder.indexOf(id);
+    // set the node number
+    if (position === -1) {
+      setIsPicked(false);
+    }
+    else{
+      setIsPicked(true);
+    }
+  }, [clickedNodeOrder]);
+
+  const selectorCellBranch = (
+    isCellBranchActive.isActive && isCellBranchActive.id === parentNodeId && (
+    <Panel position="top-left" style={{ position: "absolute", top: "-1.5em", left: "-1.5em"}}>
+      {isPicked === false ? (
+        <span className="dotNumberEmpty">{'\u00A0'}</span>
+        ) : (
+          <span className="dotNumberSelected"><FontAwesomeIcon icon={faCheck}/></span>
+        )
+      }
+    </Panel>)
+  );
 
   if (!editMode)
     return (
       <>
         {nodeResizer}
         {toolbar}
+        {selectorCellBranch}
         <div className="simpleNodewrapper">
-          <div className="inner">
+          <div className="inner" style={{ opacity: showOrder.node === parentNode && showOrder.action === EXPORT_ACTION ? 0.5 : 1 }}>
+            {topButtonsBar}
             <div
               className="textareaNode"
-              style={{ paddingLeft: "4px", height: "100%", width: "100%" }}
-              onDoubleClick={() => setEditMode(true)}
+              onDoubleClick={() => setEditMode(id, true)}
             >
               <ReactMarkdown className="markdown">{data.code}</ReactMarkdown>
             </div>
-            {buttons}
           </div>
+          {(showOrder.node === parentNode && showOrder.action === EXPORT_ACTION) && (
+          <div className="innerOrder">
+            {fetchNodeOrder()}
+          </div>)}
         </div>
         
       </>
@@ -126,9 +197,12 @@ function MarkdownNode({ id, data }: NodeProps) {
       <>
         {nodeResizer}
         {toolbar}
+        {selectorCellBranch}
         <div className="simpleNodewrapper">
-          <div className="inner">
+          <div className="inner" style={{ opacity: showOrder.node === parentNode && showOrder.action === EXPORT_ACTION ? 0.5 : 1 }}>
+            {topButtonsBar}
             <MonacoEditor
+              ref={editorRef}
               key={data}
               className="textareaNode nodrag"
               language="markdown"
@@ -141,35 +215,17 @@ function MarkdownNode({ id, data }: NodeProps) {
                 }
               }}
               style={{ textAlign: "left" }}
-              options={{
-                padding: { top: 3, bottom: 3 },
-                theme: "vs-dark",
-                selectOnLineNumbers: true,
-                roundedSelection: true,
-                automaticLayout: true,
-                lineNumbersMinChars: 3,
-                lineNumbers: "on",
-                folding: false,
-                scrollBeyondLastLine: false,
-                scrollBeyondLastColumn: 0,
-                fontSize: 10,
-                wordWrap: "off",
-                minimap: { enabled: false },
-                renderLineHighlightOnlyWhenFocus: true,
-                scrollbar: {
-                  vertical: "auto",
-                  horizontal: "auto",
-                  verticalScrollbarSize: 8,
-                  horizontalScrollbarSize: 6,
-                },
-              }}
+              options={monacoOptions}
             />
-            {buttons}
           </div>
+          {(showOrder.node === parentNode && showOrder.action === EXPORT_ACTION) && (
+          <div className="innerOrder">
+            {fetchNodeOrder()}
+          </div>)}
         </div>
         <Handle type="source" position={Position.Right}>
           <button
-            title="Run CodeCell"
+            title="Run Markdown"
             className="rinputCentered playButton rcentral"
             onClick={createMarkdown}
           >
