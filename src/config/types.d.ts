@@ -147,7 +147,7 @@ export type NotebookCell = {
     cell_type: string;
     execution_count: number;
     id: string;
-    metadata?: {};
+    metadata?: any;
     outputs?: NotebookOutput[];
     source: string[];
     position?: XYPosition;

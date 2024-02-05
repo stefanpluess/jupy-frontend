@@ -83,8 +83,6 @@ function SimpleOutputNode({
    */
   useEffect(() => {
     if (!outputs) return;
-    // solve bug in case output was received before execution count
-    if (outputTypeEmpty && outputs.length > 0) setOutputTypeEmpty(id, false);
     // console.log(`OutputNode ${id}: `, outputs);
     setSelectedOutputIndex(-1);
     const grouped = [] as OutputNodeData[];
@@ -138,6 +136,11 @@ function SimpleOutputNode({
     setGroupedOutputs(grouped);
     data.outputs = grouped; // save the outputs grouped in the data object
   }, [outputs]);
+
+  /* Ensure that, even if outputs is received before exec count, it is correctly set to check mark icon (only when empty) */
+  useEffect(() => {
+    if (outputs && outputs.length > 0) setOutputTypeEmpty(id, false);
+  }, [outputs, outputTypeEmpty]);
 
   const onDetach = () => detachNodes([id]);
 

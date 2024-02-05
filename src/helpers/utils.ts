@@ -67,9 +67,9 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
         predecessor: cell.predecessor
       },
       position: position,
-      height: cell.height,
-      width: cell.width,
-      style: { height: cell.height!, width: cell.width! },
+      height: cell.height ?? MIN_HEIGHT,
+      width: cell.width ?? MIN_WIDTH,
+      style: { height: cell.height ?? MIN_HEIGHT, width: cell.width ?? MIN_WIDTH },
     };
     node.id = unifyId(cell, node.type!);
     if (cell.parentNode) {
@@ -87,7 +87,7 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
                        output_cell.output_type === 'error' ? output_cell.traceback?.join('\n') : '';
         const newOutputData: OutputNodeData = {
           output: output,
-          isImage: output_cell.isImage!,
+          isImage: output_cell.isImage ?? (output_cell.output_type === 'display_data' && output_cell.data['image/png']),
           outputType: output_cell.output_type,
         };
         if (output_cell.data && output_cell.data['text/html']) newOutputData.outputHTML = output_cell.data['text/html'];
@@ -132,9 +132,19 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
 
 /** Method used to unify id's when opening normal .ipynb notebooks */
 const unifyId = (cell: NotebookCell, type: string): string => {
-  const id = (cell.id.includes(NORMAL_NODE) || cell.id.includes(GROUP_NODE) || cell.id.includes(MARKDOWN_NODE)) ? 
-              cell.id : 
-              type+"_"+cell.id;
+  var id;
+  if (cell.id) {
+    id = (cell.id.includes(NORMAL_NODE) || cell.id.includes(GROUP_NODE) || cell.id.includes(MARKDOWN_NODE)) ? 
+                cell.id : 
+                type+"_"+cell.id;
+  // older notebooks have the id saved in the metadata
+  } else if (cell.metadata.id) {
+    id = (cell.metadata.id.includes(NORMAL_NODE) || cell.metadata.id.includes(GROUP_NODE) || cell.metadata.id.includes(MARKDOWN_NODE)) ? 
+                cell.metadata.id : 
+                type+"_"+cell.metadata.id;
+  } else {
+    id = getId(type);
+  }
   return id;
 }
 
@@ -432,6 +442,7 @@ export function ansiToHtml(text: string): string {
   let html = '';
   let inEscapeCode = false;
   let currentCode = '';
+  let tagOpen = false;
 
   for (const char of text) {
     if (char === '\u001b') {
@@ -442,7 +453,14 @@ export function ansiToHtml(text: string): string {
       if (char.match(/[a-zA-Z]/)) {
         inEscapeCode = false;
         if (currentCode.endsWith('m')) {
-          html += convertAnsiToHtml(currentCode);
+          // Convert ANSI code to HTML, only add if not empty
+          const htmlFragment = convertAnsiToHtml(currentCode);
+          if (htmlFragment) {
+            // Close the previous tag before opening a new one
+            if (tagOpen) html += '</span>';
+            html += htmlFragment;
+            tagOpen = true;
+          }
         } else {
           html += currentCode;
         }
@@ -452,8 +470,9 @@ export function ansiToHtml(text: string): string {
       html += char;
     }
   }
-
-  return html;
+  // Close any open tag at the end of the text
+  if (tagOpen) html += '</span>';
+  return '<span>'+html+'</span>';
 }
 
 function convertAnsiToHtml(escapeCode: string): string {
@@ -469,7 +488,6 @@ function convertAnsiToHtml(escapeCode: string): string {
     return '<span style="color: #00FFFF;">';
   } else if (escapeCode.match(/0;37|1;37/) || escapeCode === '\u001b[0m') {
     return '<span style="color: #FFFFFF;">';
-    // return '</span>'
   } else {
     return '';
   }

@@ -205,7 +205,7 @@ function DynamicGrouping() {
           const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
           setNodeIdToWebsocketSession(node.id, ws, session);
         } else {
-          expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
+          if (node.parentNode) expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
           if (node.type === NORMAL_NODE) {
             setNodeIdToExecCount(node.id, node.data.executionCount.execCount); // put the exec count into the store
           } else if (node.type === OUTPUT_NODE) {
