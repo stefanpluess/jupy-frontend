@@ -15,6 +15,8 @@ import {
   Position,
   NodeResizeControl,
   Panel,
+  ResizeDragEvent,
+  ResizeParams,
 } from "reactflow";
 import {
   faCheck,
@@ -34,6 +36,9 @@ import useSettingsStore from "../../helpers/settingsStore";
 import { getNodeOrder } from "../../helpers/utils";
 import CopyButton from "../buttons/CopyContentButton";
 import { monacoOptions } from "../../config/config";
+import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useDocumentStore } from "../../helpers/documentStore";
+import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
 
 /**
  * A React component that represents a Markdown node used in the Home component.
@@ -66,12 +71,21 @@ function MarkdownNode({ id, data }: NodeProps) {
   const clickedNodeOrder = useNodesStore((state) => state.clickedNodeOrder);
   const [isPicked, setIsPicked] = useState(false);
 
-  const onDelete = () => deleteElements({ nodes: [{ id }] });
+  const {sendDeleteTransformation, sendUpdate, sendResize} = useUpdateWebSocket();
+  const {generateNodePatch} = useDocumentStore();
+
+  const {userPositions} = useUpdateWebSocketStore();
+
+  const onDelete = () => {
+    deleteElements({ nodes: [{ id }] })
+    sendDeleteTransformation(id);
+  };
   const onDetach = () => detachNodes([id]);
 
   const handleEditorChange = useCallback(
     (value: string, event: any) => {
       data.code = value;
+      sendUpdate(value, id)
     },
     [data, data.code]
   );
@@ -128,8 +142,34 @@ function MarkdownNode({ id, data }: NodeProps) {
         className="cellButton"
         nodeType={MARKDOWN_NODE} 
       />
+      {userPositions[id] && Object.values(userPositions[id]).map((pos => (
+      <div 
+        key={pos.client_id}
+        title={pos.clientName}
+        style={{
+          position: 'relative',
+          width: '15px',
+          height: '15px',
+          borderRadius: '50%',
+          backgroundColor : pos.colorCode,
+          display : 'flex',
+          alignSelf : 'center',
+          justifyContent : 'center',
+          alignItems : 'center',
+          fontSize : 'x-small',
+          marginLeft: '2px',
+          border: '0.5px solid white',
+          fontWeight: '900',
+          color: 'white'
+        }}
+      >{Array.from(pos.clientName)[0]}</div>
+    )))}
     </div>
   );
+
+  const onResizeEnd = useCallback((event: ResizeDragEvent, params: ResizeParams) => {
+    sendResize(id, params.height, params.width)
+  }, [])
 
   const nodeResizer = (
     <NodeResizeControl
@@ -138,6 +178,7 @@ function MarkdownNode({ id, data }: NodeProps) {
       minHeight={MIN_HEIGHT}
       maxWidth={maxWidth}
       maxHeight={maxHeight}
+      onResizeEnd={onResizeEnd}
     >
       <ResizeIcon />
     </NodeResizeControl>

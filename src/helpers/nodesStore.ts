@@ -8,6 +8,7 @@ export type NodesStore = {
     // INFO :: execution count
     nodeIdToExecCount: NodeIdToExecCount;
     setNodeIdToExecCount: (id: string, count: number | string) => void;
+    getExecCountFromNodeId: (id: string) => any;
 
     // INFO :: outputs
     nodeIdToOutputs: NodeIdToOutputs;
@@ -96,6 +97,9 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
           },
         },
     }))
+  },
+  getExecCountFromNodeId : (id : string) => {
+    return get().nodeIdToExecCount[id]
   },
   // INFO :: outputs
   nodeIdToOutputs: {} as NodeIdToOutputs,
@@ -227,7 +231,7 @@ const useNodesStore = createWithEqualityFn<NodesStore>((set, get) => ({
   },
   clickedNodes: new Set(),
   clickedNodeOrder: [],
-  toggleNode: (nodeId: NodeProps['id']) =>
+  toggleNode: (nodeId: NodeProps['id']) => 
     set((state) => {
       const clickedNodes = new Set(state.clickedNodes);
       const clickedNodeOrder = state.clickedNodeOrder.slice();

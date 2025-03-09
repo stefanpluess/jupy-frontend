@@ -12,11 +12,14 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@types/lodash.debounce": "^4.0.9",
     "@uiw/react-monacoeditor": "^3.5.9",
     "axios": "^1.4.0",
     "bootstrap": "^5.2.3",
     "clipboard-polyfill": "^4.0.0",
+    "diff-match-patch": "^1.0.5",
     "interactjs": "^1.10.17",
+    "lodash.debounce": "^4.0.8",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.4",
     "react-dom": "^18.2.0",
@@ -28,7 +31,7 @@
     "sass": "^1.64.2",
     "sweetalert2": "^11.7.22",
     "sweetalert2-react-content": "^5.0.7",
-    "uuid": "^9.0.0",
+    "uuid": "^9.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -58,6 +61,7 @@
     ]
   },
   "devDependencies": {
+    "@types/diff-match-patch": "^1.0.36",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/react-syntax-highlighter": "^15.5.7",

@@ -7,6 +7,7 @@ import { useWebSocketStore, createSession, selectorGeneral } from '../websocket'
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
 import { useUpdateHistory } from '.';
+import { useUpdateWebSocket } from '../websocket/updateWebSocket';
 
 
 /**
@@ -26,6 +27,7 @@ export function useCellBranch(id: NodeProps['id']) {
     const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
     const updateExportImportHistory = useUpdateHistory();
+    const {sendPredecessorGroup} = useUpdateWebSocket();
 
     const onCellBranchOut = useCallback(async (): Promise<string> => {
         const sourceGroupNode = getNode(id);
@@ -132,6 +134,7 @@ export function useCellBranch(id: NodeProps['id']) {
             // console.log('Waiting for websocket in node ' + newGroupNodeId + ' to be connected');
             await new Promise(resolve => setTimeout(resolve, 50));
         }
+        sendPredecessorGroup(newGroupNode, newEdge);
         return newGroupNodeId;
     }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, getWsRunningForNode, setNodeIdToWebsocketSession, updateExportImportHistory]);
 

@@ -1,9 +1,10 @@
 import axios from 'axios'
 import type { Edge, Node, XYPosition } from 'reactflow';
-import { Position } from 'reactflow';
+import { Position, useReactFlow } from 'reactflow';
 import { Notebook, NotebookCell, NotebookOutput, NotebookPUT, OutputNodeData, positionNode } from '../config/types';
-import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION, MIN_WIDTH, MIN_HEIGHT } from '../config/constants';
+import { GROUP_NODE, MARKDOWN_NODE, NORMAL_NODE, OUTPUT_NODE, GROUP_EDGE, ID_LENGTH, TOP_DOWN_ORDER, EXPORT_ACTION, RUNBRANCH_ACTION, MIN_WIDTH, MIN_HEIGHT, DEFAULT_WIDTH_GROUP, DEFAULT_HEIGHT_GROUP, DEFAULT_LOCK_STATUS, EXTENT_PARENT } from '../config/constants';
 import { serverURL } from '../config/config';
+
 
 
 /** Method to modify the initial notebook to contain 1 group cell and 1 code cell */

@@ -12,7 +12,10 @@ import {
 import {
   faSave,
   faGear,
-  faGripVertical
+  faGripVertical,
+  faUsers,
+  faHandshake,
+  faDoorOpen
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
@@ -24,6 +27,10 @@ import useSettingsStore from "../../helpers/settingsStore";
 import useNodesStore from "../../helpers/nodesStore";
 import { GROUP_NODE } from "../../config/constants";
 import ToggleSwitch from "../buttons/ToggleSwitch";
+import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import {useDocumentStore} from "../../helpers/documentStore";
+import CollaborationSessionPopup from "../ui/CollaborationSessionPopup";
+import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
 
 const onDragStart = (event: DragEvent, nodeType: string) => {
   event.dataTransfer.setData("application/reactflow", nodeType);
@@ -35,6 +42,8 @@ type SidebarProps = {
   edges: Edge[];
   setShowSuccessAlert: any;
   setShowErrorAlert: any;
+  setShowCollaborationSessionPopup: any;
+  setShowCollaborators: any;
 };
 
 /**
@@ -51,6 +60,8 @@ const Sidebar = ({
   edges,
   setShowSuccessAlert,
   setShowErrorAlert,
+  setShowCollaborationSessionPopup,
+  setShowCollaborators
 }: SidebarProps) => {
   const path = usePath();
   const token = useWebSocketStore((state) => state.token)
@@ -63,7 +74,8 @@ const Sidebar = ({
   const setAutoSaveSetting = useSettingsStore((state) => state.setAutoSave);
   const changeAutoSave = () => setAutoSaveSetting(!autoSaveSetting);
   const [isSpinning, setIsSpinning] = useState(false);
-
+  const {startWebsocket} = useUpdateWebSocket();
+  const {isWebSocketSet, closeWebSocket} = useUpdateWebSocketStore();
   const handleSettingsClick = () => {
     setShowSettings(true);
     setIsSpinning(true);
@@ -188,7 +200,17 @@ const Sidebar = ({
 
 
       <div className = "settingsContainer">
-
+        {isWebSocketSet() && (
+          <div className = "collaboratorContainer">
+          <Button
+            className="collaboratorButton"
+            title="Show Collaborators"
+            variant="success"
+            onClick={() => setShowCollaborators(true)}>
+              <FontAwesomeIcon icon={faUsers}/>
+            </Button>
+        </div>
+        )}
         <div className="autoSaveContainer">
           <div className="autoSave">AutoSave</div>
           <ToggleSwitch
@@ -224,6 +246,29 @@ const Sidebar = ({
         >
           <FontAwesomeIcon icon={faSave} />
         </Button>
+        {!isWebSocketSet() && (
+          <Button
+            variant="success"
+            className="createcollabSessionButton"
+            title="Create collaborative Session"
+            onClick={() => {
+            setShowCollaborationSessionPopup(true)
+          }}
+          ><FontAwesomeIcon icon={faHandshake}/></Button>
+        )}
+        {isWebSocketSet() && (
+          <Button
+            variant ="danger"
+            className="endCollaborationSessionButton"
+            title="End collaboration session"
+            onClick={() => {
+              closeWebSocket();
+            }}>
+              <FontAwesomeIcon icon={faDoorOpen}/>
+            </Button>
+        )}
+        
+          
       </div>
     </aside>
   );

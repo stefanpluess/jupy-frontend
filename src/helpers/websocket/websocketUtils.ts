@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { WebSocketState } from './webSocketStore';
 import { Session } from '../../config/types';
-import { serverURL, serverWSURL } from '../../config/config';
+import { serverURL, serverWSURL } from '../../config/config'; 
 // access the type from WebSocketState
 type setLEOType = WebSocketState['setLatestExecutionOutput'];
 type setLECType = WebSocketState['setLatestExecutionCount'];

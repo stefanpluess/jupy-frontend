@@ -113,6 +113,11 @@ import "../../styles/components/controls.scss";
 import "../../styles/components/minimap.scss";
 import 'react-toastify/dist/ReactToastify.css';
 import CopyButton from "../buttons/CopyContentButton";
+import {useDocumentStore} from "../../helpers/documentStore";
+import CollaborationSessionPopup from "../ui/CollaborationSessionPopup";
+import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
+import Collaborators from "../ui/Collaborators";
 
 /**
  * Home component, which is the main component of the application.
@@ -179,6 +184,12 @@ function DynamicGrouping() {
   const clickedNodeCode = useExecutionStore((state) => state.clickedNodeCode);
   const setClickedNodeCode = useExecutionStore((state) => state.setClickedNodeCode);
   const [showCode, setShowCode] = useState(false);
+  const {setDocument} = useDocumentStore();
+  const [showCollaborationSessionPopup, setShowCollaborationSessionPopup] = useState<boolean>(false);
+  const [showCollaborators, setShowCollaborators] = useState<boolean>(false);
+  const {sendAddTransformation, sendMoveTransformation, sendClickedNode} = useUpdateWebSocket();
+  const getUsers = useUpdateWebSocketStore((state) => state.getUsers);
+  const userPositions = useUpdateWebSocketStore((state) => state.userPositions);
 
   // Remove the resizeObserver error
   useEffect(() => {
@@ -377,6 +388,7 @@ function DynamicGrouping() {
 
       // assign the group node as a parent if dropped on a code cell
       if (type === GROUP_NODE) handleBubbleDropOnCodeCell(newNode);
+      sendAddTransformation(newNode)
     }
   };
 
@@ -385,6 +397,7 @@ function DynamicGrouping() {
     (_: MouseEvent, node: Node) => {
       if (!canRunOnNodeDrag(node)) {
         handleBubbleDropOnCodeCell(node);
+        sendMoveTransformation(node.id, node.position, node.parentNode? node.parentNode : undefined);
         return;
       }
       /* function calculates intersections, i.e., the group nodes 
@@ -431,12 +444,15 @@ function DynamicGrouping() {
           .sort(sortNodes);
         setNodes(nextNodes);
       }
+      console.log(node)
+      sendMoveTransformation(node.id, node.position, node.parentNode);
     },
     [handleBubbleDropOnCodeCell, getIntersectingNodes, setNodes, store, onDragStartData]
   );
 
   const onNodeDragStart = useCallback(
     (_: MouseEvent, node: Node) => {
+      console.log(node)
       if (!canRunOnNodeDrag(node) || !checkNodeAllowed(node.id)) return;
       const draggedNodeId = node.id;
       // find the connected node - could be SimpleNode or SimpleOutputNode
@@ -468,6 +484,7 @@ function DynamicGrouping() {
 
   const onNodeDrag = useCallback(
     (_: MouseEvent, node: Node) => {
+      console.log("onNodeDrag executed")
       /* In case we are dragging a group node, we look for intersecting nodes of other types.
       Else, we look for intersection group nodes. */
       const intersections = getIntersectingNodes(node)
@@ -532,6 +549,7 @@ function DynamicGrouping() {
 
   const onNodeClick = useCallback(
     (_: MouseEvent, node: Node) => {
+      sendClickedNode(node.id);
       if (!isCellBranchActive.isActive || node.type === GROUP_NODE) return;
       if (node.parentNode !== isCellBranchActive.id) {
         showAlertCellBranchOut();
@@ -680,7 +698,7 @@ function DynamicGrouping() {
     // onDragOver, onDragEnter is needed for drag and drop from the side bar to not display the "no-drop" cursor
     <div onDragOver={onDragOver} onDragEnter={onDragOver} className={"wrapper"}> 
       <div className={"sidebar"}>
-        <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} />
+        <Sidebar nodes={nodes} edges={edges} setShowSuccessAlert={setShowSuccessAlert} setShowErrorAlert={setShowErrorAlert} setShowCollaborationSessionPopup={setShowCollaborationSessionPopup} setShowCollaborators={setShowCollaborators}/>
       </div>
       <div className={isDraggedFromSidebar ? "rfWrapper nodeDraggedFromSideBar" : "rfWrapper"} ref={wrapperRef}>
         <ReactFlow
@@ -781,6 +799,8 @@ function DynamicGrouping() {
             />
           </Panel>
           <SettingsPopup show={showSettings} onClose={() => setShowSettings(false)} />
+          <CollaborationSessionPopup show={showCollaborationSessionPopup} handleClose={() => setShowCollaborationSessionPopup(false)}></CollaborationSessionPopup>
+          <Collaborators show={showCollaborators} handleClose={() => setShowCollaborators(false)} userPositions={userPositions}></Collaborators>
         </ReactFlow>
       </div>
     </div>

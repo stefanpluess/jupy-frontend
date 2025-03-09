@@ -12,6 +12,7 @@ import {
   NodeProps,
   useStore,
   NodeResizeControl,
+  useReactFlow,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -27,7 +28,7 @@ import {
   useResizeBoundaries 
 } from "../../helpers/hooks";
 import useNodesStore from "../../helpers/nodesStore";
-import { ansiToHtml, getConnectedNodeId } from "../../helpers/utils";
+import { ansiToHtml, getConnectedNodeId, getSimpleNodeId } from "../../helpers/utils";
 //COMMENT :: Internal modules CONFIG
 import { OutputNodeData } from "../../config/types";
 import { CONTROL_STLYE, OUTPUT_NODE } from "../../config/constants";
@@ -37,6 +38,7 @@ import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules BUTTONS
 import CopyButton from "../buttons/CopyContentButton";
 import SaveGraphButton from "../buttons/SaveGraphButton";
+import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -77,6 +79,9 @@ function SimpleOutputNode({
   const setOutputTypeEmpty = useNodesStore((state) => state.setOutputTypeEmpty);
   const outputTypeEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+  const getExecCountForNodeId = useNodesStore((state) => state.getExecCountFromNodeId);
+  const {getNode} = useReactFlow();
+  const {sendOutput} = useUpdateWebSocket();
 
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
@@ -134,7 +139,12 @@ function SimpleOutputNode({
       currentGroup.output += strippedOutput[indexOfCorrectOutput];
     });
     setGroupedOutputs(grouped);
-    data.outputs = grouped; // save the outputs grouped in the data object
+    data.outputs = grouped;
+    if(!getNode(id)?.data.serverTriggered) {
+      sendOutput(id);
+    }
+    getNode(id)!.data.serverTriggered = false;
+     // save the outputs grouped in the data object
   }, [outputs]);
 
   /* Ensure that, even if outputs is received before exec count, it is correctly set to check mark icon (only when empty) */

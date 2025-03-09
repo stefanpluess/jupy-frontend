@@ -100,6 +100,7 @@ import {
 } from "../../config/config";
 import { InstalledPackages, OutputNodeData } from "../../config/types";
 import useSettingsStore from "../../helpers/settingsStore";
+import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
 
 /**
  * Renders a group node on the canvas that allows a connection to the kernel in 
@@ -188,6 +189,9 @@ function GroupNode({ id, data }: NodeProps) {
   const addToHistory = useExecutionStore((state) => state.addToHistory);
   const clearHistory = useExecutionStore((state) => state.clearHistory);
   const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
+
+  const {sendChildIds, sendDeleteTransformation} = useUpdateWebSocket();
+  
 
   useEffect(() => {
     const addEventListeners = async () => {
@@ -294,6 +298,7 @@ function GroupNode({ id, data }: NodeProps) {
     // create and array with id and childNodeIds
     const deletedIds = [id, ...childNodeIds];
     addDeletedNodeIds(deletedIds);
+    sendDeleteTransformation(id);
   };
 
   /* BRANCH OUT */
@@ -347,9 +352,11 @@ function GroupNode({ id, data }: NodeProps) {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
         setInfluenceStateForGroupNode(id, true); 
+        sendChildIds(newGroupNodeId, pickedNodeIds);
       } catch (error) {
           console.error("An error occurred during the cell branch:", error);
       }
+      //sendSplitKernel(getNode(newGroupNodeId), pickedNodeIds)
     };
     // check if this group node is eligible to conduct cell branch
     if (isCellBranchActive.id === id){

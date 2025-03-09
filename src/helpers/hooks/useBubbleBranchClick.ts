@@ -7,6 +7,7 @@ import { useWebSocketStore, createSession, selectorGeneral } from '../websocket'
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
 import { useUpdateHistory } from '.';
+import { useUpdateWebSocket } from '../websocket/updateWebSocket';
 
 /**
  * Returns a callback function that creates a new child group node and connection from the given parent.
@@ -22,6 +23,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
     const updateExportImportHistory = useUpdateHistory();
+    const {sendAddTransformation} = useUpdateWebSocket();
 
     const onBranchOut = useCallback(async () => {
         // check the node type
@@ -95,7 +97,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
 
         // zoom to the new group node: 
         await new Promise(resolve => setTimeout(resolve, 400));
-        fitView({ padding: 1.5, duration: 800, nodes: [{ id: childNodeId }] }); 
+        fitView({ padding: 1.5, duration: 800, nodes: [{ id: childNodeId }] });
+        sendAddTransformation(childNode,undefined, childEdge)
     }, [getEdges, getNode, getNodes, id, setEdges, setNodes, getNodeIdToWebsocketSession, setNodeIdToWebsocketSession, updateExportImportHistory]);
 
   return onBranchOut;

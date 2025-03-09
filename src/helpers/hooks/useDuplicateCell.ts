@@ -2,8 +2,9 @@ import { NodeProps, useReactFlow, useStoreApi, Node, Edge } from 'reactflow';
 import { useCallback } from 'react';
 import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } from '../utils';
 import useNodesStore from '../nodesStore';
-import { FLOATING_EDGE, NORMAL_EDGE } from '../../config/constants';
+import { FLOATING_EDGE, GROUP_NODE, NORMAL_EDGE, NORMAL_NODE } from '../../config/constants';
 import useSettingsStore from '../settingsStore';
+import { useUpdateWebSocket } from '../websocket/updateWebSocket';
 
 /**
  * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.
@@ -16,6 +17,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
     const setNodeIdToExecCount = useNodesStore((state) => state.setNodeIdToExecCount);
     const toggleLock = useNodesStore((state) => state.toggleLock);
     const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+    const {sendAddTransformation} = useUpdateWebSocket();
 
     const onDuplicateCell= useCallback(async () => {
         // COMMENT - create a deep copy of the code node
@@ -58,7 +60,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 duplicateSimpleNode.parentNode = groupNode?.id;
             } else {
                 console.error("[useDuplicateCell] no group node found.");
-            }
+            }          
         }
 
         // COMMENT - if the node is not connected to anything, we don't need to create an output node
@@ -71,6 +73,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
                 .concat(duplicateSimpleNode)
                 .sort(sortNodes);
             setNodes(sortedNodes);
+            sendAddTransformation(duplicateSimpleNode)
         } else {
             let deepCopyOfOutputNode;
             try {
@@ -129,6 +132,7 @@ export function useDuplicateCell(id: NodeProps['id']) {
             );
             // lock the new node, since it is first call with this id it will make it locked
             toggleLock(new_id);
+            sendAddTransformation(duplicateSimpleNode, duplicateOutputNode, newEdge);
         }
     }, [getNode, getNodes, id, setEdges, setNodes, getIntersectingNodes, floatingEdgesSetting, toggleLock]);
 

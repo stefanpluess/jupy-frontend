@@ -149,7 +149,7 @@ export type NotebookCell = {
     id: string;
     metadata?: any;
     outputs?: NotebookOutput[];
-    source: string[];
+    source: string;
     position?: XYPosition;
     height?: number | null;
     width?: number | null;
