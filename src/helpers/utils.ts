@@ -103,7 +103,8 @@ export function createInitialElements(cells: NotebookCell[]): { initialNodes: No
       outputNodes.push(outputNode);
       // create an edge from the node to the output node
       initialEdges.push({
-        id: `${node.id}-${outputNode.id}`,
+        //id: `${node.id}-${outputNode.id}`,
+        id: `${node.id}_edge`,
         source: node.id,
         target: outputNode.id,
       });
@@ -349,12 +350,12 @@ export async function getKernelspecs(token: string) {
 export async function passParentState(token: string, dill_path: string, parent_kernel_id: string, child_kernel_id: string) {
   var parent_exec_count, child_exec_count;
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  await axios.post(`${serverURL}/canvas_ext/export`, { 'kernel_id': parent_kernel_id })
+  await axios.post(`${serverURL}/api/canvas_ext/export`, { 'kernel_id': parent_kernel_id })
     .then((res) => parent_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // wait for 200ms to ensure the state was actually saved
   await new Promise(resolve => setTimeout(resolve, 200));
-  await axios.post(`${serverURL}/canvas_ext/import`, { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
+  await axios.post(`${serverURL}/api/canvas_ext/import`, { 'parent_kernel_id': parent_kernel_id, 'kernel_id': child_kernel_id })
     .then((res) => child_exec_count = res.data.execution_count)
     .catch((err) => console.log(err));
   // delete the dill file that was saved
@@ -366,7 +367,7 @@ export async function passParentState(token: string, dill_path: string, parent_k
 /** Method to analyze code (static analysis) after executing a code cell */
 export async function analyzeCode(token: string, code: string) {
   axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  return axios.post(`${serverURL}/canvas_ext/analyze`, { 'code': code, 'use_dict': false })
+  return axios.post(`${serverURL}/api/canvas_ext/analyze`, { 'code': code, 'use_dict': false })
     .then(res => res.data)
     .catch(error => {
       console.error("Error analyzing code:", error);
@@ -380,10 +381,10 @@ export async function analyzeCode(token: string, code: string) {
  * USAGE EXAMPLE - passing all mandatory and one optional parameter:
  * ---> generateMessage(msg_id, code, {username: 'test'});
  */
-export function generateMessage( msg_id: string, code: string, {
+export function generateMessage( msg_id: string, code: string, nodeId : string, parentNodeId : string, {
     msg_type = 'execute_request',
     username = 'username',
-    metadata = {},
+/*     metadata = {}, */
     silent = false,
     store_history = true,
     user_expressions = {},
@@ -398,8 +399,10 @@ export function generateMessage( msg_id: string, code: string, {
             msg_type: msg_type,
             msg_id: msg_id,
             username: username,
+            nodeId : nodeId,
+            parentNodeId : parentNodeId
         },
-        metadata: metadata,
+        metadata: {},
         content: {
             code: code,
             silent: silent,

@@ -2,7 +2,8 @@
 import { 
   useState, 
   useEffect, 
-  useRef 
+  useRef, 
+  useCallback
 } from "react";
 import { memo } from "react";
 import {
@@ -13,6 +14,8 @@ import {
   useStore,
   NodeResizeControl,
   useReactFlow,
+  ResizeDragEvent,
+  ResizeParams,
 } from "reactflow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -38,7 +41,7 @@ import useSettingsStore from "../../helpers/settingsStore";
 //COMMENT :: Internal modules BUTTONS
 import CopyButton from "../buttons/CopyContentButton";
 import SaveGraphButton from "../buttons/SaveGraphButton";
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 
 /**
  * A React component that represents an output node on the canvas.
@@ -81,7 +84,7 @@ function SimpleOutputNode({
   const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
   const getExecCountForNodeId = useNodesStore((state) => state.getExecCountFromNodeId);
   const {getNode} = useReactFlow();
-  const {sendOutput} = useUpdateWebSocket();
+  const {sendResize} = useUpdateWebSocket();
 
   /**
    * This useEffect is responsible for grouping the outputs of the code cell
@@ -140,10 +143,6 @@ function SimpleOutputNode({
     });
     setGroupedOutputs(grouped);
     data.outputs = grouped;
-    if(!getNode(id)?.data.serverTriggered) {
-      sendOutput(id);
-    }
-    getNode(id)!.data.serverTriggered = false;
      // save the outputs grouped in the data object
   }, [outputs]);
 
@@ -201,6 +200,10 @@ function SimpleOutputNode({
   // INFO :: 0️⃣ change class when no output
   const canRenderEmpty = useNodesStore((state) => state.outputNodesOutputType[id] ?? false);
 
+  const onResizeEnd = useCallback((event: ResizeDragEvent, params: ResizeParams) => {
+    sendResize(id, params.height, params.width);
+  }, [])
+
   return (
     <div className={canRenderEmpty ? "OutputNodeEmpty" : "OutputNode"}
       style={outerDivMaxSize} // needed to maintain the size of the outer div
@@ -212,6 +215,7 @@ function SimpleOutputNode({
         maxWidth={maxWidth} // this is only triggered after the node is resized
         maxHeight={maxHeight} // this is only triggered after the node is resized
         onResize={onResize}
+        onResizeEnd={onResizeEnd}
       >
         <ResizeIcon isSmaller />
       </NodeResizeControl>

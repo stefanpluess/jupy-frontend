@@ -3,14 +3,16 @@ import { Edge, Node, useReactFlow, Rect} from 'reactflow';
 import { createOutputNode, keepPositionInsideParent } from '../utils';
 import { EXTENT_PARENT, FLOATING_EDGE, MIN_OUTPUT_SIZE, NORMAL_EDGE } from '../../config/constants';
 import useSettingsStore from '../settingsStore';
+//import { useUpdateWebSocket } from '../websocket/updateWebSocket';
 
 /**
  * Returns a function that inserts output nodes and edges into the React Flow graph.
  */
 function useInsertOutput() {
-    const { getNode, setNodes, setEdges, isNodeIntersecting } = useReactFlow();
+    const { getNode, setNodes, setEdges, isNodeIntersecting, getEdges } = useReactFlow();
     const expandParentSetting = useSettingsStore((state) => state.expandParent);
     const floatingEdgesSetting = useSettingsStore((state) => state.floatingEdges);
+    //const {sendNewOutputNode} = useUpdateWebSocket();
     /**
      * Inserts output nodes and edges into the React Flow graph.
      * @param node_ids - An array of node IDs to insert output nodes and edges for.
@@ -54,11 +56,13 @@ function useInsertOutput() {
                 target: node_id + "_output",
                 type: floatingEdgesSetting ? FLOATING_EDGE : NORMAL_EDGE,
             };
+            //sendNewOutputNode(outputNode, edge);
             newNodes.push(outputNode);
             newEdges.push(edge);
         });
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-        setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+        const filteredPreviousEdges = getEdges().filter((prevEdge) => !newEdges.some((newEdge) => newEdge.id === prevEdge.id))
+        setEdges(filteredPreviousEdges.concat(newEdges));
 
     }, [getNode, setNodes, setEdges, createOutputNode, expandParentSetting, floatingEdgesSetting]);
 

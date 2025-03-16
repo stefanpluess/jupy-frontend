@@ -61,7 +61,9 @@ import {
   usePath, 
   useChangeExpandParent,
   useChangeFloatingEdges,
-  useCellBranchReset
+  useCellBranchReset,
+  useInsertOutput,
+  useCollabOutputUtils
 } from "../../helpers/hooks";
 import {
   useWebSocketStore,
@@ -115,7 +117,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import CopyButton from "../buttons/CopyContentButton";
 import {useDocumentStore} from "../../helpers/documentStore";
 import CollaborationSessionPopup from "../ui/CollaborationSessionPopup";
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
 import Collaborators from "../ui/Collaborators";
 
@@ -187,10 +189,16 @@ function DynamicGrouping() {
   const {setDocument} = useDocumentStore();
   const [showCollaborationSessionPopup, setShowCollaborationSessionPopup] = useState<boolean>(false);
   const [showCollaborators, setShowCollaborators] = useState<boolean>(false);
-  const {sendAddTransformation, sendMoveTransformation, sendClickedNode} = useUpdateWebSocket();
-  const getUsers = useUpdateWebSocketStore((state) => state.getUsers);
+  const {sendAddTransformation, sendMoveTransformation, sendClickedNode, sendNewOutputNode} = useUpdateWebSocket();
   const userPositions = useUpdateWebSocketStore((state) => state.userPositions);
-
+  const joinedUser = useUpdateWebSocketStore((state) => state.joinedUser);
+  const leftUser = useUpdateWebSocketStore((state) => state.leftUser);
+  const showJoinedUser = useUpdateWebSocketStore((state) => state.showJoinedUser);
+  const showLeftUser = useUpdateWebSocketStore((state) => state.showLeftUser);
+  const setShowJoinedUser = useUpdateWebSocketStore((state) => state.setShowJoinedUser);
+  const setShowLeftUser = useUpdateWebSocketStore((state) => state.setShowLeftUser);
+  const insertOutput = useInsertOutput();
+  const {collabOutputUtils} = useCollabOutputUtils();
   // Remove the resizeObserver error
   useEffect(() => {
     const errorHandler = (e: any) => {
@@ -213,7 +221,7 @@ function DynamicGrouping() {
       // For each group node, start a websocket connection
       initialNodes.forEach( async (node) => {
         if (node.type === GROUP_NODE) {
-          const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+          const {ws, session} = await createSession(node.id, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
           setNodeIdToWebsocketSession(node.id, ws, session);
         } else {
           if (node.parentNode) expandParentSetting ? node.expandParent = true : node.extent = EXTENT_PARENT;
@@ -346,7 +354,7 @@ function DynamicGrouping() {
 
       // in case we drop a group, create a new websocket connection
       if (type === GROUP_NODE) {
-        const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const {ws, session} = await createSession(newNode.id, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
         setNodeIdToWebsocketSession(newNode.id, ws, session);
       } else if (type === NORMAL_NODE) {
         newNode.data.executionCount = {
@@ -549,7 +557,9 @@ function DynamicGrouping() {
 
   const onNodeClick = useCallback(
     (_: MouseEvent, node: Node) => {
-      sendClickedNode(node.id);
+      if(node.type === MARKDOWN_NODE || node.type === NORMAL_NODE) {
+        sendClickedNode(node.id);
+      }
       if (!isCellBranchActive.isActive || node.type === GROUP_NODE) return;
       if (node.parentNode !== isCellBranchActive.id) {
         showAlertCellBranchOut();
@@ -620,6 +630,20 @@ function DynamicGrouping() {
     }));
   }, [hoveredNodeId]);
 
+  useEffect(() => {
+    if (showJoinedUser) {
+      const userJoinedTimeout = setTimeout(() => {setShowJoinedUser(false)}, 3000);
+      return () => {clearTimeout(userJoinedTimeout)};
+    }
+  }, [showJoinedUser])
+
+  useEffect(() => {
+    if(showLeftUser) {
+      const userLeftTimeout = setTimeout(() => {setShowLeftUser(false)}, 3000);
+      return () => {clearTimeout(userLeftTimeout)};
+    }
+  }, [showLeftUser])
+
   // show the code of the code cell in <Panel> that was clicked in the execution graph
   useEffect(() => {
     if (clickedNodeCode) {
@@ -632,7 +656,6 @@ function DynamicGrouping() {
     setClickedNodeCode(undefined);
     setHoveredNodeId(undefined);
   }
-
   // ---------- ALERTS ----------
   const SuccessAlert = () => {
     return (
@@ -648,6 +671,20 @@ function DynamicGrouping() {
       </Alert>
     );
   };
+  const UserJoinedAlert = () => {
+    return (
+      <Alert variant="success" show={showJoinedUser} onClose={() => setShowJoinedUser(false)} dismissible>
+        {joinedUser} joined the session!
+      </Alert>
+    )
+  }
+  const UserLeftAlert = () => {
+    return (
+      <Alert variant="success" show={showLeftUser} onClose={() => setShowLeftUser(false)} dismissible>
+        {leftUser} left the session!
+      </Alert>
+    )
+  }
   useEffect(() => {
     if (showSuccessAlert) {
       const successTimeout = setTimeout(() => { setShowSuccessAlert(false) }, 3000);
@@ -783,6 +820,8 @@ function DynamicGrouping() {
             <SuccessAlert />
             <ErrorAlert />
             <CellBranchAlert />
+            <UserJoinedAlert/>
+            <UserLeftAlert/>
           </Panel>
           <Panel position="top-left">
             <ToastContainer 

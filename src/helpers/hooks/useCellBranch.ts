@@ -6,8 +6,8 @@ import { GROUP_NODE, GROUP_EDGE } from '../../config/constants';
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
-import { useUpdateHistory } from '.';
-import { useUpdateWebSocket } from '../websocket/updateWebSocket';
+import { useCollabOutputUtils, useUpdateHistory } from '.';
+import { useUpdateWebSocket } from './useUpdateWebSocket';
 
 
 /**
@@ -27,7 +27,8 @@ export function useCellBranch(id: NodeProps['id']) {
     const getWsRunningForNode = useNodesStore((state) => state.getWsRunningForNode);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
     const updateExportImportHistory = useUpdateHistory();
-    const {sendPredecessorGroup} = useUpdateWebSocket();
+    const {sendPredecessorGroup, sendNewOutputNode} = useUpdateWebSocket();
+    const {collabOutputUtils} = useCollabOutputUtils();
 
     const onCellBranchOut = useCallback(async (): Promise<string> => {
         const sourceGroupNode = getNode(id);
@@ -60,7 +61,7 @@ export function useCellBranch(id: NodeProps['id']) {
         };
 
         // create a websocket connection and pass the parent state to the child
-        const {ws, session} = await createSession(newGroupNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const {ws, session} = await createSession(newGroupNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
         setNodeIdToWebsocketSession(newGroupNodeId, ws, session);
 
         // check if the source group node has a predecessor

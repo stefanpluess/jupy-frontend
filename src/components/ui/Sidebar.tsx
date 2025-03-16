@@ -27,7 +27,7 @@ import useSettingsStore from "../../helpers/settingsStore";
 import useNodesStore from "../../helpers/nodesStore";
 import { GROUP_NODE } from "../../config/constants";
 import ToggleSwitch from "../buttons/ToggleSwitch";
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 import {useDocumentStore} from "../../helpers/documentStore";
 import CollaborationSessionPopup from "../ui/CollaborationSessionPopup";
 import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { WebSocketState } from './webSocketStore';
+import useWebSocketStore, { WebSocketState } from './webSocketStore';
 import { Session } from '../../config/types';
 import { serverURL, serverWSURL } from '../../config/config'; 
 // access the type from WebSocketState
@@ -10,14 +10,14 @@ export async function createSession(node_id: string,
                                     path: string,
                                     token: string,
                                     setLatestExecutionOutput: setLEOType,
-                                    setLatestExecutionCount: setLECType): Promise<{ws: WebSocket, session: Session}> {
+                                    setLatestExecutionCount: setLECType, collabOutputUtils : any, sendNewOutputNode : any): Promise<{ws: WebSocket, session: Session}> {
     const adjustedPath = path + '_' + node_id;
     const session = await startSession(token, adjustedPath);
     const ws = await startWebsocket(session.id!,
                                     session.kernel.id!,
                                     token,
                                     setLatestExecutionOutput,
-                                    setLatestExecutionCount);
+                                    setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
     return {ws: ws, session: session};
 }
 
@@ -38,7 +38,7 @@ export async function startSession(token: string, path: string): Promise<Session
 
 export async function startWebsocket(session_id: string, kernel_id: string, token: string, 
                                      setLatestExecutionOutput: setLEOType,
-                                     setLatestExecutionCount: setLECType): Promise<WebSocket> {
+                                     setLatestExecutionCount: setLECType, collabOutputUtils : any, sendNewOutputNode : any): Promise<WebSocket> {
     const websocketUrl = `${serverWSURL}/api/kernels/${kernel_id}/channels?
         session_id=${session_id}&token=${token}`;
     const ws = new WebSocket(websocketUrl);
@@ -46,7 +46,8 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
     ws.onopen = () => {
         console.log('WebSocket connection established');
     };
-
+    const store = useWebSocketStore;
+    const {msgIdToExecInfo, setMsgIdToExecInfo} = store.getState();
     // Handle incoming messages from the kernel
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -54,12 +55,23 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
         // console.log('Received message from kernel:', message);
 
         // Handle different message types as needed
-        if (msg_type === 'execute_reply') {
+        if (msg_type === 'status' && message.content.execution_state === 'busy') {
+            if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: {nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId);
+            }
+        } else if (msg_type === 'execute_reply') {
             // if (message.content.status === 'error' || message.content.status === 'abort') return;
             const newObj = {
                 msg_id: message.parent_header.msg_id,
                 execution_count: message.content.execution_count,
             }
+            //sendExecResult(msg_type, message.parent_header.msg_id, newObj, message.msg_id);
+/*             if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: { nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId)
+                console.log("my guy was executed");
+            } */
             setLatestExecutionCount(newObj);
 
         } else if (msg_type === 'execute_result') {
@@ -70,6 +82,12 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
                 isImage: false,
                 outputType: 'execute_result',
             }
+/*             if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: { nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId)
+                console.log("my guy was executed");
+            } */
+            //sendExecResult(msg_type, message.parent_header.msg_id, outputObj, message.msg_id);
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'stream') {
@@ -79,6 +97,12 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
                 isImage: false,
                 outputType: 'stream',
             }
+/*             if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: { nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId)
+                console.log("my guy was executed");
+            } */
+            //sendExecResult(msg_type, message.parent_header.msg_id, outputObj, message.msg_id);
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'display_data') {
@@ -99,7 +123,14 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
                     isImage: false,
                     outputType: 'display_data',
                 }
+                
             }
+/*             if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: { nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId)
+                console.log("my guy was executed");
+            } */
+            //sendExecResult(msg_type, message.parent_header.msg_id, outputObj, message.msg_id);
             setLatestExecutionOutput(outputObj);
 
         } else if (msg_type === 'error') {
@@ -110,7 +141,15 @@ export async function startWebsocket(session_id: string, kernel_id: string, toke
                 isImage: false,
                 outputType: 'error',
             }
+/*             if (!(message.parent_header.msg_id in msgIdToExecInfo) && 'nodeId' in message.parent_header && 'parentNodeId' in message.parent_header) {
+                setMsgIdToExecInfo({[message.parent_header.msg_id]: { nodeId: message.parent_header.nodeId, executedParent: message.parent_header.parentNodeId, code: "" }})
+                collabOutputUtils(message.parent_header.nodeId)
+                console.log("my guy was executed");
+            } */
+            //sendExecResult(msg_type, message.parent_header.msg_id, outputObj, message.msg_id);
             setLatestExecutionOutput(outputObj);
+        } else if (msg_type === 'status' && message.content.execution_state === 'idle' && 'nodeId' in message.parent_header) {
+            sendNewOutputNode(message.parent_header.nodeId);
         }
     };
 

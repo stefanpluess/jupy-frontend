@@ -36,7 +36,7 @@ import useSettingsStore from "../../helpers/settingsStore";
 import { getNodeOrder } from "../../helpers/utils";
 import CopyButton from "../buttons/CopyContentButton";
 import { monacoOptions } from "../../config/config";
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 import { useDocumentStore } from "../../helpers/documentStore";
 import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
 

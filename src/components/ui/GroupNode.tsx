@@ -56,6 +56,8 @@ import {
   useCellBranch,
   useCellBranchReset,
   useUpdateHistory,
+  useInsertOutput,
+  useCollabOutputUtils
 } from "../../helpers/hooks";
 import { 
   exportToJupyterNotebook, 
@@ -100,7 +102,7 @@ import {
 } from "../../config/config";
 import { InstalledPackages, OutputNodeData } from "../../config/types";
 import useSettingsStore from "../../helpers/settingsStore";
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 
 /**
  * Renders a group node on the canvas that allows a connection to the kernel in 
@@ -189,8 +191,10 @@ function GroupNode({ id, data }: NodeProps) {
   const addToHistory = useExecutionStore((state) => state.addToHistory);
   const clearHistory = useExecutionStore((state) => state.clearHistory);
   const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
+  const insertOutput = useInsertOutput();
+  const {sendChildIds, sendDeleteTransformation, sendResize, sendMoveTransformation, sendNewOutputNode} = useUpdateWebSocket();
+  const {collabOutputUtils} = useCollabOutputUtils();
 
-  const {sendChildIds, sendDeleteTransformation} = useUpdateWebSocket();
   
 
   useEffect(() => {
@@ -270,9 +274,10 @@ function GroupNode({ id, data }: NodeProps) {
         setExecutionStateForGroupNode(id, {nodeId: simpleNodeId, state: KERNEL_BUSY});
         // execute the next item
         const msg_id = uuidv4();
-        const message = generateMessage(msg_id, code);
+        const message = generateMessage(msg_id, code, simpleNodeId, id);
         setmsgIdToExecInfo({ [msg_id]: { nodeId: simpleNodeId, executedParent: id, code: code } });
         if (wsRunning) {
+          //sendExecInfo(msg_id, simpleNodeId, id, code);
           const outputNodeId= simpleNodeId + "_output";
           deleteOutput(outputNodeId);
           // INFO :: 0️⃣ empty output type functionality
@@ -398,7 +403,7 @@ function GroupNode({ id, data }: NodeProps) {
     await axios.post(`${serverURL}/api/kernels/${activeSession.kernel.id}/restart`);
     oldWs.close();
     clearHistory(node_id ?? id);
-    const newWs = await startWebsocket(activeSession.id!, activeSession.kernel.id!, token, setLatestExecutionOutput, setLatestExecutionCount);
+    const newWs = await startWebsocket(activeSession.id!, activeSession.kernel.id!, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
     setNodeIdToWebsocketSession(node_id ?? id, newWs, undefined); // only update the ws, keep the session
 
     await fetchFromParentOrNot(fetchParent, node_id);
@@ -409,7 +414,7 @@ function GroupNode({ id, data }: NodeProps) {
     setModalState("showConfirmModalReconnect", false);
     console.log('Starting new session')
     // start new session for either THIS node or the given node
-    const {ws, session} = await createSession(node_id ?? id, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+    const {ws, session} = await createSession(node_id ?? id, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
     setNodeIdToWebsocketSession(node_id ?? id, ws, session); // update both ws and session
 
     await fetchFromParentOrNot(fetchParent, node_id);
@@ -570,7 +575,7 @@ function GroupNode({ id, data }: NodeProps) {
     setInstalledPackages({});
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     const requestBody = { "kernel_id": session?.kernel.id };
-    const response = await axios.post(`${serverURL}/canvas_ext/installed`, requestBody);
+    const response = await axios.post(`${serverURL}/api/canvas_ext/installed`, requestBody);
     setInstalledPackages(response.data.packages);
     addToHistory(id, {
       node_id: id, // provide the group node itself in case of installed packages
@@ -662,6 +667,12 @@ function GroupNode({ id, data }: NodeProps) {
     )
   };
 
+  const onResizeEnd = useCallback(() => {
+    let thisNode = getNode(id)!
+    sendMoveTransformation(id, getNode(id)!.position, undefined);
+    sendResize(id, thisNode.height!, thisNode.width!)
+  }, [])
+
   const displayExecutionState = useCallback(() => {
     if (runBranchActive) return <div className="kernelBusy"><FontAwesomeIcon icon={faSpinner} spin /> Running Branch...</div>
     if (wsRunning) {
@@ -697,6 +708,7 @@ function GroupNode({ id, data }: NodeProps) {
         handleStyle={handleStyle}
         minWidth={minWidth}
         minHeight={minHeight}
+        onResizeEnd={onResizeEnd}
       />
       <NodeToolbar className="nodrag">
         <button onClick={onDelete} title="Delete Kernel 🗑️">

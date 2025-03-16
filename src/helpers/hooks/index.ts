@@ -19,3 +19,4 @@ export { default as useCellBranchReset } from './useCellBranchReset';
 export { default as useChangeExpandParent } from './useChangeExpandParent';
 export { default as useChangeFloatingEdges } from './useChangeFloatingEdges';
 export { default as useUpdateHistory } from './useUpdateHistory';
+export { default as useCollabOutputUtils} from './useCollabOutputUtils';

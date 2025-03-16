@@ -262,7 +262,7 @@ export default function FileExplorer() {
 
   /* Open a notebook for editing */
   const openFile = (path: string) => {
-    const completePath = 'http://localhost:3000/notebooks/' + path;
+    const completePath = 'http://localhost:80/notebooks/' + path;
     window.open(completePath, "_blank");
     // wait for the session to be created before refreshing the page
     setTimeout(() => {

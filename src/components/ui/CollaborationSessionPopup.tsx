@@ -1,6 +1,6 @@
 import {Button, Modal, Form} from "react-bootstrap";
 import React, {useState} from 'react';
-import { useUpdateWebSocket } from "../../helpers/websocket/updateWebSocket";
+import { useUpdateWebSocket } from "../../helpers/hooks/useUpdateWebSocket";
 import usePath from "../../helpers/hooks/usePath";
 import useWebSocketStore from "../../helpers/websocket/webSocketStore";
 import "../../styles/ui/canvas.scss";

@@ -32,9 +32,10 @@ export const initialModalStates = {
 };
 
 // COMMENT - URL of the Jupyter Server
-const serverBase = "localhost:8888";
+const serverBase = "localhost:80";
+const WSbase = "localhost:8888"
 export const serverURL = "http://" + serverBase;
-export const serverWSURL = "ws://" + serverBase;
+export const serverWSURL = "ws://" + WSbase;
 
 // COMMENT MONACO editor options config
 export const monacoOptions: editor.IStandaloneEditorConstructionOptions = {

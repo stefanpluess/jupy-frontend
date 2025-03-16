@@ -71,7 +71,7 @@ function useExecuteOnSuccessors() {
         }
         setExecutionStateForGroupNode(succ, { nodeId: simpleNodeId, state: KERNEL_BUSY_FROM_PARENT });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        await axios.post(`${serverURL}/canvas_ext/execute`, requestBody)
+        await axios.post(`${serverURL}/api/canvas_ext/execute`, requestBody)
         .then((res) => {
           addToHistory(succ, {
             node_id: simpleNodeId,

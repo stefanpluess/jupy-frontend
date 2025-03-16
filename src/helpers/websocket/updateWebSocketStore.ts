@@ -1,50 +1,49 @@
 import {createWithEqualityFn} from 'zustand/traditional';
 import MonacoEditor, { Editor} from '@monaco-editor/react';
 
-export type CursorPosition = {
-    lineNumber : number;
-    column : number;
-    clientName : string;
-    client_id : string;
-    colorName : string;
-}
-
 export type user = {
     client_id : string;
     clientName : string;
     colorCode : string;
 }
 
-/* export type user = {
-    client_id : string;
-    clientName : string;
-    colorCode : string;
-    colorName : string;
-} */
 
 export type updateWebSocketStore = {
+
+    //websocket
     websocket : WebSocket | undefined;
     setWebSocket: (ws : WebSocket | undefined, username : string | undefined) => void;
     closeWebSocket: () => void;
     sendMessage: (message : string) => void;
-    cursorPositions: Record<string, Record<string, CursorPosition>>;
-    updateCursorPosition: (position: CursorPosition, node_id: string) => void;
-    client_name : string;
     isWebSocketSet : () => boolean;
+
+    //clients chosen name
+    client_name : string;
     getClientName : () => string;
-    users : user[];
-    addUser : (client_id : string, clientName : string, colorCode : string, colorName : string) => void;
-    getUsers : () => user[];
-    removeUser : (client_id : string) => void;
+
+
+    //user positions
     userPositions : Record<string, Record<string, user>>;
     updateUserPositions : (user: user, node_id: string) => void;
+    setUserPositions : (userPositions : Record<string, Record<string, user>>) => void;
+    getUserNameById : (id : string) => string | undefined;
+    removeUser : (client_id : string) => void;
+
+    //alert functionality when joining/leaving session
+    joinedUser : string;
+    setJoinedUser : (username : string) => void;
+    leftUser : string;
+    setLeftUser : (username : string) => void;
+    showJoinedUser : boolean;
+    setShowJoinedUser : ( value : boolean) => void;
+    showLeftUser : boolean;
+    setShowLeftUser : (value : boolean) => void;
     
 }
 
 export const useUpdateWebSocketStore = createWithEqualityFn<updateWebSocketStore>((set, get) => ({
     websocket : undefined,
     client_name : "",
-    cursorPositions : {},
     closeWebSocket : () => {
         get().websocket?.close()
         get().setWebSocket(undefined, undefined)
@@ -67,6 +66,9 @@ export const useUpdateWebSocketStore = createWithEqualityFn<updateWebSocketStore
             return {userPositions:updatedUserPositions}
         })
     },
+    setUserPositions : ( userPositions: Record<string, Record<string, user>>) => {
+        set({userPositions : userPositions});
+    },
     removeUser : (client_id : string) => {
         set((state) => {
             const updatedUserPositions = {...state.userPositions};
@@ -85,17 +87,16 @@ export const useUpdateWebSocketStore = createWithEqualityFn<updateWebSocketStore
             return {userPositions: updatedUserPositions};
         })
     },
-    users : [],
-    addUser : (client_id : string, clientName : string, colorCode : string, colorName : string) => {
-        const newUser = {
-            client_id,
-            clientName,
-            colorCode,
-            colorName
+    getUserNameById : (id : string) => {
+        for (const node_id in get().userPositions) {
+            const clients = get().userPositions[node_id];
+            for (const clientId in clients) {
+                if (clientId === id) {
+                    return clients[clientId].clientName;
+                }
+            }
         }
-        set({users : get().users.concat(newUser)})
     },
-    getUsers : () => get().users,
     setWebSocket : (ws : WebSocket | undefined, username : string | undefined) => {
         set({websocket:ws, client_name : username})
     },
@@ -106,19 +107,6 @@ export const useUpdateWebSocketStore = createWithEqualityFn<updateWebSocketStore
             get().websocket!.send(message)
         }
     },
-    updateCursorPosition: (position, node_id) => {
-        
-        set((state) => ({
-            cursorPositions: {
-                ...state.cursorPositions,
-                [node_id] : {
-                    ...state.cursorPositions[node_id],
-                    [position.client_id]: position,
-                },
-            },
-        }))
-        console.log("cursorposition is: " + JSON.stringify(get().cursorPositions))
-    },
     setClientName: (username : string) => {set({client_name:username})},
     isWebSocketSet: () => { if (get().websocket) {
         return true;
@@ -127,7 +115,23 @@ export const useUpdateWebSocketStore = createWithEqualityFn<updateWebSocketStore
     }},
     getClientName : () => {
         return get().client_name;
-    }
+    },
     
+    joinedUser : "",
+    setJoinedUser(username : string) {
+        set({joinedUser : username})
+    },
+    leftUser : "",
+    setLeftUser(username : string) {
+        set({leftUser : username});
+    },
+    showJoinedUser : false,
+    setShowJoinedUser(value : boolean) {
+        set({showJoinedUser : value})
+    },
+    showLeftUser : false,
+    setShowLeftUser(value : boolean) {
+        set({showLeftUser : value})
+    },
 }))
 

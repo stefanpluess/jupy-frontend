@@ -4,7 +4,7 @@ import { getConnectedNodeId, getId, getNodePositionInsideParent, sortNodes } fro
 import useNodesStore from '../nodesStore';
 import { FLOATING_EDGE, GROUP_NODE, NORMAL_EDGE, NORMAL_NODE } from '../../config/constants';
 import useSettingsStore from '../settingsStore';
-import { useUpdateWebSocket } from '../websocket/updateWebSocket';
+import { useUpdateWebSocket } from './useUpdateWebSocket';
 
 /**
  * Creates a duplicate of a node and its output node (if connected to one) in a React Flow graph.

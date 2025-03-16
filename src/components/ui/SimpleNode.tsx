@@ -6,7 +6,7 @@ import {
   memo,
   useRef,
 } from "react";
-import D3DragEvent, {
+import  {
   Handle,
   Position,
   NodeToolbar,
@@ -88,12 +88,11 @@ import useExecutionStore from "../../helpers/executionStore";
 //import { edges, nodes } from "../../config/initial-elements";
 //import edges from "reactflow"
 //import nodes from "reactflow"
-import edges from "../views/Home";
-import { useUpdateWebSocket} from "../../helpers/websocket/updateWebSocket";
+
+import { useUpdateWebSocket} from "../../helpers/hooks/useUpdateWebSocket";
 import {useDocumentStore} from "../../helpers/documentStore";
-import debounce from 'lodash.debounce';
 import { useUpdateWebSocketStore } from "../../helpers/websocket/updateWebSocketStore";
-import {Range} from "monaco-editor";
+
 /**
  * A React component that represents a code cell node on the canvas.
  * @param id - The unique identifier of the node.
@@ -182,11 +181,10 @@ function SimpleNode({ id, data }: NodeProps) {
   // INFO :: execution graph
   const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
 
-//experimental
+//methods used for collaborative feature
   const { sendUpdate, sendDeleteTransformation, sendResize} = useUpdateWebSocket();
-  const {cursorPositions, userPositions} = useUpdateWebSocketStore();
-  const [decorationCollection, setDecorationCollection] = useState<any>(null);
-  const [lastCall, setLastCall] = useState<number>(new Date().getTime());
+  const {userPositions} = useUpdateWebSocketStore();
+
   useEffect(() => {
     const addEventListeners = async () => {
       // add a open and a close listener (for initial render, ensure correct ws status is shown)
@@ -326,16 +324,10 @@ function SimpleNode({ id, data }: NodeProps) {
       }
       // fetch the node using the store and update the code (needed for the editor to work)
       const node = getNode(id);
-
-      console.log(createJSON(getNodes(), edges))
       
-      //send patches via websocket
 
       node!.data.code = value;
       data.code = value;
-      console.log(createJSON(getNodes(), edges))
-      console.log("node is:" + JSON.stringify(node))
-
       sendUpdate(value, id);
     },
     [data, data.code]
@@ -464,7 +456,6 @@ function SimpleNode({ id, data }: NodeProps) {
     </div>
   );
   const onResizeEnd = useCallback((event: ResizeDragEvent, params: ResizeParams) => {
-    console.log(params);
     sendResize(id, params.height, params.width)
   }, [])
 

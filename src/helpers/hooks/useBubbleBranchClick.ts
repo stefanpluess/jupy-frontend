@@ -6,8 +6,8 @@ import { GROUP_NODE, GROUP_EDGE, NORMAL_NODE, MIN_WIDTH_GROUP, MIN_HEIGHT_GROUP 
 import { useWebSocketStore, createSession, selectorGeneral } from '../websocket';
 import usePath from './usePath';
 import useNodesStore from '../nodesStore';
-import { useUpdateHistory } from '.';
-import { useUpdateWebSocket } from '../websocket/updateWebSocket';
+import { useCollabOutputUtils, useUpdateHistory } from '.';
+import { useUpdateWebSocket } from './useUpdateWebSocket';
 
 /**
  * Returns a callback function that creates a new child group node and connection from the given parent.
@@ -23,7 +23,8 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
     const getNodeIdToWebsocketSession = useNodesStore((state) => state.getNodeIdToWebsocketSession);
     const setNodeIdToWebsocketSession = useNodesStore((state) => state.setNodeIdToWebsocketSession);
     const updateExportImportHistory = useUpdateHistory();
-    const {sendAddTransformation} = useUpdateWebSocket();
+    const {sendAddTransformation, sendNewOutputNode} = useUpdateWebSocket();
+    const {collabOutputUtils} = useCollabOutputUtils();
 
     const onBranchOut = useCallback(async () => {
         // check the node type
@@ -68,7 +69,7 @@ export function useBubbleBranchClick(id: NodeProps['id']) {
         };
 
         // create a websocket connection and pass the parent state to the child
-        const {ws, session} = await createSession(childNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+        const {ws, session} = await createSession(childNodeId, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
         setNodeIdToWebsocketSession(childNodeId, ws, session);
         const parentKernel = getNodeIdToWebsocketSession(parentNode.id)?.session?.kernel.id!;
         const childKernel = session?.kernel.id;

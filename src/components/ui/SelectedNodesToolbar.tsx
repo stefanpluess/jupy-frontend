@@ -25,6 +25,7 @@ import {
   getId 
 } from '../../helpers/utils';
 import { 
+  useCollabOutputUtils,
   usePath, 
   useRemoveGroupNode 
 } from '../../helpers/hooks';
@@ -46,6 +47,7 @@ import {
 } from '../../config/constants';
 import useSettingsStore from '../../helpers/settingsStore';
 import useExecutionStore from '../../helpers/executionStore';
+import { useUpdateWebSocket } from '../../helpers/hooks/useUpdateWebSocket';
 
 /**
  * This component renders a toolbar for selected nodes on the canvas space.
@@ -72,6 +74,8 @@ export default function SelectedNodesToolbar() {
   const [showConfirmModalDelete, setShowConfirmModalDelete] = useState(false);
   const expandParentSetting = useSettingsStore((state) => state.expandParent);
   const addDeletedNodeIds = useExecutionStore((state) => state.addDeletedNodeIds);
+  const {collabOutputUtils} = useCollabOutputUtils();
+  const {sendNewOutputNode} = useUpdateWebSocket();
 
   let hasRunningGroupNodeSelected = useCallback(() => {
     let hasRunningGroupNodeSelected = false;
@@ -91,7 +95,7 @@ export default function SelectedNodesToolbar() {
       x: rectOfNodes.x,
       y: rectOfNodes.y,
     };
-    const {ws, session} = await createSession(groupId, path, token, setLatestExecutionOutput, setLatestExecutionCount);
+    const {ws, session} = await createSession(groupId, path, token, setLatestExecutionOutput, setLatestExecutionCount, collabOutputUtils, sendNewOutputNode);
     const groupNode = {
       id: groupId,
       type: GROUP_NODE,
